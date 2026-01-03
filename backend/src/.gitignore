@@ -10,4 +10,5 @@ build/
 .env
 
 #firebase .json
-firebase-service-account.json
+# Firebase secrets
+backend/firebase-service-account.json
