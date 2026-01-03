@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import admin from "../firebase";
+import admin from "../config/firebase";
 
 export interface AuthRequest extends Request {
   user?: admin.auth.DecodedIdToken;
