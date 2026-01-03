@@ -8,3 +8,6 @@ build/
 
 # Env
 .env
+
+#firebase .json
+firebase-service-account.json

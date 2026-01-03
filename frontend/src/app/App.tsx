@@ -13,6 +13,7 @@ import { Cart } from './pages/Cart';
 import { Checkout } from './pages/Checkout';
 import { Auth } from './pages/Auth';
 import { Login } from './pages/Login';
+import LoginTest from "./pages/LoginTest";
 import { Register } from './pages/Register';
 import { ForgotPassword } from './pages/ForgotPassword';
 import { Dashboard } from './pages/Dashboard';
@@ -36,6 +37,7 @@ function AppContent() {
                   <Route path="/checkout" element={<Checkout />} />
                   <Route path="/auth" element={<Auth />} />
                   <Route path="/login" element={<Login />} />
+                  <Route path="/LoginTest" element={<LoginTest/>} />
                   <Route path="/register" element={<Register />} />
                   <Route path="/forgot-password" element={<ForgotPassword />} />
                   <Route path="/dashboard" element={
