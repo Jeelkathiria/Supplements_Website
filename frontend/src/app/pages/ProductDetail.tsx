@@ -98,6 +98,10 @@ export const ProductDetail: React.FC = () => {
   };
 
   const handleAddToCart = () => {
+    if (product.stockQuantity === 0) {
+      toast.error('This product is out of stock');
+      return;
+    }
     if ((product.sizes || [])?.length && !selectedSize) {
       toast.error("Please select a size");
       return;
@@ -114,6 +118,10 @@ export const ProductDetail: React.FC = () => {
   };
 
   const handleBuyNow = () => {
+  if (product.stockQuantity === 0) {
+    toast.error('This product is out of stock');
+    return;
+  }
   // Check size selection if sizes exist
   if ((product.sizes || [])?.length && !selectedSize) {
     toast.error("Please select a size");
@@ -199,9 +207,20 @@ export const ProductDetail: React.FC = () => {
 
           {/* INFO */}
           <div>
-            <p className="text-sm text-neutral-500">
-              {product.categoryName || (typeof product.category === 'object' ? product.category?.name : product.category) || "Uncategorized"}
-            </p>
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-neutral-500">
+                {product.categoryName || (typeof product.category === 'object' ? product.category?.name : product.category) || "Uncategorized"}
+              </p>
+              {product.isVegetarian ? (
+                <div className="w-10 h-10 border-2 border-green-600 rounded-sm flex items-center justify-center bg-white">
+                  <div className="w-3 h-3 bg-green-600 rounded-full"></div>
+                </div>
+              ) : (
+                <div className="w-10 h-10 border-2 border-red-600 rounded-sm flex items-center justify-center bg-white">
+                  <div className="w-3 h-3 bg-red-600 rounded-full"></div>
+                </div>
+              )}
+            </div>
             <h1 className="text-2xl font-bold mt-1">
               {product.name}
             </h1>
@@ -214,19 +233,49 @@ export const ProductDetail: React.FC = () => {
             </div>
 
             <div className="mt-5 border-b pb-5">
-              <div className="flex items-center gap-3">
-                <span className="text-2xl font-bold">
-                  ₹{finalPrice.toFixed(2)}
-                </span>
-                {(product.discountPercent || 0) > 0 && (
-                  <span className="line-through text-sm text-neutral-400">
-                    ₹{product.basePrice.toFixed(2)}
+              <div className="space-y-2">
+                {/* Final Price */}
+                <div>
+                  <span className="text-4xl font-bold">
+                    ₹{finalPrice.toFixed(2)}
                   </span>
+                </div>
+                
+                {/* Tax Info */}
+                <p className="text-sm text-neutral-600">
+                  Inclusive of all taxes
+                </p>
+
+                {/* Original Price and Savings */}
+                {(product.discountPercent || 0) > 0 && (
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <span className="text-lg line-through text-neutral-500">
+                      MRP ₹{product.basePrice.toFixed(2)}
+                    </span>
+                    <span className="text-lg font-medium text-green-600">
+                      Save ₹{(product.basePrice - finalPrice).toFixed(2)} ({product.discountPercent}%)
+                    </span>
+                  </div>
                 )}
+
+                {/* Stock Status and Sales */}
+                <div className="flex items-center gap-4 mt-3 flex-wrap">
+                  {product.stockQuantity > 0 ? (
+                    <span className="text-sm font-medium text-green-600 flex items-center gap-1">
+                      ✓ In stock!
+                    </span>
+                  ) : (
+                    <span className="text-sm font-medium text-red-600">
+                      Out of stock
+                    </span>
+                  )}
+                  {product.reviews && (
+                    <span className="text-sm text-neutral-600">
+                      {product.reviews}+ sold
+                    </span>
+                  )}
+                </div>
               </div>
-              <p className="text-xs text-neutral-500">
-                Inclusive of all taxes
-              </p>
             </div>
 
             {((product.sizes || [])?.length) > 0 && (
@@ -307,15 +356,25 @@ export const ProductDetail: React.FC = () => {
             <div className="hidden md:flex gap-3 mt-6">
               <button
                 onClick={handleAddToCart}
-                className="flex-1 border border-black py-3 rounded-md"
+                disabled={product.stockQuantity === 0}
+                className={`flex-1 border border-black py-3 rounded-md transition ${
+                  product.stockQuantity === 0
+                    ? 'bg-neutral-100 text-neutral-400 border-neutral-300 cursor-not-allowed'
+                    : 'hover:bg-neutral-50'
+                }`}
               >
-                Add to Cart
+                {product.stockQuantity === 0 ? 'Out of Stock' : 'Add to Cart'}
               </button>
               <button
                 onClick={handleBuyNow}
-                className="flex-1 bg-black text-white py-3 rounded-md"
+                disabled={product.stockQuantity === 0}
+                className={`flex-1 text-white py-3 rounded-md transition ${
+                  product.stockQuantity === 0
+                    ? 'bg-neutral-400 cursor-not-allowed'
+                    : 'bg-black hover:bg-neutral-800'
+                }`}
               >
-                Buy Now
+                {product.stockQuantity === 0 ? 'Out of Stock' : 'Buy Now'}
               </button>
             </div>
 
@@ -323,15 +382,25 @@ export const ProductDetail: React.FC = () => {
             <div className="sticky bottom-0 bg-white border-t p-3 flex gap-3 md:hidden z-30">
               <button
                 onClick={handleAddToCart}
-                className="flex-1 border border-black py-3 rounded-md"
+                disabled={product.stockQuantity === 0}
+                className={`flex-1 border border-black py-3 rounded-md transition ${
+                  product.stockQuantity === 0
+                    ? 'bg-neutral-100 text-neutral-400 border-neutral-300 cursor-not-allowed'
+                    : 'hover:bg-neutral-50'
+                }`}
               >
-                Add to Cart
+                {product.stockQuantity === 0 ? 'Out of Stock' : 'Add to Cart'}
               </button>
               <button
                 onClick={handleBuyNow}
-                className="flex-1 bg-black text-white py-3 rounded-md"
+                disabled={product.stockQuantity === 0}
+                className={`flex-1 text-white py-3 rounded-md transition ${
+                  product.stockQuantity === 0
+                    ? 'bg-neutral-400 cursor-not-allowed'
+                    : 'bg-black hover:bg-neutral-800'
+                }`}
               >
-                Buy Now
+                {product.stockQuantity === 0 ? 'Out of Stock' : 'Buy Now'}
               </button>
             </div>
 
@@ -351,6 +420,16 @@ export const ProductDetail: React.FC = () => {
             </div>
           </div>
         </div>
+
+        {/* DESCRIPTION SECTION */}
+        {product.description && (
+          <div className="mt-12 bg-neutral-100 rounded-xl p-8">
+            <h2 className="text-xl font-bold mb-4">Product Description</h2>
+            <p className="text-neutral-700 leading-relaxed whitespace-pre-wrap">
+              {product.description}
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

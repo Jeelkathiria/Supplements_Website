@@ -211,15 +211,31 @@ export const Home: React.FC = () => {
             </p>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-8">
-            {discountedProducts.map((product) => (
-              <ProductCard
-                key={product.id}
-                product={product}
-                variant="discount"
-              />
-            ))}
-          </div>
+          {discountedProducts.length > 0 ? (
+            <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-8">
+              {discountedProducts.map((product) => (
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  variant="discount"
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <div className="text-6xl mb-4">🎯</div>
+              <h3 className="text-2xl font-bold mb-2">No Special Discounts Available</h3>
+              <p className="text-neutral-300 mb-6">
+                Check back soon for amazing deals on premium supplements!
+              </p>
+              <Link
+                to="/products"
+                className="inline-block bg-white text-neutral-900 px-7 py-3 rounded-lg hover:bg-neutral-100 font-medium"
+              >
+                Browse All Products
+              </Link>
+            </div>
+          )}
         </div>
       </section>
     </div>

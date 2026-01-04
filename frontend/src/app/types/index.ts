@@ -23,6 +23,7 @@ export interface Product {
   isFeatured?: boolean;
   isActive?: boolean;
   isSpecialOffer?: boolean;
+  isVegetarian?: boolean; // true for veg, false for non-veg
   createdAt?: string;
   updatedAt?: string;
   // For backward compatibility with frontend form
@@ -37,4 +38,12 @@ export interface Product {
   newSize?: string;
   newSizeUnit?: string;
   newFlavor?: string;
+}
+
+// Cart Item Type
+export interface CartItem {
+  product: Product;
+  quantity: number;
+  selectedSize?: string;
+  selectedColor?: string;
 }

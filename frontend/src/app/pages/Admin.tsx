@@ -28,6 +28,7 @@ const EMPTY_FORM: Partial<Product> = {
   imageUrls: [],
   isFeatured: false,
   isSpecialOffer: false,
+  isVegetarian: false,
 };
 
 export const Admin: React.FC = () => {
@@ -364,9 +365,23 @@ export const Admin: React.FC = () => {
                         className="h-10 w-10 rounded-lg border object-cover"
                         alt={p.name}
                       />
-                      <span className="font-medium">
-                        {p.name}
-                      </span>
+                      <div className="flex flex-col gap-1">
+                        <span className="font-medium">
+                          {p.name}
+                        </span>
+                        <div className="flex gap-2">
+                          {p.isFeatured && (
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                              Featured
+                            </span>
+                          )}
+                          {p.isSpecialOffer && (
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                              Discounted
+                            </span>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   </td>
 
@@ -732,6 +747,54 @@ export const Admin: React.FC = () => {
                     </p>
                   </div>
                 </label>
+              </div>
+
+              {/* VEG/NON-VEG */}
+              <div>
+                <p className="mb-3 text-sm font-medium">Type</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <label className="flex items-center gap-3 rounded-lg border p-3 cursor-pointer hover:bg-green-50">
+                    <input
+                      type="radio"
+                      name="isVegetarian"
+                      checked={formData.isVegetarian === true}
+                      onChange={() => setFormData((prev) => ({ ...prev, isVegetarian: true }))}
+                      className="h-4 w-4"
+                    />
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 border-2 border-green-600 rounded-sm flex items-center justify-center bg-white">
+                        <div className="w-1.5 h-1.5 bg-green-600 rounded-full"></div>
+                      </div>
+                      <div>
+                        <p className="font-medium">Vegetarian</p>
+                        <p className="text-xs text-neutral-500">
+                          Veg products
+                        </p>
+                      </div>
+                    </div>
+                  </label>
+
+                  <label className="flex items-center gap-3 rounded-lg border p-3 cursor-pointer hover:bg-red-50">
+                    <input
+                      type="radio"
+                      name="isVegetarian"
+                      checked={formData.isVegetarian === false}
+                      onChange={() => setFormData((prev) => ({ ...prev, isVegetarian: false }))}
+                      className="h-4 w-4"
+                    />
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 border-2 border-red-600 rounded-sm flex items-center justify-center bg-white">
+                        <div className="w-1.5 h-1.5 bg-red-600 rounded-full"></div>
+                      </div>
+                      <div>
+                        <p className="font-medium">Non-Vegetarian</p>
+                        <p className="text-xs text-neutral-500">
+                          Non-veg products
+                        </p>
+                      </div>
+                    </div>
+                  </label>
+                </div>
               </div>
 
               {/* IMAGES */}

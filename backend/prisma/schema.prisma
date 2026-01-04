@@ -44,6 +44,7 @@ model Product {
   isFeatured      Boolean   @default(false)
   isSpecialOffer  Boolean   @default(false)
   isActive        Boolean   @default(true)
+  isVegetarian    Boolean   @default(false)  // true for veg, false for non-veg
 
   categoryId      String?
   categoryName    String?   // Store category name for redundancy and faster queries

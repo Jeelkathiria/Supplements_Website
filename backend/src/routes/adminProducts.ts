@@ -20,6 +20,7 @@ router.post("/", requireAuth, async (req: AuthRequest, res: Response) => {
       categoryId, // This is actually the category name from frontend
       isFeatured,
       isSpecialOffer,
+      isVegetarian,
     } = req.body;
 
     // Validate required fields
@@ -72,6 +73,7 @@ router.post("/", requireAuth, async (req: AuthRequest, res: Response) => {
         categoryName: actualCategoryName,
         isFeatured: isFeatured === true || isFeatured === "true",
         isSpecialOffer: isSpecialOffer === true || isSpecialOffer === "true",
+        isVegetarian: isVegetarian === true || isVegetarian === "true",
         isActive: true,
       },
       include: { category: true },
@@ -104,6 +106,7 @@ router.put("/:id", requireAuth, async (req: AuthRequest, res: Response) => {
       categoryId,
       isFeatured,
       isSpecialOffer,
+      isVegetarian,
     } = req.body;
 
     // Check if product exists
@@ -159,6 +162,7 @@ router.put("/:id", requireAuth, async (req: AuthRequest, res: Response) => {
         categoryName: actualCategoryName,
         isFeatured: isFeatured === true || isFeatured === "true",
         isSpecialOffer: isSpecialOffer === true || isSpecialOffer === "true",
+        isVegetarian: isVegetarian === true || isVegetarian === "true",
       },
       include: { category: true },
     });

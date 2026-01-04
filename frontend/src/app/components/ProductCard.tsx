@@ -33,11 +33,16 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
+    if (product.stockQuantity === 0) {
+      toast.error('This product is out of stock');
+      return;
+    }
     addToCart(product, 1);
     toast.success(`${product.name} added to cart!`);
   };
 
   const isDiscount = variant === 'discount';
+  const isOutOfStock = product.stockQuantity === 0;
 
   return (
     <Link to={`/product/${product.id}`} className="group block">
@@ -74,19 +79,41 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             </div>
           )}
 
+          {/* Veg/Non-Veg Badge */}
+          <div className="absolute top-3 right-3">
+            {product.isVegetarian ? (
+              <div className="w-8 h-8 border-2 border-green-600 rounded-sm flex items-center justify-center bg-white">
+                <div className="w-2 h-2 bg-green-600 rounded-full"></div>
+              </div>
+            ) : (
+              <div className="w-8 h-8 border-2 border-red-600 rounded-sm flex items-center justify-center bg-white">
+                <div className="w-2 h-2 bg-red-600 rounded-full"></div>
+              </div>
+            )}
+          </div>
+
           {/* Quick Add Button */}
-          <button
-            onClick={handleAddToCart}
-            className={`
-              absolute bottom-3 right-3 p-3 rounded-full transition
-              ${isDiscount
-                ? 'bg-white text-neutral-900 opacity-100 hover:bg-neutral-200'
-                : 'bg-neutral-900 text-white opacity-0 group-hover:opacity-100 hover:bg-neutral-800'}
-            `}
-            aria-label="Add to cart"
-          >
-            <ShoppingCart className="w-5 h-5" />
-          </button>
+          {!isOutOfStock && (
+            <button
+              onClick={handleAddToCart}
+              className={`
+                absolute bottom-3 right-3 p-3 rounded-full transition
+                ${isDiscount
+                  ? 'bg-white text-neutral-900 opacity-100 hover:bg-neutral-200'
+                  : 'bg-neutral-900 text-white opacity-0 group-hover:opacity-100 hover:bg-neutral-800'}
+              `}
+              aria-label="Add to cart"
+            >
+              <ShoppingCart className="w-5 h-5" />
+            </button>
+          )}
+
+          {/* Out of Stock Badge */}
+          {isOutOfStock && (
+            <div className="absolute bottom-3 right-3 bg-red-600 text-white px-3 py-2 rounded-lg text-xs font-medium">
+              Out of Stock
+            </div>
+          )}
         </div>
 
         {/* Product Info */}

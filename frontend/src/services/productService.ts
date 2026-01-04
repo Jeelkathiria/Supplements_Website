@@ -65,6 +65,7 @@ export const createProduct = async (
       imageUrls: productData.imageUrls || [],
       isFeatured: productData.isFeatured || false,
       isSpecialOffer: productData.isSpecialOffer || false,
+      isVegetarian: productData.isVegetarian || false,
       categoryId: productData.categoryId || "",
     };
 
@@ -113,6 +114,7 @@ export const updateProduct = async (
       imageUrls: productData.imageUrls || [],
       isFeatured: productData.isFeatured || false,
       isSpecialOffer: productData.isSpecialOffer || false,
+      isVegetarian: productData.isVegetarian || false,
       categoryId: productData.categoryId || "",
     };
 

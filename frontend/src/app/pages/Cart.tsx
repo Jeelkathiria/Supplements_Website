@@ -59,74 +59,111 @@ export const Cart: React.FC = () => {
           {/* Cart Items */}
           <div className="lg:col-span-2 space-y-6">
             {cartItems.map((item) => {
-              const finalPrice = calculateFinalPrice(
-                item.product.basePrice,
-                item.product.discount,
-                item.product.tax
-              );
+              const basePrice = item.product.basePrice;
+              const discountPercent = item.product.discountPercent || 0;
+              const gstPercent = item.product.gstPercent || 0;
+              
+              const discountedPrice = basePrice - (basePrice * discountPercent / 100);
+              const finalPrice = discountedPrice + (discountedPrice * gstPercent / 100);
+              const itemTotal = finalPrice * item.quantity;
 
               return (
                 <div
                   key={`${item.product.id}-${item.selectedSize}-${item.selectedColor}`}
-                  className="bg-white rounded-xl border border-neutral-200 p-4"
+                  className="bg-white rounded-xl border border-neutral-200 p-4 hover:shadow-md transition"
                 >
                   <div className="flex gap-4">
                     {/* Image */}
-                    <img
-                      src={item.product.images[0]}
-                      alt={item.product.name}
-                      className="w-20 h-20 object-cover rounded-lg"
-                    />
+                    <div className="flex-shrink-0">
+                      <img
+                        src={item.product.imageUrls?.[0] || "/placeholder.png"}
+                        alt={item.product.name}
+                        className="w-28 h-28 object-cover rounded-lg border border-neutral-200"
+                      />
+                    </div>
 
                     {/* Info */}
                     <div className="flex-1">
-                      <h3 className="font-medium">{item.product.name}</h3>
-                      {item.selectedSize && (
-                        <p className="text-sm text-neutral-600">
-                          Size: {item.selectedSize}
+                      <Link 
+                        to={`/product/${item.product.id}`}
+                        className="font-bold text-lg hover:text-neutral-600 transition"
+                      >
+                        {item.product.name}
+                      </Link>
+                      
+                      {item.product.description && (
+                        <p className="text-sm text-neutral-600 mt-1 line-clamp-2">
+                          {item.product.description}
                         </p>
                       )}
-                      {item.selectedColor && (
-                        <p className="text-sm text-neutral-600">
-                          Flavor: {item.selectedColor}
-                        </p>
-                      )}
-                      <p className="text-sm text-neutral-500 mt-1">
-                        ₹{finalPrice} each
-                      </p>
+
+                      <div className="mt-3 space-y-1">
+                        {item.selectedSize && (
+                          <p className="text-sm text-neutral-700">
+                            <span className="font-medium">Size:</span> {item.selectedSize}
+                          </p>
+                        )}
+                        {item.selectedColor && (
+                          <p className="text-sm text-neutral-700">
+                            <span className="font-medium">Flavor:</span> {item.selectedColor}
+                          </p>
+                        )}
+                        
+                        <div className="text-sm text-neutral-600 space-y-1">
+                          <p>
+                            <span className="font-medium">Price:</span> ₹{basePrice.toFixed(2)}
+                          </p>
+                          {discountPercent > 0 && (
+                            <p className="text-green-600">
+                              <span className="font-medium">Discount:</span> -{discountPercent}% = ₹{(basePrice - discountedPrice).toFixed(2)}
+                            </p>
+                          )}
+                          {gstPercent > 0 && (
+                            <p>
+                              <span className="font-medium">GST:</span> +{gstPercent}% = ₹{(finalPrice - discountedPrice).toFixed(2)}
+                            </p>
+                          )}
+                          <p className="font-bold text-neutral-900 border-t pt-1">
+                            <span className="font-medium">Final Price:</span> ₹{finalPrice.toFixed(2)}
+                          </p>
+                        </div>
+                      </div>
                     </div>
 
                     {/* Actions */}
-                    <div className="flex flex-col items-end justify-between">
-                      <p className="font-semibold">
-                        ₹{(finalPrice * item.quantity).toFixed(2)}
-                      </p>
+                    <div className="flex flex-col items-end gap-3">
+                      <div className="text-right">
+                        <p className="text-xs text-neutral-500">Subtotal (Qty: {item.quantity})</p>
+                        <p className="text-lg font-bold text-neutral-900">
+                          ₹{itemTotal.toFixed(2)}
+                        </p>
+                      </div>
 
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 bg-neutral-100 rounded-lg p-1">
                         <button
                           onClick={() =>
-                            updateQuantity(item.product.id, item.quantity - 1)
+                            updateQuantity(item.product.id, item.quantity - 1, item.selectedSize, item.selectedColor)
                           }
-                          className="w-7 h-7 border border-neutral-300 rounded hover:bg-neutral-100"
+                          className="w-8 h-8 border border-neutral-300 rounded hover:bg-neutral-200 flex items-center justify-center"
                         >
-                          <Minus className="w-3 h-3 mx-auto" />
+                          <Minus className="w-4 h-4" />
                         </button>
-                        <span className="w-8 text-center text-sm">
+                        <span className="w-8 text-center font-medium">
                           {item.quantity}
                         </span>
                         <button
                           onClick={() =>
-                            updateQuantity(item.product.id, item.quantity + 1)
+                            updateQuantity(item.product.id, item.quantity + 1, item.selectedSize, item.selectedColor)
                           }
-                          className="w-7 h-7 border border-neutral-300 rounded hover:bg-neutral-100"
+                          className="w-8 h-8 border border-neutral-300 rounded hover:bg-neutral-200 flex items-center justify-center"
                         >
-                          <Plus className="w-3 h-3 mx-auto" />
+                          <Plus className="w-4 h-4" />
                         </button>
                       </div>
 
                       <button
-                        onClick={() => removeFromCart(item.product.id)}
-                        className="text-xs text-red-600 hover:text-red-700 flex items-center gap-1 mt-2"
+                        onClick={() => removeFromCart(item.product.id, item.selectedSize, item.selectedColor)}
+                        className="text-xs text-red-600 hover:text-red-700 font-medium flex items-center gap-1 mt-2"
                       >
                         <Trash2 className="w-3 h-3" />
                         Remove

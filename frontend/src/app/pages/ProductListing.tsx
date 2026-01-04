@@ -21,6 +21,7 @@ export const ProductListing: React.FC = () => {
   const [selectedCategory, setSelectedCategory] =
     useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [selectedType, setSelectedType] = useState<string>("all"); // all, vegetarian, non-vegetarian
 
   const [showFilters, setShowFilters] = useState(false);
 
@@ -51,9 +52,11 @@ export const ProductListing: React.FC = () => {
 
     const search = params.get("search") || "";
     const category = params.get("category") || "all";
+    const type = params.get("type") || "all";
 
     setSearchQuery(search);
     setSelectedCategory(category);
+    setSelectedType(type);
   }, [location.search]);
 
   const categories = useMemo(() => {
@@ -67,6 +70,7 @@ export const ProductListing: React.FC = () => {
 
   const handleResetFilters = () => {
     setSelectedCategory("all");
+    setSelectedType("all");
     setSearchQuery("");
     setSortBy("popularity");
     navigate("/products");
@@ -86,6 +90,10 @@ export const ProductListing: React.FC = () => {
         selectedCategory === "all" ||
         (product.categoryName || (typeof product.category === 'object' ? product.category?.name : product.category)) === selectedCategory;
 
+      const typeMatch =
+        selectedType === "all" ||
+        (selectedType === "vegetarian" ? product.isVegetarian : !product.isVegetarian);
+
       const searchMatch =
         product.name
           .toLowerCase()
@@ -94,7 +102,7 @@ export const ProductListing: React.FC = () => {
           .toLowerCase()
           .includes(searchQuery.toLowerCase());
 
-      return priceMatch && categoryMatch && searchMatch;
+      return priceMatch && categoryMatch && typeMatch && searchMatch;
     });
 
     result.sort((a, b) => {
@@ -113,7 +121,7 @@ export const ProductListing: React.FC = () => {
     });
 
     return result;
-  }, [priceRange, sortBy, selectedCategory, searchQuery, products]);
+  }, [priceRange, sortBy, selectedCategory, selectedType, searchQuery, products]);
 
   return (
     <div className="min-h-screen bg-neutral-50">
@@ -206,6 +214,39 @@ export const ProductListing: React.FC = () => {
                     <option value="rating">
                       Rating: High to Low
                     </option>
+                  </select>
+                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400 pointer-events-none" />
+                </div>
+              </div>
+
+              {/* Type - Veg/Non-Veg */}
+              <div>
+                <label className="text-sm font-medium mb-2 block">
+                  Type
+                </label>
+                <div className="relative">
+                  <select
+                    value={selectedType}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setSelectedType(value);
+
+                      const params = new URLSearchParams(
+                        location.search,
+                      );
+                      value === "all"
+                        ? params.delete("type")
+                        : params.set("type", value);
+
+                      navigate(
+                        `/products?${params.toString()}`,
+                      );
+                    }}
+                    className="w-full px-4 py-2 border border-neutral-300 rounded-lg text-sm appearance-none focus:ring-2 focus:ring-neutral-900"
+                  >
+                    <option value="all">All Types</option>
+                    <option value="vegetarian">Vegetarian</option>
+                    <option value="non-vegetarian">Non-Vegetarian</option>
                   </select>
                   <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400 pointer-events-none" />
                 </div>
