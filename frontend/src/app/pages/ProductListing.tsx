@@ -2,8 +2,9 @@ import React, { useState, useMemo, useEffect } from "react";
 import { Filter, ChevronDown } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { ProductCard } from "../components/ProductCard";
-import { PRODUCTS } from "../data/products";
 import { Breadcrumb } from "../components/Breadcrumb";
+import { fetchProducts } from "../../services/productService";
+import { Product } from "../types";
 
 type SortType =
   | "popularity"
@@ -13,6 +14,8 @@ type SortType =
 
 export const ProductListing: React.FC = () => {
   const [priceRange] = useState<[number, number]>([0, 5000]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   const [sortBy, setSortBy] = useState<SortType>("popularity");
   const [selectedCategory, setSelectedCategory] =
@@ -23,6 +26,23 @@ export const ProductListing: React.FC = () => {
 
   const location = useLocation();
   const navigate = useNavigate();
+
+  // Load products on component mount
+  useEffect(() => {
+    const loadProducts = async () => {
+      try {
+        setIsLoading(true);
+        const data = await fetchProducts();
+        setProducts(data);
+      } catch (error) {
+        console.error("Failed to load products:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadProducts();
+  }, []);
 
   /* ---------- READ QUERY PARAMS ---------- */
 
@@ -37,8 +57,11 @@ export const ProductListing: React.FC = () => {
   }, [location.search]);
 
   const categories = useMemo(() => {
-    return ["all", ...new Set(PRODUCTS.map((p) => p.category))];
-  }, []);
+    const uniqueCategories = [
+      ...new Set(products.map((p) => p.categoryName || (typeof p.category === 'object' ? p.category?.name : p.category) || p.categoryId).filter(Boolean)),
+    ];
+    return ["all", ...(uniqueCategories as string[])];
+  }, [products]);
 
   /* ---------- RESET ---------- */
 
@@ -52,10 +75,8 @@ export const ProductListing: React.FC = () => {
   /* ---------- FILTER + SEARCH + SORT ---------- */
 
   const filteredAndSortedProducts = useMemo(() => {
-    let result = PRODUCTS.filter((product) => {
-      const finalPrice =
-        product.basePrice -
-        (product.basePrice * product.discount) / 100;
+    let result = products.filter((product) => {
+      const finalPrice = product.finalPrice;
 
       const priceMatch =
         finalPrice >= priceRange[0] &&
@@ -63,7 +84,7 @@ export const ProductListing: React.FC = () => {
 
       const categoryMatch =
         selectedCategory === "all" ||
-        product.category === selectedCategory;
+        (product.categoryName || (typeof product.category === 'object' ? product.category?.name : product.category)) === selectedCategory;
 
       const searchMatch =
         product.name
@@ -77,27 +98,22 @@ export const ProductListing: React.FC = () => {
     });
 
     result.sort((a, b) => {
-      const priceA =
-        a.basePrice - (a.basePrice * a.discount) / 100;
-      const priceB =
-        b.basePrice - (b.basePrice * b.discount) / 100;
-
       switch (sortBy) {
         case "popularity":
-          return b.rating - a.rating;
+          return (b.rating || 0) - (a.rating || 0);
         case "price-low":
-          return priceA - priceB;
+          return a.finalPrice - b.finalPrice;
         case "price-high":
-          return priceB - priceA;
+          return b.finalPrice - a.finalPrice;
         case "rating":
-          return b.rating - a.rating;
+          return (b.rating || 0) - (a.rating || 0);
         default:
           return 0;
       }
     });
 
     return result;
-  }, [priceRange, sortBy, selectedCategory, searchQuery]);
+  }, [priceRange, sortBy, selectedCategory, searchQuery, products]);
 
   return (
     <div className="min-h-screen bg-neutral-50">
@@ -223,22 +239,30 @@ export const ProductListing: React.FC = () => {
             </div>
 
             {/* Grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6 lg:gap-10">
-              {filteredAndSortedProducts.map((product) => (
-                <ProductCard
-                  key={product.id}
-                  product={product}
-                />
-              ))}
-            </div>
-
-            {/* Empty */}
-            {filteredAndSortedProducts.length === 0 && (
-              <div className="text-center py-32">
-                <p className="text-neutral-600">
-                  No products found for selected filters
-                </p>
+            {isLoading ? (
+              <div className="flex justify-center items-center h-64">
+                <p className="text-neutral-600">Loading products...</p>
               </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6 lg:gap-10">
+                  {filteredAndSortedProducts.map((product) => (
+                    <ProductCard
+                      key={product.id}
+                      product={product}
+                    />
+                  ))}
+                </div>
+
+                {/* Empty */}
+                {filteredAndSortedProducts.length === 0 && (
+                  <div className="text-center py-32">
+                    <p className="text-neutral-600">
+                      No products found for selected filters
+                    </p>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>

@@ -6,9 +6,11 @@ frontend/node_modules/
 dist/
 build/
 
-# Env
-.env
 
-#firebase .json
-# Firebase secrets
 backend/firebase-service-account.json
+.env
+.env.*
+
+/src/generated/prisma
+
+prisma/migrations/

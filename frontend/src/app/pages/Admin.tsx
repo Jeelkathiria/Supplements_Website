@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Plus, Edit2, Trash2, X, Upload } from "lucide-react";
 import { Product } from "../types";
 import {
@@ -6,36 +6,63 @@ import {
   calculateFinalPrice,
 } from "../data/products";
 import { toast } from "sonner";
+import {
+  fetchProducts,
+  createProduct,
+  updateProduct,
+  deleteProduct,
+} from "../../services/productService";
 
 const EMPTY_FORM: Partial<Product> = {
   name: "",
   description: "",
-  category: "",
+  categoryId: "",
   sizes: [],
   flavors: [],
   basePrice: 0,
-  discount: 0,
-  tax: 5,
-  stock: 0,
+  discountPercent: 0,
+  gstPercent: 5,
+  stockQuantity: 0,
   rating: 4.5,
   reviews: 0,
-  images: [],
+  imageUrls: [],
   isFeatured: false,
   isSpecialOffer: false,
 };
 
 export const Admin: React.FC = () => {
-  const [products, setProducts] = useState<Product[]>(PRODUCTS);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] =
     useState<Product | null>(null);
   const [formData, setFormData] =
     useState<Partial<Product>>(EMPTY_FORM);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const [showCategorySuggestions, setShowCategorySuggestions] =
+    useState(false);
 
   const ITEMS_PER_PAGE = 10;
+
+  // Load products on component mount
+  useEffect(() => {
+    const loadProducts = async () => {
+      try {
+        setIsLoading(true);
+        const data = await fetchProducts();
+        setProducts(data);
+      } catch (error) {
+        toast.error("Failed to load products");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadProducts();
+  }, []);
 
   /* ---------------- INPUT HANDLING ---------------- */
   const handleInputChange = (
@@ -43,22 +70,27 @@ export const Admin: React.FC = () => {
       HTMLInputElement | HTMLTextAreaElement
     >,
   ) => {
-    const { name, value } = e.target;
+    const { name, type } = e.target;
+    const target = e.target as HTMLInputElement;
+    const value = type === "checkbox" ? target.checked : target.value;
 
     const numberFields = [
       "basePrice",
-      "discount",
-      "tax",
-      "stock",
+      "discountPercent",
+      "gstPercent",
+      "stockQuantity",
       "rating",
       "reviews",
     ];
 
     setFormData((prev) => ({
       ...prev,
-      [name]: numberFields.includes(name)
-        ? Number(value) || 0
-        : value,
+      [name]:
+        type === "checkbox"
+          ? value
+          : numberFields.includes(name)
+            ? Number(value) || 0
+            : value,
     }));
   };
 
@@ -69,23 +101,43 @@ export const Admin: React.FC = () => {
     const files = e.target.files;
     if (!files) return;
 
-    const images = Array.from(files).map((file) =>
-      URL.createObjectURL(file),
-    );
+    // Convert files to base64 for preview and storage
+    const promises = Array.from(files).map((file) => {
+      return new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          resolve(event.target?.result as string);
+        };
+        reader.readAsDataURL(file);
+      });
+    });
 
+    Promise.all(promises).then((base64Images) => {
+      setFormData((prev) => ({
+        ...prev,
+        imageUrls: [...(prev.imageUrls || []), ...base64Images],
+      }));
+      toast.success(`${files.length} image(s) added`);
+    });
+  };
+
+  const removeImage = (index: number) => {
     setFormData((prev) => ({
       ...prev,
-      images: [...(prev.images || []), ...images],
+      imageUrls: (prev.imageUrls || []).filter((_, i) => i !== index),
     }));
-
-    toast.success(`${files.length} image(s) added`);
+    toast.success("Image removed");
   };
 
   /* ---------------- MODAL HANDLING ---------------- */
   const openModal = (product?: Product) => {
     if (product) {
       setEditingProduct(product);
-      setFormData(product);
+      // When editing, use categoryName instead of categoryId for display
+      setFormData({
+        ...product,
+        categoryId: product.categoryName || product.categoryId || "",
+      });
     } else {
       setEditingProduct(null);
       setFormData(EMPTY_FORM);
@@ -98,59 +150,90 @@ export const Admin: React.FC = () => {
     setEditingProduct(null);
   };
 
-  const existingCategories = Array.from(
-    new Set(products.map((p) => p.category).filter(Boolean)),
-  );
+  const [categoryNames, setCategoryNames] = useState<string[]>([]);
+
+  // Fetch category names from backend
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const response = await fetch(
+          "http://localhost:5000/api/categories",
+        );
+        if (response.ok) {
+          const data = await response.json();
+          // Extract category names from the response
+          setCategoryNames(
+            data.map((cat: any) => cat.name).sort(),
+          );
+        }
+      } catch (error) {
+        console.error("Failed to load categories:", error);
+      }
+    };
+
+    loadCategories();
+  }, []);
+
+  const existingCategories = categoryNames;
 
   // Add this inside Admin component, near other useState
-  const [showCategorySuggestions, setShowCategorySuggestions] =
-    useState(false);
 
   /* ---------------- SUBMIT ---------------- */
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmitting(true);
 
-    if (editingProduct) {
-      setProducts((prev) =>
-        prev.map((p) =>
-          p.id === editingProduct.id
-            ? { ...p, ...formData }
-            : p,
-        ),
+    try {
+      // Helper function to check if a URL is a data URL (base64)
+      const isDataUrl = (url: string) => url?.startsWith("data:");
+
+      // Separate existing URLs from new base64 images
+      const existingImages = (formData.imageUrls || []).filter(
+        (url) => !isDataUrl(url),
       );
-      toast.success("Product updated", {
-        duration: 2000, // 2 seconds
-        action: {
-          label: "×",
-          onClick: (toastObj) => toastObj.dismiss(),
-        },
-      });
-    } else {
-      setProducts((prev) => [
-        ...prev,
-        { ...(formData as Product), id: Date.now().toString() },
-      ]);
-      toast.success("Product added", {
-        duration: 2000,
-        action: {
-          label: "×",
-          onClick: (toastObj) => toastObj.dismiss(),
-        },
-      });
-    }
 
-    closeModal();
+      // For updates, don't send base64 images (too large)
+      const dataToSend = {
+        ...formData,
+        imageUrls: editingProduct ? existingImages : formData.imageUrls,
+      };
+
+      if (editingProduct) {
+        await updateProduct(editingProduct.id, dataToSend as any);
+        // Refresh products
+        const updated = await fetchProducts();
+        setProducts(updated);
+        toast.success("Product updated", {
+          duration: 2000,
+        });
+      } else {
+        await createProduct(dataToSend as any);
+        // Refresh products
+        const updated = await fetchProducts();
+        setProducts(updated);
+        toast.success("Product added", {
+          duration: 2000,
+        });
+      }
+
+      closeModal();
+    } catch (error: any) {
+      toast.error(error.message || "Failed to save product");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const deleteProduct = (id: string) => {
-    setProducts((prev) => prev.filter((p) => p.id !== id));
-    toast.success("Product deleted", {
-      duration: 2000,
-      action: {
-        label: "×",
-        onClick: (toastObj) => toastObj.dismiss(),
-      },
-    });
+  const handleDeleteProduct = async (id: string) => {
+    try {
+      await deleteProduct(id);
+      setProducts((prev) => prev.filter((p) => p.id !== id));
+      toast.success("Product deleted", {
+        duration: 2000,
+      });
+    } catch (error: any) {
+      toast.error(error.message || "Failed to delete product");
+    }
   };
 
   /* ---------------- SEARCH & PAGINATION ---------------- */
@@ -159,7 +242,7 @@ export const Admin: React.FC = () => {
       product.name
         .toLowerCase()
         .includes(searchQuery.toLowerCase()) ||
-      product.category
+      (product.categoryId || "")
         .toLowerCase()
         .includes(searchQuery.toLowerCase()),
   );
@@ -253,64 +336,65 @@ export const Admin: React.FC = () => {
 
       {/* TABLE */}
       <div className="overflow-hidden rounded-xl border bg-white">
-        <table className="w-full text-sm">
-          <thead className="bg-neutral-100">
-            <tr>
-              <th className="px-4 py-3 text-left">Product</th>
-              <th className="px-4 py-3">Category</th>
-              <th className="px-4 py-3">Base Price</th>
-              <th className="px-4 py-3">Discount</th>
-              <th className="px-4 py-3">Final Price</th>
-              <th className="px-4 py-3">Stock</th>
-              <th className="px-4 py-3">Actions</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {paginatedProducts.map((p) => (
-              <tr key={p.id} className="border-t">
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-3">
-                    <img
-                      src={p.images?.[0] || "/placeholder.png"}
-                      className="h-10 w-10 rounded-lg border object-cover"
-                      alt={p.name}
-                    />
-                    <span className="font-medium">
-                      {p.name}
-                    </span>
-                  </div>
-                </td>
-
-                <td className="text-center">{p.category}</td>
-                <td className="text-center">₹{p.basePrice}</td>
-                <td className="text-center text-green-600">
-                  {p.discount ? `${p.discount}%` : "—"}
-                </td>
-                <td className="text-center font-bold">
-                  ₹
-                  {calculateFinalPrice(
-                    p.basePrice,
-                    p.discount,
-                    p.tax,
-                  )}
-                </td>
-                <td className="text-center">{p.stock}</td>
-
-                <td>
-                  <div className="flex justify-center gap-2">
-                    <button onClick={() => openModal(p)}>
-                      <Edit2 className="h-4 w-4" />
-                    </button>
-                    <button onClick={() => deleteProduct(p.id)}>
-                      <Trash2 className="h-4 w-4 text-red-600" />
-                    </button>
-                  </div>
-                </td>
+        {isLoading ? (
+          <div className="flex justify-center items-center h-64">
+            <p className="text-neutral-600">Loading products...</p>
+          </div>
+        ) : (
+          <table className="w-full text-sm">
+            <thead className="bg-neutral-100">
+              <tr>
+                <th className="px-4 py-3 text-left">Product</th>
+                <th className="px-4 py-3">Category</th>
+                <th className="px-4 py-3">Base Price</th>
+                <th className="px-4 py-3">Discount</th>
+                <th className="px-4 py-3">Final Price</th>
+                <th className="px-4 py-3">Stock</th>
+                <th className="px-4 py-3">Actions</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+
+            <tbody>
+              {paginatedProducts.map((p) => (
+                <tr key={p.id} className="border-t">
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-3">
+                      <img
+                        src={p.imageUrls?.[0] || "/placeholder.png"}
+                        className="h-10 w-10 rounded-lg border object-cover"
+                        alt={p.name}
+                      />
+                      <span className="font-medium">
+                        {p.name}
+                      </span>
+                    </div>
+                  </td>
+
+                  <td className="text-center">{p.categoryName || (typeof p.category === 'object' ? p.category?.name : p.category) || p.categoryId || "—"}</td>
+                  <td className="text-center">₹{p.basePrice}</td>
+                  <td className="text-center text-green-600">
+                    {p.discountPercent ? `${p.discountPercent}%` : "—"}
+                  </td>
+                  <td className="text-center font-bold">
+                    ₹{p.finalPrice}
+                  </td>
+                  <td className="text-center">{p.stockQuantity}</td>
+
+                  <td>
+                    <div className="flex justify-center gap-2">
+                      <button onClick={() => openModal(p)}>
+                        <Edit2 className="h-4 w-4" />
+                      </button>
+                      <button onClick={() => handleDeleteProduct(p.id)}>
+                        <Trash2 className="h-4 w-4 text-red-600" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
 
       {/* PAGINATION */}
@@ -540,12 +624,12 @@ export const Admin: React.FC = () => {
               {/* CATEGORY (Search + Create) */}
               <div className="relative">
                 <label className="mb-1 block text-sm font-medium">
-                  Category
+                  Category Name
                 </label>
 
                 <input
-                  name="category"
-                  value={formData.category || ""}
+                  name="categoryId"
+                  value={formData.categoryId || ""}
                   onChange={(e) => {
                     handleInputChange(e);
                     setShowCategorySuggestions(true);
@@ -559,21 +643,21 @@ export const Admin: React.FC = () => {
                       150,
                     )
                   }
-                  placeholder="Search or type new category..."
+                  placeholder="Search or type category name..."
                   className="w-full rounded-lg border px-3 py-2"
                 />
 
-                {/* DROPDOWN */}
+                {/* Category Dropdown Suggestions */}
                 {showCategorySuggestions &&
-                  formData.category &&
+                  formData.categoryId &&
                   existingCategories.length > 0 && (
                     <div className="absolute z-20 mt-1 max-h-48 w-full overflow-y-auto rounded-lg border bg-white shadow">
                       {existingCategories
                         .filter((cat) =>
-                          cat
+                          (cat || "")
                             .toLowerCase()
                             .includes(
-                              formData.category!.toLowerCase(),
+                              (formData.categoryId || "").toLowerCase(),
                             ),
                         )
                         .map((cat) => (
@@ -583,7 +667,7 @@ export const Admin: React.FC = () => {
                             onClick={() => {
                               setFormData((prev) => ({
                                 ...prev,
-                                category: cat,
+                                categoryId: cat,
                               }));
                               setShowCategorySuggestions(false);
                             }}
@@ -593,18 +677,22 @@ export const Admin: React.FC = () => {
                           </button>
                         ))}
 
-                      {/* CREATE NEW */}
+                      {/* CREATE NEW CATEGORY */}
                       {!existingCategories.some(
                         (cat) =>
-                          cat.toLowerCase() ===
-                          formData.category!.toLowerCase(),
+                          (cat || "").toLowerCase() ===
+                          (formData.categoryId || "").toLowerCase(),
                       ) && (
-                        <div className="px-3 py-2 text-xs text-neutral-500 border-t">
-                          Press Enter to create new category
+                        <div className="border-t px-3 py-2 text-xs text-neutral-500 bg-neutral-50">
+                          Press Enter or click below to create new category
                         </div>
                       )}
                     </div>
                   )}
+
+                <p className="mt-1 text-xs text-neutral-500">
+                  {existingCategories.length} categories available
+                </p>
               </div>
 
               {/* HOME PAGE VISIBILITY */}
@@ -649,9 +737,32 @@ export const Admin: React.FC = () => {
               {/* IMAGES */}
               <div>
                 <label className="mb-2 block text-sm font-medium">
-                  Product Images
+                  Product Images (Multiple)
                 </label>
-                <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border px-4 py-2">
+                
+                {/* Image Preview Grid */}
+                {(formData.imageUrls || []).length > 0 && (
+                  <div className="mb-4 grid grid-cols-4 gap-3">
+                    {(formData.imageUrls || []).map((img, idx) => (
+                      <div key={idx} className="relative">
+                        <img
+                          src={img}
+                          alt={`Preview ${idx}`}
+                          className="w-full h-24 object-cover rounded-lg border"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeImage(idx)}
+                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border px-4 py-2 hover:bg-neutral-50">
                   <Upload className="h-4 w-4" />
                   Upload Images
                   <input
@@ -662,6 +773,14 @@ export const Admin: React.FC = () => {
                     onChange={handleImageUpload}
                   />
                 </label>
+                <p className="mt-1 text-xs text-neutral-500">
+                  {(formData.imageUrls || []).length} image(s) added
+                </p>
+                {editingProduct && (
+                  <p className="mt-2 text-xs text-orange-600 bg-orange-50 p-2 rounded">
+                    ℹ️ Note: To change images, please delete this product and create a new one with updated images.
+                  </p>
+                )}
               </div>
 
               {/* PRICING & STOCK */}
@@ -685,8 +804,8 @@ export const Admin: React.FC = () => {
                   </label>
                   <input
                     type="number"
-                    name="discount"
-                    value={formData.discount}
+                    name="discountPercent"
+                    value={formData.discountPercent}
                     onChange={handleInputChange}
                     className="w-full rounded-lg border px-3 py-2"
                   />
@@ -698,8 +817,8 @@ export const Admin: React.FC = () => {
                   </label>
                   <input
                     type="number"
-                    name="tax"
-                    value={formData.tax}
+                    name="gstPercent"
+                    value={formData.gstPercent}
                     onChange={handleInputChange}
                     className="w-full rounded-lg border px-3 py-2"
                   />
@@ -711,8 +830,8 @@ export const Admin: React.FC = () => {
                   </label>
                   <input
                     type="number"
-                    name="stock"
-                    value={formData.stock}
+                    name="stockQuantity"
+                    value={formData.stockQuantity}
                     onChange={handleInputChange}
                     className="w-full rounded-lg border px-3 py-2"
                   />
@@ -724,14 +843,19 @@ export const Admin: React.FC = () => {
                 Final Price: ₹{" "}
                 {calculateFinalPrice(
                   formData.basePrice || 0,
-                  formData.discount || 0,
-                  formData.tax || 0,
+                  formData.discountPercent || 0,
+                  formData.gstPercent || 0,
                 )}
               </div>
 
               {/* SUBMIT */}
-              <button className="w-full rounded-lg bg-neutral-900 py-2 text-white">
-                {editingProduct
+              <button
+                disabled={isSubmitting}
+                className="w-full rounded-lg bg-neutral-900 py-2 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isSubmitting
+                  ? "Saving..."
+                  : editingProduct
                   ? "Update Product"
                   : "Add Product"}
               </button>

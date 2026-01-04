@@ -4,7 +4,8 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 
 import { ProductCard } from "../components/ProductCard";
 import { CategoryCard } from "../components/CategoryCard";
-import { PRODUCTS } from "../data/products";
+import { fetchProducts } from "../../services/productService";
+import { Product } from "../types";
 
 const HERO_IMAGES = [
   "https://images.unsplash.com/photo-1693996046865-19217d179161?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
@@ -14,11 +15,46 @@ const HERO_IMAGES = [
 
 export const Home: React.FC = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
+  const [discountedProducts, setDiscountedProducts] = useState<Product[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const featuredProducts = PRODUCTS.slice(0, 15);
-  const discountedProducts = PRODUCTS.filter(
-    (p) => p.discount >= 15,
-  );
+  // Function to load products
+  const loadProducts = async () => {
+    try {
+      setIsLoading(true);
+      const products = await fetchProducts();
+
+      // Filter featured products
+      const featured = products.filter(
+        (p) => p.isFeatured === true,
+      );
+      setFeaturedProducts(featured);
+
+      // Filter special discount products
+      const discounted = products.filter(
+        (p) => p.isSpecialOffer === true || (p.discountPercent || 0) >= 15,
+      );
+      setDiscountedProducts(discounted);
+    } catch (error) {
+      console.error("Failed to load products:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Fetch and filter products on mount
+  useEffect(() => {
+    loadProducts();
+  }, []);
+
+  // Refetch products every 5 seconds to show updates from Admin panel
+  useEffect(() => {
+    const interval = setInterval(() => {
+      loadProducts();
+    }, 5000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     const interval = setInterval(() => {

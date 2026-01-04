@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Star, ShoppingCart } from 'lucide-react';
 import { Product } from '../types';
@@ -15,12 +15,21 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   variant = 'featured',
 }) => {
   const { addToCart } = useCart();
+  const [imageError, setImageError] = useState(false);
 
-  // Price calculation
-  const discountedPrice =
-    product.basePrice - (product.basePrice * product.discount) / 100;
-  const finalPrice =
-    discountedPrice + (discountedPrice * product.tax) / 100;
+  // Price calculation - handle both old and new field names
+  const basePrice = product.basePrice || 0;
+  const discount = product.discountPercent || product.discount || 0;
+  const tax = product.gstPercent || product.tax || 0;
+  
+  const discountedPrice = basePrice - (basePrice * discount) / 100;
+  const finalPrice = discountedPrice + (discountedPrice * tax) / 100;
+
+  // Get images from either field
+  const images = product.imageUrls || product.images || [];
+  
+  // Filter out base64 images that might be too large, use placeholder if none available
+  const displayImage = images.length > 0 ? images[0] : '/placeholder.png';
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -41,17 +50,27 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         `}
       >
         {/* Product Image */}
-        <div className="relative h-64 bg-neutral-100 overflow-hidden">
-          <img
-            src={product.images[0]}
-            alt={product.name}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-          />
+        <div className="relative h-64 bg-neutral-100 overflow-hidden flex items-center justify-center">
+          {!imageError ? (
+            <img
+              src={displayImage}
+              alt={product.name}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+              onError={() => setImageError(true)}
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center bg-neutral-200">
+              <div className="text-center">
+                <ShoppingCart className="w-12 h-12 text-neutral-400 mx-auto mb-2" />
+                <p className="text-sm text-neutral-500">{product.name}</p>
+              </div>
+            </div>
+          )}
 
           {/* Discount Badge */}
-          {product.discount > 0 && (
+          {discount > 0 && (
             <div className="absolute top-3 left-3 bg-red-600 text-white px-3 py-1 rounded-full text-sm font-medium">
-              {product.discount}% OFF
+              {discount}% OFF
             </div>
           )}
 
@@ -78,7 +97,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               isDiscount ? 'text-white/70' : 'text-neutral-500'
             }`}
           >
-            {product.category}
+            {product.categoryName || (typeof product.category === 'object' ? product.category?.name : product.category) || 'Product'}
           </div>
 
           {/* Product Name */}
@@ -97,7 +116,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             <div className="flex items-center gap-1">
               <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
               <span className="text-sm font-medium">
-                {product.rating.toFixed(1)}
+                {(product.rating || 4.5).toFixed(1)}
               </span>
             </div>
             <span
@@ -105,7 +124,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                 isDiscount ? 'text-white/60' : 'text-neutral-500'
               }`}
             >
-              ({product.reviews} reviews)
+              ({product.reviews || 0} reviews)
             </span>
           </div>
 
@@ -114,24 +133,24 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             <span className="text-xl font-bold">
               ₹{finalPrice.toFixed(2)}
             </span>
-            {product.discount > 0 && (
+            {discount > 0 && (
               <span
                 className={`text-sm line-through ${
                   isDiscount ? 'text-white/60' : 'text-neutral-500'
                 }`}
               >
-                ₹{product.basePrice.toFixed(2)}
+                ₹{basePrice.toFixed(2)}
               </span>
             )}
           </div>
 
           {/* Stock Status */}
-          {product.stock < 10 && product.stock > 0 && (
+          {product.stockQuantity !== undefined && product.stockQuantity < 10 && product.stockQuantity > 0 && (
             <div className="mt-2 text-xs text-orange-400">
-              Only {product.stock} left in stock
+              Only {product.stockQuantity} left in stock
             </div>
           )}
-          {product.stock === 0 && (
+          {product.stockQuantity === 0 && (
             <div className="mt-2 text-xs text-red-500 font-medium">
               Out of Stock
             </div>

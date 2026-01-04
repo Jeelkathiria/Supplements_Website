@@ -6,10 +6,12 @@
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts"
   },
   "dependencies": {
+    "@prisma/client": "^6.7.0",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
-    "firebase-admin": "^13.6.0"
+    "firebase-admin": "^13.6.0",
+    "prisma": "^6.7.0"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",

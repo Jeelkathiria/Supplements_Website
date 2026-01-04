@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   Star,
@@ -7,20 +7,19 @@ import {
   Shield,
   RotateCcw,
 } from "lucide-react";
-import {
-  PRODUCTS,
-  calculateFinalPrice,
-} from "../data/products";
 import { useCart } from "../context/CartContext";
 import { toast } from "sonner";
 import { Breadcrumb } from "../components/Breadcrumb";
+import { fetchProducts } from "../../services/productService";
+import { Product } from "../types";
 
 export const ProductDetail: React.FC = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { addToCart } = useCart();
-
-  const product = PRODUCTS.find((p) => p.id === id);
+  
+  const [product, setProduct] = useState<Product | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const imageRef = useRef<HTMLDivElement | null>(null);
 
   const [selectedImage, setSelectedImage] = useState(0);
@@ -30,6 +29,37 @@ export const ProductDetail: React.FC = () => {
 
   const [isHovering, setIsHovering] = useState(false);
   const [zoomPos, setZoomPos] = useState({ x: 50, y: 50 });
+
+  // Fetch product
+  useEffect(() => {
+    const loadProduct = async () => {
+      try {
+        setIsLoading(true);
+        const products = await fetchProducts();
+        const found = products.find((p) => p.id === id);
+        if (found) {
+          setProduct(found);
+        } else {
+          setProduct(null);
+        }
+      } catch (error) {
+        console.error("Error loading product:", error);
+        setProduct(null);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadProduct();
+  }, [id]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-neutral-600">Loading product...</p>
+      </div>
+    );
+  }
 
   if (!product) {
     return (
@@ -49,11 +79,8 @@ export const ProductDetail: React.FC = () => {
     );
   }
 
-  const finalPrice = calculateFinalPrice(
-    product.basePrice,
-    product.discount,
-    product.tax,
-  );
+  const finalPrice = product.finalPrice || 
+    (product.basePrice - (product.basePrice * (product.discountPercent || 0)) / 100) * (1 + (product.gstPercent || 0) / 100);
 
   const handleMouseMove = (
     e: React.MouseEvent<HTMLDivElement, MouseEvent>,
@@ -71,11 +98,11 @@ export const ProductDetail: React.FC = () => {
   };
 
   const handleAddToCart = () => {
-    if (product.sizes?.length && !selectedSize) {
+    if ((product.sizes || [])?.length && !selectedSize) {
       toast.error("Please select a size");
       return;
     }
-    if (product.colors?.length && !selectedColor) {
+    if ((product.flavors || product.colors || [])?.length && !selectedColor) {
       toast.error("Please select a flavor");
       return;
     }
@@ -88,13 +115,13 @@ export const ProductDetail: React.FC = () => {
 
   const handleBuyNow = () => {
   // Check size selection if sizes exist
-  if (product.sizes?.length && !selectedSize) {
+  if ((product.sizes || [])?.length && !selectedSize) {
     toast.error("Please select a size");
     return;
   }
 
-  // Check flavor selection if colors exist
-  if (product.colors?.length && !selectedColor) {
+  // Check flavor selection if flavors exist
+  if ((product.flavors || product.colors || [])?.length && !selectedColor) {
     toast.error("Please select a flavor");
     return;
   }
@@ -132,7 +159,7 @@ export const ProductDetail: React.FC = () => {
               onMouseMove={handleMouseMove}
             >
               <img
-                src={product.images[selectedImage]}
+                src={(product.imageUrls || product.images)?.[selectedImage] || '/placeholder.png'}
                 alt={product.name}
                 className="w-full aspect-square object-cover"
               />
@@ -141,7 +168,7 @@ export const ProductDetail: React.FC = () => {
                 <div
                   className="absolute inset-0 pointer-events-none"
                   style={{
-                    backgroundImage: `url(${product.images[selectedImage]})`,
+                    backgroundImage: `url(${(product.imageUrls || product.images)?.[selectedImage]})`,
                     backgroundRepeat: "no-repeat",
                     backgroundSize: "220%",
                     backgroundPosition: `${zoomPos.x}% ${zoomPos.y}%`,
@@ -151,7 +178,7 @@ export const ProductDetail: React.FC = () => {
             </div>
 
             <div className="grid grid-cols-4 gap-3 mt-4">
-              {product.images.map((img, index) => (
+              {(product.imageUrls || product.images || []).map((img, index) => (
                 <button
                   key={index}
                   onClick={() => setSelectedImage(index)}
@@ -173,7 +200,7 @@ export const ProductDetail: React.FC = () => {
           {/* INFO */}
           <div>
             <p className="text-sm text-neutral-500">
-              {product.category}
+              {product.categoryName || (typeof product.category === 'object' ? product.category?.name : product.category) || "Uncategorized"}
             </p>
             <h1 className="text-2xl font-bold mt-1">
               {product.name}
@@ -182,18 +209,18 @@ export const ProductDetail: React.FC = () => {
             <div className="flex items-center gap-2 mt-2">
               <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
               <span className="text-sm">
-                {product.rating} ({product.reviews})
+                {(product.rating || 4.5).toFixed(1)} ({product.reviews || 0})
               </span>
             </div>
 
             <div className="mt-5 border-b pb-5">
               <div className="flex items-center gap-3">
                 <span className="text-2xl font-bold">
-                  ₹{finalPrice}
+                  ₹{finalPrice.toFixed(2)}
                 </span>
-                {product.discount > 0 && (
+                {(product.discountPercent || 0) > 0 && (
                   <span className="line-through text-sm text-neutral-400">
-                    ₹{product.basePrice}
+                    ₹{product.basePrice.toFixed(2)}
                   </span>
                 )}
               </div>
@@ -202,11 +229,11 @@ export const ProductDetail: React.FC = () => {
               </p>
             </div>
 
-            {product.sizes?.length > 0 && (
+            {((product.sizes || [])?.length) > 0 && (
               <div className="mt-5">
                 <p className="text-sm font-medium mb-2">Size</p>
                 <div className="flex gap-2 flex-wrap">
-                  {product.sizes.map((size) => (
+                  {(product.sizes || []).map((size: string) => (
                     <button
                       key={size}
                       onClick={() => setSelectedSize(size)}
@@ -223,23 +250,23 @@ export const ProductDetail: React.FC = () => {
               </div>
             )}
 
-            {product.colors?.length > 0 && (
+            {((product.flavors || product.colors || [])?.length) > 0 && (
               <div className="mt-5">
                 <p className="text-sm font-medium mb-2">
                   Flavor
                 </p>
                 <div className="flex gap-2 flex-wrap">
-                  {product.colors.map((color) => (
+                  {(product.flavors || product.colors || []).map((flavor: string) => (
                     <button
-                      key={color}
-                      onClick={() => setSelectedColor(color)}
+                      key={flavor}
+                      onClick={() => setSelectedColor(flavor)}
                       className={`px-4 py-2 border rounded-md ${
-                        selectedColor === color
+                        selectedColor === flavor
                           ? "bg-black text-white"
                           : "border-neutral-300"
                       }`}
                     >
-                      {color}
+                      {flavor}
                     </button>
                   ))}
                 </div>
@@ -263,7 +290,7 @@ export const ProductDetail: React.FC = () => {
                 <button
                   onClick={() =>
                     setQuantity(
-                      Math.min(product.stock, quantity + 1),
+                      Math.min(product.stockQuantity || product.stock || 0, quantity + 1),
                     )
                   }
                   className="w-8 h-8 border rounded-md"
@@ -271,7 +298,7 @@ export const ProductDetail: React.FC = () => {
                   +
                 </button>
                 <span className="text-xs text-neutral-500">
-                  {product.stock} left
+                  {product.stockQuantity || product.stock || 0} left
                 </span>
               </div>
             </div>

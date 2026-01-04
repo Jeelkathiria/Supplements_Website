@@ -6,6 +6,14 @@ import React, {
   ReactNode,
 } from "react";
 import { safeLocalStorage } from "../utils/localStorage";
+import { 
+  signInWithEmailAndPassword, 
+  createUserWithEmailAndPassword,
+  signOut,
+  onAuthStateChanged,
+  User as FirebaseUser 
+} from "firebase/auth";
+import { auth } from "../../firebase";
 
 interface Address {
   id: string;
@@ -29,27 +37,31 @@ interface User {
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
+  firebaseUser: FirebaseUser | null;
   login: (email: string, password: string) => Promise<void>;
   register: (
     name: string,
     email: string,
     password: string,
   ) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
   updateUser: (userData: Partial<User>) => void;
   redirectAfterLogin: string | null;
   setRedirectAfterLogin: (url: string | null) => void;
+  getIdToken: () => Promise<string | null>;
 }
 
 const defaultAuthContext: AuthContextType = {
   user: null,
   isAuthenticated: false,
+  firebaseUser: null,
   login: async () => {},
   register: async () => {},
-  logout: () => {},
+  logout: async () => {},
   updateUser: () => {},
   redirectAfterLogin: null,
   setRedirectAfterLogin: () => {},
+  getIdToken: async () => null,
 };
 
 const AuthContext = createContext<AuthContextType>(
@@ -69,53 +81,63 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
   children,
 }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [redirectAfterLogin, setRedirectAfterLogin] = useState<
     string | null
   >(null);
 
-  // Load user from localStorage on mount
+  // Listen to Firebase auth state
   useEffect(() => {
-    try {
-      const storedUser = safeLocalStorage.getItem("user");
-      if (storedUser) {
-        setUser(JSON.parse(storedUser));
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUserObj) => {
+      try {
+        if (firebaseUserObj) {
+          setFirebaseUser(firebaseUserObj);
+          // Get Firebase ID token
+          const token = await firebaseUserObj.getIdToken();
+          safeLocalStorage.setItem("authToken", token);
+          
+          const userData: User = {
+            email: firebaseUserObj.email || "",
+            name: firebaseUserObj.displayName || firebaseUserObj.email?.split("@")[0] || "",
+            loginTime: new Date().toISOString(),
+          };
+          setUser(userData);
+          safeLocalStorage.setItem("user", JSON.stringify(userData));
+        } else {
+          setFirebaseUser(null);
+          setUser(null);
+          safeLocalStorage.removeItem("authToken");
+          safeLocalStorage.removeItem("user");
+        }
+      } catch (error) {
+        console.error("Error in auth state change:", error);
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error) {
-      console.error("Error parsing stored user:", error);
-      safeLocalStorage.removeItem("user");
-    } finally {
-      setIsLoading(false);
-    }
+    });
+
+    return unsubscribe;
   }, []);
 
   const login = async (
     email: string,
     password: string,
   ): Promise<void> => {
-    // Simulate API call
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const userData: User = {
-          email,
-          name: email.split("@")[0],
-          loginTime: new Date().toISOString(),
-        };
-        setUser(userData);
-        try {
-          safeLocalStorage.setItem(
-            "user",
-            JSON.stringify(userData),
-          );
-        } catch (error) {
-          console.error(
-            "Error saving user to localStorage:",
-            error,
-          );
-        }
-        resolve();
-      }, 800);
-    });
+    try {
+      const userCredential = await signInWithEmailAndPassword(
+        auth,
+        email,
+        password,
+      );
+      
+      // Token will be set by onAuthStateChanged
+      const token = await userCredential.user.getIdToken();
+      safeLocalStorage.setItem("authToken", token);
+    } catch (error) {
+      console.error("Login error:", error);
+      throw error;
+    }
   };
 
   const register = async (
@@ -123,42 +145,49 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
     email: string,
     password: string,
   ): Promise<void> => {
-    // Simulate API call
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const userData: User = {
-          name,
-          email,
-          registeredAt: new Date().toISOString(),
-        };
-        setUser(userData);
-        try {
-          safeLocalStorage.setItem(
-            "user",
-            JSON.stringify(userData),
-          );
-        } catch (error) {
-          console.error(
-            "Error saving user to localStorage:",
-            error,
-          );
-        }
-        resolve();
-      }, 1000);
-    });
-  };
-
-  const logout = () => {
-    setUser(null);
     try {
-      safeLocalStorage.removeItem("user");
-    } catch (error) {
-      console.error(
-        "Error removing user from localStorage:",
-        error,
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        email,
+        password,
       );
+      
+      // Token will be set by onAuthStateChanged
+      const token = await userCredential.user.getIdToken();
+      safeLocalStorage.setItem("authToken", token);
+    } catch (error) {
+      console.error("Register error:", error);
+      throw error;
     }
   };
+
+  const logout = async (): Promise<void> => {
+    try {
+      await signOut(auth);
+      setUser(null);
+      setFirebaseUser(null);
+      safeLocalStorage.removeItem("authToken");
+      safeLocalStorage.removeItem("user");
+    } catch (error) {
+      console.error("Logout error:", error);
+      throw error;
+    }
+  };
+
+  const getIdToken = async (): Promise<string | null> => {
+    if (firebaseUser) {
+      try {
+        const token = await firebaseUser.getIdToken();
+        return token;
+      } catch (error) {
+        console.error("Error getting ID token:", error);
+        return null;
+      }
+    }
+    return null;
+  };
+
+
 
   const updateUser = (userData: Partial<User>) => {
     if (user) {
@@ -181,12 +210,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
   const value: AuthContextType = {
     user,
     isAuthenticated: !!user,
+    firebaseUser,
     login,
     register,
     logout,
     updateUser,
     redirectAfterLogin,
     setRedirectAfterLogin,
+    getIdToken,
   };
 
   return (
