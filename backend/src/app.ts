@@ -4,6 +4,9 @@ import { requireAuth } from "./middlewares/requireAuth";
 import adminProducts from "./routes/adminProducts";
 import products from "./routes/products";
 import categories from "./routes/categories";
+import cartRoutes from "./routes/cartRoutes";
+import orderRoutes from "./routes/orderRoutes";
+import adminOrders from "./routes/adminOrders";
 
 const app = express();
 
@@ -28,4 +31,12 @@ app.use("/api/admin/products", adminProducts);
 //products
 app.use("/api/products", products);
 
+//cart
+app.use("/api/cart", cartRoutes);
+
+//orders
+app.use("/api/orders", orderRoutes);
+
+//admin Orders view
+app.use("/api/admin", adminOrders);
 export default app;

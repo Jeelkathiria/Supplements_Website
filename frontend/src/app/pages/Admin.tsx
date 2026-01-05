@@ -12,6 +12,7 @@ import {
   updateProduct,
   deleteProduct,
 } from "../../services/productService";
+import { AdminOrders } from "../components/AdminOrders";
 
 const EMPTY_FORM: Partial<Product> = {
   name: "",
@@ -32,6 +33,7 @@ const EMPTY_FORM: Partial<Product> = {
 };
 
 export const Admin: React.FC = () => {
+  const [activeTab, setActiveTab] = useState<"products" | "orders">("products");
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -302,6 +304,35 @@ export const Admin: React.FC = () => {
   /* ---------------- RENDER ---------------- */
   return (
     <div className="p-6">
+      {/* TABS */}
+      <div className="mb-8 border-b border-neutral-200">
+        <div className="flex gap-8">
+          <button
+            onClick={() => setActiveTab("products")}
+            className={`pb-4 font-semibold transition-colors ${
+              activeTab === "products"
+                ? "border-b-2 border-neutral-900 text-neutral-900"
+                : "text-neutral-600 hover:text-neutral-900"
+            }`}
+          >
+            Product Management
+          </button>
+          <button
+            onClick={() => setActiveTab("orders")}
+            className={`pb-4 font-semibold transition-colors ${
+              activeTab === "orders"
+                ? "border-b-2 border-neutral-900 text-neutral-900"
+                : "text-neutral-600 hover:text-neutral-900"
+            }`}
+          >
+            Order Management
+          </button>
+        </div>
+      </div>
+
+      {/* PRODUCTS TAB */}
+      {activeTab === "products" && (
+        <>
       {/* HEADER */}
       <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
@@ -924,6 +955,21 @@ export const Admin: React.FC = () => {
               </button>
             </form>
           </div>
+        </div>
+      )}
+      </>
+      )}
+
+      {/* ORDERS TAB */}
+      {activeTab === "orders" && (
+        <div>
+          <div className="mb-8">
+            <h1 className="text-2xl font-bold">Order Management</h1>
+            <p className="text-sm text-neutral-600">
+              View and manage all customer orders
+            </p>
+          </div>
+          <AdminOrders />
         </div>
       )}
     </div>

@@ -4,7 +4,6 @@
 // Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
-
 generator client {
   provider = "prisma-client-js"
   output   = "../src/generated/prisma"
@@ -15,7 +14,9 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-/* ================= CATEGORY ================= */
+/**
+ * ================= CATEGORY =================
+ */
 model Category {
   id        String    @id @default(uuid())
   name      String    @unique
@@ -24,32 +25,120 @@ model Category {
   updatedAt DateTime  @updatedAt
 }
 
-/* ================= PRODUCT ================= */
+/**
+ * ================= PRODUCT =================
+ */
 model Product {
-  id              String    @id @default(uuid())
-  name            String
-  description     String
+  id          String @id @default(uuid())
+  name        String
+  description String
 
   basePrice       Float
-  discountPercent Float     @default(0)
-  gstPercent      Float     @default(18)
-  finalPrice      Float     // computed in backend
+  discountPercent Float @default(0)
+  gstPercent      Float @default(18)
+  finalPrice      Float // computed in backend
 
-  stockQuantity   Int       @default(0)
+  stockQuantity Int @default(0)
 
-  flavors         String[]
-  sizes           String[]
-  imageUrls       String[]
+  flavors   String[]
+  sizes     String[]
+  imageUrls String[]
 
-  isFeatured      Boolean   @default(false)
-  isSpecialOffer  Boolean   @default(false)
-  isActive        Boolean   @default(true)
-  isVegetarian    Boolean   @default(false)  // true for veg, false for non-veg
+  isFeatured     Boolean @default(false)
+  isSpecialOffer Boolean @default(false)
+  isActive       Boolean @default(true)
+  isVegetarian   Boolean @default(false) // true for veg, false for non-veg
 
-  categoryId      String?
-  categoryName    String?   // Store category name for redundancy and faster queries
-  category        Category? @relation(fields: [categoryId], references: [id])
+  categoryId   String?
+  categoryName String? // Store category name for redundancy and faster queries
+  category     Category? @relation(fields: [categoryId], references: [id])
 
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  cartItems  CartItem[] // cartItems
+  orderItems OrderItem[] //order Items
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+}
+
+/**
+ * ================= CART =================
+ */
+model Cart {
+  id        String     @id @default(uuid())
+  userId    String     @unique // Firebase UID
+  items     CartItem[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+model CartItem {
+  id        String @id @default(uuid())
+  cartId    String
+  productId String
+  quantity  Int    @default(1)
+
+  cart    Cart    @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([cartId, productId])
+}
+
+/**
+ * ================= Order Tracker =================
+ */
+
+model Order {
+  id     String      @id @default(uuid())
+  userId String
+  status OrderStatus @default(PENDING)
+
+  totalAmount Float
+  gstAmount   Float
+  discount    Float
+
+  items   OrderItem[]
+  address Address?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model OrderItem {
+  id        String @id @default(uuid())
+  orderId   String
+  productId String
+
+  quantity Int
+  price    Float
+  flavor   String?
+  size     String?
+
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+}
+
+model Address {
+  id      String @id @default(uuid())
+  userId  String
+  orderId String @unique
+
+  name    String
+  phone   String
+  address String
+  city    String
+  pincode String
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  SHIPPED
+  DELIVERED
+  CANCELLED
 }

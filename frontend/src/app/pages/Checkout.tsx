@@ -1,16 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CreditCard, Smartphone, Banknote, Check, MapPin } from 'lucide-react';
+import { CreditCard, Smartphone, Banknote, Check, MapPin, AlertCircle, Loader } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'sonner';
 import { Breadcrumb } from '../components/Breadcrumb';
+import * as orderService from '../../services/orderService';
 
 export const Checkout: React.FC = () => {
   const { cartItems, getCartTotal, clearCart } = useCart();
   const { isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
-  const [paymentMethod, setPaymentMethod] = useState<'upi' | 'card' | 'cod'>('upi');
+  const [paymentMethod, setPaymentMethod] = useState<'upi' | 'card' | 'cod'>('cod');
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   
   // Mock saved addresses for demonstration
   const mockSavedAddresses = [
@@ -38,13 +41,13 @@ export const Checkout: React.FC = () => {
 
   const [selectedAddress, setSelectedAddress] = useState(mockSavedAddresses[0]);
   const [formData, setFormData] = useState({
-    fullName: '',
-    email: '',
-    phone: '',
-    street: '',
-    city: '',
-    state: '',
-    pincode: '',
+    fullName: user?.name || '',
+    email: user?.email || '',
+    phone: '+91 98765 43210',
+    street: '123 Main Street, Apt 4B',
+    city: 'Mumbai',
+    state: 'Maharashtra',
+    pincode: '400001',
   });
 
   // Redirect to login if not authenticated
@@ -69,11 +72,53 @@ export const Checkout: React.FC = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast.success('Order placed successfully!');
-    clearCart();
-    navigate('/dashboard');
+    setError(null);
+    setIsProcessing(true);
+
+    try {
+      // Prepare cart items with proper pricing
+      const checkoutItems = cartItems.map((item) => {
+        const basePrice = item.product.basePrice;
+        const discountPercent = item.product.discountPercent || 0;
+        const gstPercent = item.product.gstPercent || 0;
+        const discountedPrice = basePrice - (basePrice * discountPercent) / 100;
+        const finalPrice = discountedPrice + (discountedPrice * gstPercent) / 100;
+
+        return {
+          productId: item.product.id,
+          quantity: item.quantity,
+          price: finalPrice,
+        };
+      });
+
+      // Create order
+      const order = await orderService.checkout({
+        cartItems: checkoutItems,
+        shippingAddress: {
+          name: formData.fullName,
+          phone: formData.phone,
+          address: formData.street,
+          city: formData.city,
+          pincode: formData.pincode,
+        },
+      });
+
+      if (order) {
+        // Clear cart after successful order
+        await clearCart();
+        toast.success('Order placed successfully!');
+        navigate(`/orders/${order.id}`, { state: { order } });
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to place order';
+      setError(message);
+      toast.error(message);
+      console.error('Checkout error:', err);
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   return (
@@ -86,6 +131,17 @@ export const Checkout: React.FC = () => {
             { label: 'Checkout' },
           ]}
         />
+
+        {error && (
+          <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <h3 className="font-medium text-red-900">Error</h3>
+              <p className="text-sm text-red-700">{error}</p>
+            </div>
+          </div>
+        )}
+
         {/* Welcome Message */}
         <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-3 mb-6 flex items-center gap-3">
           <Check className="w-5 h-5 text-green-600 flex-shrink-0" />
@@ -235,10 +291,20 @@ export const Checkout: React.FC = () => {
 
                 <button
                   type="submit"
-                  className="w-full bg-neutral-900 text-white py-3 rounded-lg hover:bg-neutral-800 transition flex items-center justify-center gap-2"
+                  disabled={isProcessing}
+                  className="w-full bg-neutral-900 text-white py-3 rounded-lg hover:bg-neutral-800 disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center justify-center gap-2"
                 >
-                  <Check className="w-5 h-5" />
-                  Place Order
+                  {isProcessing ? (
+                    <>
+                      <Loader className="w-5 h-5 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <Check className="w-5 h-5" />
+                      Place Order
+                    </>
+                  )}
                 </button>
               </div>
             </div>

@@ -1,0 +1,80 @@
+import { Request, Response } from "express";
+import { AuthRequest } from "../middlewares/requireAuth";
+import prisma from "../lib/prisma";
+import { $Enums } from "../generated/prisma";
+
+const OrderStatus = $Enums.OrderStatus;
+type OrderStatusType = $Enums.OrderStatus;
+
+export const getAllOrders = async (_req: Request, res: Response) => {
+  try {
+    const orders = await prisma.order.findMany({
+      orderBy: { createdAt: "desc" },
+      include: {
+        items: {
+          include: {
+            product: {
+              select: {
+                id: true,
+                name: true,
+                basePrice: true,
+                discountPercent: true,
+                gstPercent: true,
+                imageUrls: true,
+              }
+            }
+          }
+        },
+        address: true
+      }
+    });
+
+    res.json(orders);
+  } catch (error) {
+    console.error("Error fetching orders:", error);
+    res.status(500).json({ message: "Failed to fetch orders" });
+  }
+};
+
+export const updateOrderStatus = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    // Validate status
+    if (!status || !Object.values(OrderStatus).includes(status as OrderStatusType)) {
+      return res.status(400).json({ message: "Invalid order status" });
+    }
+
+    const updated = await prisma.order.update({
+      where: { id },
+      data: { status },
+      include: {
+        items: {
+          include: {
+            product: {
+              select: {
+                id: true,
+                name: true,
+                basePrice: true,
+                discountPercent: true,
+                gstPercent: true,
+                imageUrls: true,
+              }
+            }
+          }
+        },
+        address: true
+      }
+    });
+
+    res.json({
+      message: "Order status updated successfully",
+      order: updated
+    });
+  } catch (error) {
+    console.error("Error updating order status:", error);
+    const message = error instanceof Error ? error.message : "Failed to update order status";
+    res.status(500).json({ message });
+  }
+};
