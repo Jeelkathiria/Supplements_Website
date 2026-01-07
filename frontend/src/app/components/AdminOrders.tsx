@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { ChevronDown, Eye, AlertCircle } from "lucide-react";
+import { ChevronDown, AlertCircle, Package, Truck, DollarSign } from "lucide-react";
 import { toast } from "sonner";
 import {
   getAllOrders,
@@ -79,41 +79,50 @@ export const AdminOrders: React.FC = () => {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3 bg-gradient-to-br from-neutral-50 to-neutral-100 p-6 rounded-xl">
       {orders.map((order) => (
         <div
           key={order.id}
-          className="overflow-hidden rounded-lg border border-neutral-200 bg-white"
+          className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow overflow-hidden border border-neutral-200"
         >
-          {/* ORDER HEADER */}
+          {/* ORDER HEADER - TICKET STYLE */}
           <button
             onClick={() =>
               setExpandedOrderId(
                 expandedOrderId === order.id ? null : order.id
               )
             }
-            className="w-full px-6 py-4 hover:bg-neutral-50 transition-colors"
+            className="w-full px-5 py-4 hover:bg-gradient-to-r hover:from-blue-50 hover:to-transparent transition-colors"
           >
             <div className="flex items-center justify-between gap-4">
-              <div className="flex-1 text-left">
-                <div className="flex items-center gap-4">
-                  <div>
-                    <p className="font-semibold">Order #{order.id.slice(0, 8)}</p>
-                    <p className="text-sm text-neutral-600">
-                      {new Date(order.createdAt).toLocaleDateString()}
-                    </p>
+              <div className="flex-1">
+                <div className="flex items-center gap-4 flex-wrap">
+                  {/* Order ID and Date */}
+                  <div className="flex items-center gap-2">
+                    <div className="bg-blue-100 rounded-lg px-3 py-2">
+                      <p className="font-bold text-blue-900">#{order.id.slice(0, 8)}</p>
+                      <p className="text-xs text-blue-700">
+                        {new Date(order.createdAt).toLocaleDateString()}
+                      </p>
+                    </div>
                   </div>
+
+                  {/* Customer Name */}
                   <div>
-                    <p className="text-sm text-neutral-600">Customer:</p>
-                    <p className="font-medium">{order.address?.name || "N/A"}</p>
+                    <p className="text-xs text-neutral-500 font-semibold">CUSTOMER</p>
+                    <p className="font-bold text-neutral-900">{order.address?.name || "N/A"}</p>
                   </div>
-                  <div>
-                    <p className="text-sm text-neutral-600">Total:</p>
-                    <p className="font-semibold">₹{order.totalAmount.toFixed(2)}</p>
+
+                  {/* Total Amount - Highlighted */}
+                  <div className="ml-auto">
+                    <p className="text-xs text-neutral-500 font-semibold">TOTAL</p>
+                    <p className="font-bold text-lg text-green-600">₹{order.totalAmount.toFixed(2)}</p>
                   </div>
+
+                  {/* Status Badge */}
                   <div>
                     <span
-                      className={`inline-flex items-center rounded-full px-3 py-1 text-sm font-medium ${
+                      className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-bold transition-all ${
                         STATUS_COLORS[order.status] || "bg-neutral-100"
                       }`}
                     >
@@ -123,139 +132,159 @@ export const AdminOrders: React.FC = () => {
                 </div>
               </div>
               <ChevronDown
-                className={`h-5 w-5 transition-transform ${
+                className={`h-5 w-5 text-neutral-400 transition-transform flex-shrink-0 ${
                   expandedOrderId === order.id ? "rotate-180" : ""
                 }`}
               />
             </div>
           </button>
 
-          {/* EXPANDED DETAILS */}
+          {/* EXPANDED DETAILS - NEW LAYOUT */}
           {expandedOrderId === order.id && (
-            <div className="border-t border-neutral-200 bg-neutral-50 px-6 py-4">
-              <div className="space-y-6">
-                {/* CUSTOMER INFO */}
-                <div>
-                  <h3 className="mb-3 font-semibold">Customer Information</h3>
-                  <div className="grid grid-cols-2 gap-4 rounded-lg bg-white p-4">
-                    <div>
-                      <p className="text-sm text-neutral-600">Name</p>
-                      <p className="font-medium">{order.address?.name || "N/A"}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-neutral-600">Phone</p>
-                      <p className="font-medium">{order.address?.phone || "N/A"}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-neutral-600">Address</p>
-                      <p className="font-medium">{order.address?.address || "N/A"}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-neutral-600">City</p>
-                      <p className="font-medium">{order.address?.city || "N/A"}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-neutral-600">Pincode</p>
-                      <p className="font-medium">{order.address?.pincode || "N/A"}</p>
-                    </div>
-                  </div>
+            <div className="border-t border-dashed border-neutral-300 bg-white">
+              
+              {/* DELIVERY ADDRESS */}
+              <div className="px-5 py-4 bg-neutral-50 border-b border-neutral-200">
+                <div className="flex items-start gap-3 mb-3">
+                  <Truck className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                  <h3 className="font-bold text-neutral-900 text-base">DELIVERY ADDRESS</h3>
+                </div>
+                <div className="bg-white rounded-lg p-3 border border-neutral-200 text-sm space-y-2">
+                  <p className="font-bold text-neutral-900">{order.address?.name || "N/A"}</p>
+                  <p className="text-neutral-600">{order.address?.address || "N/A"}</p>
+                  <p className="text-neutral-600">{order.address?.city || "N/A"} - {order.address?.pincode || "N/A"}</p>
+                  <p className="text-neutral-900 font-semibold">📱 {order.address?.phone || "N/A"}</p>
+                </div>
+              </div>
+
+              {/* BILL SECTION */}
+              <div className="px-5 py-4">
+                <div className="flex items-center gap-3 mb-3">
+                  <h3 className="font-bold text-neutral-900 text-base">ORDER ITEMS</h3>
                 </div>
 
-                {/* PRODUCTS */}
-                <div>
-                  <h3 className="mb-4 font-semibold text-base">Products in Order</h3>
-                  <div className="space-y-4">
+                {/* ITEMS TABLE STYLE */}
+                <div className="bg-gradient-to-b from-blue-50 to-white rounded-lg border-2 border-blue-200 overflow-hidden">
+                  {/* Header */}
+                  <div className="grid grid-cols-12 gap-2 bg-blue-200 px-3 py-2 text-xs font-bold text-neutral-900">
+                    <div className="col-span-1">IMG</div>
+                    <div className="col-span-4">ITEM</div>
+                    <div className="col-span-2">FLAVOR</div>
+                    <div className="col-span-2">SIZE</div>
+                    <div className="col-span-1">QTY</div>
+                    <div className="col-span-2 text-right">AMOUNT</div>
+                  </div>
+
+                  {/* Items */}
+                  <div className="divide-y divide-blue-100">
                     {order.items.map((item: OrderItem) => (
                       <div
                         key={item.id}
-                        className="flex gap-4 rounded-lg bg-white p-5 border border-neutral-200"
+                        className="grid grid-cols-12 gap-2 px-3 py-3 items-center bg-white hover:bg-blue-50 transition-colors text-xs"
                       >
-                        {item.product.imageUrls[0] && (
-                          <img
-                            src={item.product.imageUrls[0]}
-                            alt={item.product.name}
-                            className="h-20 w-20 rounded object-cover"
-                          />
-                        )}
-                        <div className="flex-1">
-                          <p className="font-semibold text-base">{item.product.name}</p>
-                          
-                          {/* Flavor */}
-                          {item.flavor && (
-                            <p className="text-sm text-neutral-600 mt-1">
-                              <span className="font-semibold">Flavor:</span> {item.flavor}
-                            </p>
-                          )}
-                          
-                          {/* Size */}
-                          {item.size && (
-                            <p className="text-sm text-neutral-600">
-                              <span className="font-semibold">Size:</span> {item.size}
-                            </p>
+                        {/* Image */}
+                        <div className="col-span-1">
+                          {item.product.imageUrls[0] && (
+                            <img
+                              src={item.product.imageUrls[0]}
+                              alt={item.product.name}
+                              className="h-10 w-10 rounded object-cover border border-neutral-200"
+                            />
                           )}
                         </div>
-                        <div className="text-right">
-                          <p className="text-3xl font-bold text-neutral-900">
-                            ₹{item.price.toFixed(2)}
-                          </p>
-                          <p className="text-xl font-bold text-blue-600 mt-2">
-                            Qty: {item.quantity}
-                          </p>
-                          <p className="text-base font-semibold text-neutral-700 mt-2 border-t pt-2">
-                            Total: ₹{(item.price * item.quantity).toFixed(2)}
+
+                        {/* Product Name */}
+                        <div className="col-span-4">
+                          <p className="font-bold text-neutral-900 line-clamp-1">{item.product.name}</p>
+                          <p className="text-neutral-600 text-xs">₹{item.price.toFixed(2)}/unit</p>
+                        </div>
+
+                        {/* Flavor */}
+                        <div className="col-span-2">
+                          {item.flavor ? (
+                            <span className="inline-block bg-yellow-100 text-yellow-900 px-2 py-1 rounded font-semibold text-xs">
+                              {item.flavor}
+                            </span>
+                          ) : (
+                            <span className="text-neutral-400">-</span>
+                          )}
+                        </div>
+
+                        {/* Size */}
+                        <div className="col-span-2">
+                          {item.size ? (
+                            <span className="inline-block bg-purple-100 text-purple-900 px-2 py-1 rounded font-semibold text-xs">
+                              {item.size}
+                            </span>
+                          ) : (
+                            <span className="text-neutral-400">-</span>
+                          )}
+                        </div>
+
+                        {/* Quantity */}
+                        <div className="col-span-1">
+                          <span className="font-bold text-blue-600">{item.quantity}</span>
+                        </div>
+
+                        {/* Amount */}
+                        <div className="col-span-2 text-right">
+                          <p className="font-bold text-neutral-900">
+                            ₹{(item.price * item.quantity).toFixed(2)}
                           </p>
                         </div>
                       </div>
                     ))}
                   </div>
-                </div>
 
-                {/* ORDER SUMMARY */}
-                <div>
-                  <h3 className="mb-4 font-semibold text-base">Order Summary</h3>
-                  <div className="space-y-3 rounded-lg bg-white p-6 border border-blue-200">
+                  {/* BILL TOTAL - Receipt Style */}
+                  <div className="bg-gradient-to-b from-blue-100 to-blue-50 px-3 py-3 border-t-2 border-blue-300 space-y-2">
                     <div className="flex justify-between text-sm">
-                      <span className="text-neutral-600">Subtotal:</span>
-                      <span className="font-medium">₹{(order.totalAmount - order.gstAmount).toFixed(2)}</span>
+                      <span className="text-neutral-700">Subtotal:</span>
+                      <span className="font-bold text-neutral-900">₹{(order.totalAmount - order.gstAmount).toFixed(2)}</span>
                     </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-neutral-600">Discount:</span>
-                      <span className="font-medium text-red-600">-₹{order.discount.toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-neutral-600">GST (18%):</span>
-                      <span className="font-medium">₹{order.gstAmount.toFixed(2)}</span>
-                    </div>
-                    <div className="border-t border-blue-300 pt-3 mt-3">
-                      <div className="flex justify-between items-center">
-                        <span className="font-semibold">Total Amount:</span>
-                        <span className="text-2xl font-bold text-green-600">₹{order.totalAmount.toFixed(2)}</span>
+                    {order.discount > 0 && (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-neutral-700">Discount:</span>
+                        <span className="font-bold text-red-600">-₹{order.discount.toFixed(2)}</span>
                       </div>
+                    )}
+                    <div className="flex justify-between text-sm">
+                      <span className="text-neutral-700">GST (18%):</span>
+                      <span className="font-bold text-neutral-900">₹{order.gstAmount.toFixed(2)}</span>
+                    </div>
+                    <div className="border-t-2 border-dashed border-blue-300 pt-2 mt-2 flex justify-between items-center">
+                      <span className="font-bold text-neutral-900 text-base">TOTAL:</span>
+                      <span className="font-bold text-2xl text-green-600">₹{order.totalAmount.toFixed(2)}</span>
                     </div>
                   </div>
                 </div>
+              </div>
 
-                {/* STATUS UPDATE */}
-                <div>
-                  <h3 className="mb-3 font-semibold">Update Status</h3>
-                  <div className="flex gap-2 flex-wrap">
-                    {ORDER_STATUSES.map((status) => (
-                      <button
-                        key={status}
-                        onClick={() => handleStatusUpdate(order.id, status)}
-                        disabled={
-                          updatingOrderId === order.id || order.status === status
-                        }
-                        className={`rounded px-3 py-2 text-sm font-medium transition-colors ${
-                          order.status === status
-                            ? "bg-neutral-300 text-neutral-700 cursor-not-allowed"
-                            : "bg-neutral-200 hover:bg-neutral-300 text-neutral-700"
-                        } disabled:opacity-50`}
-                      >
-                        {status}
-                      </button>
-                    ))}
-                  </div>
+              {/* SEPARATOR */}
+              <div className="border-t-2 border-dashed border-neutral-300"></div>
+
+              {/* STATUS UPDATE */}
+              <div className="px-5 py-4">
+                <div className="flex items-center gap-3 mb-3">
+                  <h3 className="font-bold text-neutral-900">UPDATE ORDER STATUS</h3>
+                </div>
+                <div className="flex gap-2 flex-wrap">
+                  {ORDER_STATUSES.map((status) => (
+                    <button
+                      key={status}
+                      onClick={() => handleStatusUpdate(order.id, status)}
+                      disabled={
+                        updatingOrderId === order.id || order.status === status
+                      }
+                      className={`rounded-lg px-3 py-2 text-xs font-bold transition-all transform hover:scale-105 ${
+                        order.status === status
+                          ? "bg-green-500 text-white shadow-md ring-2 ring-green-300"
+                          : "bg-neutral-200 hover:bg-neutral-300 text-neutral-700 shadow-sm"
+                      } disabled:opacity-50`}
+                    >
+                      {status}
+                    </button>
+                  ))}
                 </div>
               </div>
             </div>

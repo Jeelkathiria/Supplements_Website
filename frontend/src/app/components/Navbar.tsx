@@ -165,9 +165,27 @@ export const Navbar: React.FC = () => {
               )}
             </Link>
 
-            <Link to="/dashboard">
-              <User className="w-5 h-5" />
-            </Link>
+            {isAuthenticated ? (
+              <>
+                <Link to="/account" title="My Account">
+                  <User className="w-5 h-5" />
+                </Link>
+                <button 
+                  onClick={() => {
+                    logout();
+                    navigate('/');
+                  }}
+                  title="Logout"
+                  className="text-neutral-700 hover:text-neutral-900"
+                >
+                  <LogOut className="w-5 h-5" />
+                </button>
+              </>
+            ) : (
+              <Link to="/login" title="Login">
+                <User className="w-5 h-5" />
+              </Link>
+            )}
           </div>
 
           {/* MOBILE BUTTONS */}

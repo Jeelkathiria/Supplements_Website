@@ -6,6 +6,7 @@ const router = Router();
 
 // User routes
 router.post("/checkout", requireAuth, orderController.createCheckout);
+router.post("/place", requireAuth, orderController.placeOrder);
 router.get("/my", requireAuth, orderController.getUserOrders);
 router.get("/:orderId", requireAuth, orderController.getOrderById);
 router.delete("/:orderId/cancel", requireAuth, orderController.cancelOrder);

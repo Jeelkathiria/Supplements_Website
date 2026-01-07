@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, ReactNode, useEffect } from
 import { CartItem, Product } from '../types';
 import * as cartService from '../../services/cartService';
 import { useAuth } from './AuthContext';
+import { toast } from 'sonner';
 
 interface CartContextType {
   cartItems: CartItem[];
@@ -13,6 +14,7 @@ interface CartContextType {
   isLoading: boolean;
   error: string | null;
   syncCart: () => Promise<void>;
+  mergeGuestCart: () => Promise<void>;
 }
 
 const defaultCartContext: CartContextType = {
@@ -25,6 +27,7 @@ const defaultCartContext: CartContextType = {
   isLoading: false,
   error: null,
   syncCart: async () => {},
+  mergeGuestCart: async () => {},
 };
 
 const CartContext = createContext<CartContextType>(defaultCartContext);
@@ -36,13 +39,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { isAuthenticated, firebaseUser } = useAuth();
-
-  // Sync cart from backend when user logs in
-  useEffect(() => {
-    if (isAuthenticated && firebaseUser) {
-      syncCart();
-    }
-  }, [isAuthenticated, firebaseUser?.uid]);
+  const [hasAttemptedMerge, setHasAttemptedMerge] = useState(false);
 
   // Load cart from localStorage on mount
   useEffect(() => {
@@ -65,17 +62,45 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, [cartItems]);
 
+  // Merge guest cart and sync when user logs in
+  useEffect(() => {
+    if (isAuthenticated && firebaseUser && !hasAttemptedMerge) {
+      handleLoginMerge();
+      setHasAttemptedMerge(true);
+    }
+  }, [isAuthenticated, firebaseUser?.uid]);
+
+  const handleLoginMerge = async () => {
+    try {
+      // Check if there are guest cart items
+      if (cartItems.length > 0) {
+        await mergeGuestCart();
+      } else {
+        // Just sync the backend cart
+        await syncCart();
+      }
+    } catch (err) {
+      console.error('Error during login merge:', err);
+      // Still try to sync even if merge fails
+      try {
+        await syncCart();
+      } catch (syncErr) {
+        console.error('Error syncing cart:', syncErr);
+      }
+    }
+  };
+
   const syncCart = async () => {
     try {
       setIsLoading(true);
       const backendCart = await cartService.getCart();
       if (backendCart && backendCart.items) {
         // Convert backend cart to frontend format
-        const items: CartItem[] = backendCart.items.map((item) => ({
+        const items: CartItem[] = backendCart.items.map((item: any) => ({
           product: item.product,
           quantity: item.quantity,
-          selectedSize: undefined, // Backend doesn't track these yet
-          selectedColor: undefined,
+          selectedSize: item.size || undefined,
+          selectedColor: item.flavor || undefined,
         }));
         setCartItems(items);
         setError(null);
@@ -83,6 +108,51 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     } catch (err) {
       console.error('Failed to sync cart:', err);
       setError('Failed to sync cart from server');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const mergeGuestCart = async () => {
+    try {
+      setIsLoading(true);
+      
+      // Convert local cart to API format - validate all required fields
+      const guestCartItems = cartItems
+        .filter(item => item.product && item.product.id && item.quantity > 0)
+        .map((item) => ({
+          productId: item.product.id,
+          quantity: item.quantity,
+          flavor: item.selectedColor || null,
+          size: item.selectedSize || null,
+        }));
+
+      // Send to backend to merge
+      if (guestCartItems.length > 0) {
+        const mergedCart = await cartService.mergeGuestCart(guestCartItems);
+        
+        // Update local state with merged cart
+        if (mergedCart && mergedCart.items) {
+          const items: CartItem[] = mergedCart.items.map((item: any) => ({
+            product: item.product,
+            quantity: item.quantity,
+            selectedSize: item.size || undefined,
+            selectedColor: item.flavor || undefined,
+          }));
+          setCartItems(items);
+          toast.success('Cart merged successfully!');
+        }
+      } else {
+        // No guest items, just sync backend cart
+        await syncCart();
+      }
+      setError(null);
+    } catch (err) {
+      console.error('Failed to merge cart:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to merge cart';
+      setError(errorMessage);
+      toast.error(errorMessage);
+      throw err;
     } finally {
       setIsLoading(false);
     }
@@ -98,8 +168,8 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setError(null);
       
       if (isAuthenticated) {
-        // Add to backend
-        await cartService.addToCart(product.id, quantity);
+        // Add to backend with flavor and size
+        await cartService.addToCart(product.id, quantity, selectedColor, selectedSize);
       }
 
       // Also add to local state
@@ -239,6 +309,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         isLoading,
         error,
         syncCart,
+        mergeGuestCart,
       }}
     >
       {children}

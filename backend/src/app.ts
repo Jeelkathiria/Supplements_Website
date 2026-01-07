@@ -7,6 +7,8 @@ import categories from "./routes/categories";
 import cartRoutes from "./routes/cartRoutes";
 import orderRoutes from "./routes/orderRoutes";
 import adminOrders from "./routes/adminOrders";
+import userRoutes from "./routes/user";
+
 
 const app = express();
 
@@ -39,4 +41,8 @@ app.use("/api/orders", orderRoutes);
 
 //admin Orders view
 app.use("/api/admin", adminOrders);
+
+//User
+app.use("/api/user", userRoutes);
+
 export default app;

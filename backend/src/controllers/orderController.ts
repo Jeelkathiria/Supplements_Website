@@ -1,4 +1,4 @@
-import { Request, Response } from "express";
+import { Response } from "express";
 import { AuthRequest } from "../middlewares/requireAuth";
 import * as orderService from "../services/orderService";
 import { $Enums } from "../generated/prisma";
@@ -8,7 +8,7 @@ type OrderStatusType = $Enums.OrderStatus;
 
 export const createCheckout = async (req: AuthRequest, res: Response) => {
   try {
-    const userId = req.user?.uid;
+    const userId = req.user?.dbUser?.id;
     if (!userId) {
       return res.status(401).json({ message: "User not authenticated" });
     }
@@ -52,9 +52,35 @@ export const createCheckout = async (req: AuthRequest, res: Response) => {
   }
 };
 
+export const placeOrder = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user?.dbUser?.id;
+    if (!userId) {
+      return res.status(401).json({ message: "User not authenticated" });
+    }
+
+    const { addressId } = req.body;
+
+    if (!addressId) {
+      return res.status(400).json({ message: "Address ID is required" });
+    }
+
+    const order = await orderService.placeOrderFromCart(userId, addressId);
+
+    res.status(201).json({
+      message: "Order placed successfully",
+      order,
+    });
+  } catch (error) {
+    console.error("Error placing order:", error);
+    const message = error instanceof Error ? error.message : "Failed to place order";
+    res.status(500).json({ message });
+  }
+};
+
 export const getUserOrders = async (req: AuthRequest, res: Response) => {
   try {
-    const userId = req.user?.uid;
+    const userId = req.user?.dbUser?.id;
     if (!userId) {
       return res.status(401).json({ message: "User not authenticated" });
     }
@@ -69,7 +95,7 @@ export const getUserOrders = async (req: AuthRequest, res: Response) => {
 
 export const getOrderById = async (req: AuthRequest, res: Response) => {
   try {
-    const userId = req.user?.uid;
+    const userId = req.user?.dbUser?.id;
     if (!userId) {
       return res.status(401).json({ message: "User not authenticated" });
     }
@@ -141,7 +167,7 @@ export const updateOrderStatus = async (req: AuthRequest, res: Response) => {
 
 export const cancelOrder = async (req: AuthRequest, res: Response) => {
   try {
-    const userId = req.user?.uid;
+    const userId = req.user?.dbUser?.id;
     if (!userId) {
       return res.status(401).json({ message: "User not authenticated" });
     }

@@ -8,67 +8,8 @@ import { Breadcrumb } from '../components/Breadcrumb';
 import * as checkoutService from '../../services/checkoutService';
 import * as orderService from '../../services/orderService';
 import * as userService from '../../services/userService';
+import type { Address } from '../../services/userService';
 import type { CheckoutData } from '../../services/checkoutService';
-
-interface AddressFormData {
-  name: string;
-  phone: string;
-  address: string;
-  city: string;
-  state: string;
-  pincode: string;
-}
-
-interface ValidationErrors {
-  name?: string;
-  phone?: string;
-  address?: string;
-  city?: string;
-  state?: string;
-  pincode?: string;
-}
-
-const validatePhone = (phone: string): boolean => {
-  return /^[0-9]{10}$/.test(phone.replace(/\D/g, ''));
-};
-
-const validatePincode = (pincode: string): boolean => {
-  return /^[0-9]{6}$/.test(pincode);
-};
-
-const validateAddressForm = (form: AddressFormData): ValidationErrors => {
-  const errors: ValidationErrors = {};
-
-  if (!form.name.trim()) {
-    errors.name = 'Full name is required';
-  }
-
-  if (!form.phone.trim()) {
-    errors.phone = 'Phone number is required';
-  } else if (!validatePhone(form.phone)) {
-    errors.phone = 'Phone must be 10 digits';
-  }
-
-  if (!form.address.trim()) {
-    errors.address = 'Address is required';
-  }
-
-  if (!form.city.trim()) {
-    errors.city = 'City is required';
-  }
-
-  if (!form.state.trim()) {
-    errors.state = 'State is required';
-  }
-
-  if (!form.pincode.trim()) {
-    errors.pincode = 'Pincode is required';
-  } else if (!validatePincode(form.pincode)) {
-    errors.pincode = 'Pincode must be 6 digits';
-  }
-
-  return errors;
-};
 
 export const Checkout: React.FC = () => {
   const { cartItems, clearCart } = useCart();
@@ -82,10 +23,9 @@ export const Checkout: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
   const [showAddressForm, setShowAddressForm] = useState(false);
-  const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
 
   // New address form state
-  const [newAddress, setNewAddress] = useState<AddressFormData>({
+  const [newAddress, setNewAddress] = useState({
     name: '',
     phone: '',
     address: '',
@@ -138,21 +78,22 @@ export const Checkout: React.FC = () => {
   const handleAddressSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const errors = validateAddressForm(newAddress);
-    setValidationErrors(errors);
-
-    if (Object.keys(errors).length > 0) {
+    // Validate form
+    if (!newAddress.name || !newAddress.phone || !newAddress.address || !newAddress.city || !newAddress.pincode) {
+      toast.error('Please fill in all required fields');
       return;
     }
 
     try {
       setIsProcessing(true);
-      const savedAddress = await userService.addAddress(newAddress);
+      const savedAddress = await userService.addAddress({
+        ...newAddress,
+        state: newAddress.state || 'N/A',
+      });
 
       toast.success('Address saved successfully!');
       setSelectedAddressId(savedAddress.id);
       setShowAddressForm(false);
-      setValidationErrors({});
 
       // Reload checkout data to include the new address
       await loadCheckoutData();
@@ -294,16 +235,11 @@ export const Checkout: React.FC = () => {
                       <input
                         type="text"
                         value={newAddress.name}
-                        onChange={(e) => {
-                          setNewAddress({ ...newAddress, name: e.target.value });
-                          if (validationErrors.name) setValidationErrors({ ...validationErrors, name: undefined });
-                        }}
-                        className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
-                          validationErrors.name ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
-                        }`}
+                        onChange={(e) => setNewAddress({ ...newAddress, name: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                         placeholder="John Doe"
+                        required
                       />
-                      {validationErrors.name && <p className="text-red-600 text-xs mt-1">{validationErrors.name}</p>}
                     </div>
 
                     <div className="col-span-2 sm:col-span-1">
@@ -311,19 +247,13 @@ export const Checkout: React.FC = () => {
                         Phone Number *
                       </label>
                       <input
-                        type="text"
+                        type="tel"
                         value={newAddress.phone}
-                        onChange={(e) => {
-                          const val = e.target.value.replace(/\D/g, '').slice(0, 10);
-                          setNewAddress({ ...newAddress, phone: val });
-                          if (validationErrors.phone) setValidationErrors({ ...validationErrors, phone: undefined });
-                        }}
-                        className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
-                          validationErrors.phone ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
-                        }`}
+                        onChange={(e) => setNewAddress({ ...newAddress, phone: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                         placeholder="9876543210"
+                        required
                       />
-                      {validationErrors.phone && <p className="text-red-600 text-xs mt-1">{validationErrors.phone}</p>}
                     </div>
 
                     <div className="col-span-2">
@@ -333,16 +263,11 @@ export const Checkout: React.FC = () => {
                       <input
                         type="text"
                         value={newAddress.address}
-                        onChange={(e) => {
-                          setNewAddress({ ...newAddress, address: e.target.value });
-                          if (validationErrors.address) setValidationErrors({ ...validationErrors, address: undefined });
-                        }}
-                        className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
-                          validationErrors.address ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
-                        }`}
+                        onChange={(e) => setNewAddress({ ...newAddress, address: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                         placeholder="123 Main Street, Apt 4B"
+                        required
                       />
-                      {validationErrors.address && <p className="text-red-600 text-xs mt-1">{validationErrors.address}</p>}
                     </div>
 
                     <div className="col-span-2 sm:col-span-1">
@@ -352,35 +277,24 @@ export const Checkout: React.FC = () => {
                       <input
                         type="text"
                         value={newAddress.city}
-                        onChange={(e) => {
-                          setNewAddress({ ...newAddress, city: e.target.value });
-                          if (validationErrors.city) setValidationErrors({ ...validationErrors, city: undefined });
-                        }}
-                        className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
-                          validationErrors.city ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
-                        }`}
-                        placeholder="Mumbai"
+                        onChange={(e) => setNewAddress({ ...newAddress, city: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="New York"
+                        required
                       />
-                      {validationErrors.city && <p className="text-red-600 text-xs mt-1">{validationErrors.city}</p>}
                     </div>
 
                     <div className="col-span-2 sm:col-span-1">
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        State *
+                        State/Province
                       </label>
                       <input
                         type="text"
                         value={newAddress.state}
-                        onChange={(e) => {
-                          setNewAddress({ ...newAddress, state: e.target.value });
-                          if (validationErrors.state) setValidationErrors({ ...validationErrors, state: undefined });
-                        }}
-                        className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
-                          validationErrors.state ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
-                        }`}
-                        placeholder="Maharashtra"
+                        onChange={(e) => setNewAddress({ ...newAddress, state: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="New York"
                       />
-                      {validationErrors.state && <p className="text-red-600 text-xs mt-1">{validationErrors.state}</p>}
                     </div>
 
                     <div className="col-span-2 sm:col-span-1">
@@ -390,17 +304,11 @@ export const Checkout: React.FC = () => {
                       <input
                         type="text"
                         value={newAddress.pincode}
-                        onChange={(e) => {
-                          const val = e.target.value.replace(/\D/g, '').slice(0, 6);
-                          setNewAddress({ ...newAddress, pincode: val });
-                          if (validationErrors.pincode) setValidationErrors({ ...validationErrors, pincode: undefined });
-                        }}
-                        className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
-                          validationErrors.pincode ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
-                        }`}
-                        placeholder="400001"
+                        onChange={(e) => setNewAddress({ ...newAddress, pincode: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="10001"
+                        required
                       />
-                      {validationErrors.pincode && <p className="text-red-600 text-xs mt-1">{validationErrors.pincode}</p>}
                     </div>
                   </div>
 
@@ -414,10 +322,7 @@ export const Checkout: React.FC = () => {
                     </button>
                     <button
                       type="button"
-                      onClick={() => {
-                        setShowAddressForm(false);
-                        setValidationErrors({});
-                      }}
+                      onClick={() => setShowAddressForm(false)}
                       className="flex-1 py-2 px-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
                     >
                       Cancel
@@ -479,7 +384,7 @@ export const Checkout: React.FC = () => {
 
               <div className="flex justify-between text-lg font-bold text-gray-900 mb-6">
                 <span>Total Amount</span>
-                <span className="text-blue-600">₹{checkoutData?.cart.totals.grandTotal.toFixed(2) ?? '0.00'}</span>
+                <span className="text-blue-600">₹{checkoutData?.cart.totals.grandTotal.toFixed(2)}</span>
               </div>
 
               <form onSubmit={handlePlaceOrder}>

@@ -71,10 +71,12 @@ model Cart {
 }
 
 model CartItem {
-  id        String @id @default(uuid())
+  id        String  @id @default(uuid())
   cartId    String
   productId String
-  quantity  Int    @default(1)
+  quantity  Int     @default(1)
+  flavor    String?
+  size      String?
 
   cart    Cart    @relation(fields: [cartId], references: [id], onDelete: Cascade)
   product Product @relation(fields: [productId], references: [id])
@@ -98,8 +100,9 @@ model Order {
   gstAmount   Float
   discount    Float
 
-  items   OrderItem[]
-  address Address?
+  items     OrderItem[]
+  addressId String?
+  address   Address? @relation(fields: [addressId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -121,18 +124,27 @@ model OrderItem {
   product Product @relation(fields: [productId], references: [id])
 }
 
+/**
+ * ================= User Address=================
+ */
 model Address {
-  id      String @id @default(uuid())
-  userId  String
-  orderId String @unique
+  id     String @id @default(uuid())
+  userId String
 
   name    String
   phone   String
   address String
   city    String
+  state   String
   pincode String
 
-  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  isDefault Boolean @default(false)
+
+  user   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orders Order[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 enum OrderStatus {
@@ -141,4 +153,20 @@ enum OrderStatus {
   SHIPPED
   DELIVERED
   CANCELLED
+}
+
+/**
+ * ================= User =================
+ */
+model User {
+  id          String  @id @default(uuid())
+  firebaseUid String  @unique
+  email       String
+  name        String?
+  phone       String?
+
+  addresses Address[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

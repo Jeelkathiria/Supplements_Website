@@ -11,7 +11,10 @@ import {
   createUserWithEmailAndPassword,
   signOut,
   onAuthStateChanged,
-  User as FirebaseUser 
+  User as FirebaseUser,
+  updateProfile,
+  signInWithPopup,
+  GoogleAuthProvider 
 } from "firebase/auth";
 import { auth } from "../../firebase";
 
@@ -44,6 +47,7 @@ interface AuthContextType {
     email: string,
     password: string,
   ) => Promise<void>;
+  loginWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
   updateUser: (userData: Partial<User>) => void;
   redirectAfterLogin: string | null;
@@ -57,6 +61,7 @@ const defaultAuthContext: AuthContextType = {
   firebaseUser: null,
   login: async () => {},
   register: async () => {},
+  loginWithGoogle: async () => {},
   logout: async () => {},
   updateUser: () => {},
   redirectAfterLogin: null,
@@ -96,6 +101,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
           // Get Firebase ID token
           const token = await firebaseUserObj.getIdToken();
           safeLocalStorage.setItem("authToken", token);
+          
+          // Sync user with backend
+          try {
+            const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+            const response = await fetch(`${API_BASE_URL}/user/sync`, {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+              },
+            });
+            
+            if (!response.ok) {
+              console.error("Failed to sync user with backend");
+            }
+          } catch (error) {
+            console.error("Error syncing user:", error);
+          }
           
           const userData: User = {
             email: firebaseUserObj.email || "",
@@ -152,11 +175,30 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
         password,
       );
       
+      // Set display name
+      await updateProfile(userCredential.user, {
+        displayName: name,
+      });
+      
       // Token will be set by onAuthStateChanged
       const token = await userCredential.user.getIdToken();
       safeLocalStorage.setItem("authToken", token);
     } catch (error) {
       console.error("Register error:", error);
+      throw error;
+    }
+  };
+
+  const loginWithGoogle = async (): Promise<void> => {
+    try {
+      const provider = new GoogleAuthProvider();
+      const userCredential = await signInWithPopup(auth, provider);
+      
+      // Token will be set by onAuthStateChanged
+      const token = await userCredential.user.getIdToken();
+      safeLocalStorage.setItem("authToken", token);
+    } catch (error) {
+      console.error("Google login error:", error);
       throw error;
     }
   };
@@ -213,6 +255,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
     firebaseUser,
     login,
     register,
+    loginWithGoogle,
     logout,
     updateUser,
     redirectAfterLogin,

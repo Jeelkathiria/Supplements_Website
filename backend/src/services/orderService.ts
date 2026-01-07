@@ -129,6 +129,121 @@ export const createOrder = async (payload: CheckoutPayload) => {
   }
 };
 
+export const placeOrderFromCart = async (userId: string, addressId: string) => {
+  try {
+    // Verify address exists and belongs to user
+    const address = await prisma.address.findUnique({
+      where: { id: addressId }
+    });
+
+    if (!address || address.userId !== userId) {
+      throw new Error("Address not found or unauthorized");
+    }
+
+    // Get user's cart
+    const cart = await prisma.cart.findUnique({
+      where: { userId },
+      include: {
+        items: {
+          include: { product: true }
+        }
+      }
+    });
+
+    if (!cart || cart.items.length === 0) {
+      throw new Error("Cart is empty");
+    }
+
+    // Calculate totals and verify stock
+    let totalAmount = 0;
+    let totalGst = 0;
+    let totalDiscount = 0;
+
+    for (const item of cart.items) {
+      const product = item.product;
+
+      if (product.stockQuantity < item.quantity) {
+        throw new Error(
+          `Insufficient stock for ${product.name}. Available: ${product.stockQuantity}, Requested: ${item.quantity}`
+        );
+      }
+
+      const basePrice = product.basePrice;
+      const discountAmount = (basePrice * (product.discountPercent || 0)) / 100;
+      const priceAfterDiscount = basePrice - discountAmount;
+      const gstAmount = (priceAfterDiscount * (product.gstPercent || 0)) / 100;
+      const finalPrice = priceAfterDiscount + gstAmount;
+
+      totalAmount += finalPrice * item.quantity;
+      totalGst += gstAmount * item.quantity;
+      totalDiscount += discountAmount * item.quantity;
+    }
+
+    // Execute all operations in a transaction
+    const order = await prisma.$transaction(async (tx) => {
+      // Create order
+      const newOrder = await tx.order.create({
+        data: {
+          userId,
+          totalAmount,
+          gstAmount: totalGst,
+          discount: totalDiscount,
+          status: OrderStatus.PENDING,
+          addressId,
+          items: {
+            create: cart.items.map((item) => {
+              const product = item.product;
+              const basePrice = product.basePrice;
+              const discountAmount = (basePrice * (product.discountPercent || 0)) / 100;
+              const priceAfterDiscount = basePrice - discountAmount;
+              const gstAmount = (priceAfterDiscount * (product.gstPercent || 0)) / 100;
+              const finalPrice = priceAfterDiscount + gstAmount;
+
+              return {
+                productId: item.productId,
+                quantity: item.quantity,
+                price: finalPrice,
+                flavor: item.flavor,
+                size: item.size
+              };
+            })
+          }
+        },
+        include: {
+          items: {
+            include: { product: true }
+          },
+          address: true
+        }
+      });
+
+      // Update product stock
+      for (const item of cart.items) {
+        await tx.product.update({
+          where: { id: item.productId },
+          data: {
+            stockQuantity: {
+              decrement: item.quantity
+            }
+          }
+        });
+      }
+
+      // Clear cart
+      await tx.cartItem.deleteMany({
+        where: { cartId: cart.id }
+      });
+
+      return newOrder;
+    });
+
+    return order;
+  } catch (error) {
+    console.error("Error placing order from cart:", error);
+    throw error;
+  }
+};
+
 export const getUserOrders = async (userId: string) => {
   try {
     return await prisma.order.findMany({
