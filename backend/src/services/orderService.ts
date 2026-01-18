@@ -26,7 +26,6 @@ export const createOrder = async (payload: CheckoutPayload) => {
   try {
     // Calculate totals
     let totalAmount = 0;
-    let totalGST = 0;
     let totalDiscount = 0;
 
     // Verify all products exist and have sufficient stock
@@ -49,12 +48,9 @@ export const createOrder = async (payload: CheckoutPayload) => {
       const basePrice = product.basePrice;
       const discountAmount =
         (basePrice * (product.discountPercent || 0)) / 100;
-      const priceAfterDiscount = basePrice - discountAmount;
-      const gstAmount = (priceAfterDiscount * (product.gstPercent || 0)) / 100;
-      const finalPrice = priceAfterDiscount + gstAmount;
+      const finalPrice = basePrice - discountAmount;
 
       totalAmount += finalPrice * item.quantity;
-      totalGST += gstAmount * item.quantity;
       totalDiscount += discountAmount * item.quantity;
     }
 
@@ -65,7 +61,6 @@ export const createOrder = async (payload: CheckoutPayload) => {
         data: {
           userId: payload.userId,
           totalAmount,
-          gstAmount: totalGST,
           discount: totalDiscount,
           status: OrderStatus.PENDING,
           address: {
@@ -156,7 +151,6 @@ export const placeOrderFromCart = async (userId: string, addressId: string) => {
 
     // Calculate totals and verify stock
     let totalAmount = 0;
-    let totalGst = 0;
     let totalDiscount = 0;
 
     for (const item of cart.items) {
@@ -170,12 +164,9 @@ export const placeOrderFromCart = async (userId: string, addressId: string) => {
 
       const basePrice = product.basePrice;
       const discountAmount = (basePrice * (product.discountPercent || 0)) / 100;
-      const priceAfterDiscount = basePrice - discountAmount;
-      const gstAmount = (priceAfterDiscount * (product.gstPercent || 0)) / 100;
-      const finalPrice = priceAfterDiscount + gstAmount;
+      const finalPrice = basePrice - discountAmount;
 
       totalAmount += finalPrice * item.quantity;
-      totalGst += gstAmount * item.quantity;
       totalDiscount += discountAmount * item.quantity;
     }
 
@@ -186,7 +177,7 @@ export const placeOrderFromCart = async (userId: string, addressId: string) => {
         data: {
           userId,
           totalAmount,
-          gstAmount: totalGst,
+          gstAmount: 0,
           discount: totalDiscount,
           status: OrderStatus.PENDING,
           addressId,
@@ -195,9 +186,7 @@ export const placeOrderFromCart = async (userId: string, addressId: string) => {
               const product = item.product;
               const basePrice = product.basePrice;
               const discountAmount = (basePrice * (product.discountPercent || 0)) / 100;
-              const priceAfterDiscount = basePrice - discountAmount;
-              const gstAmount = (priceAfterDiscount * (product.gstPercent || 0)) / 100;
-              const finalPrice = priceAfterDiscount + gstAmount;
+              const finalPrice = basePrice - discountAmount;
 
               return {
                 productId: item.productId,

@@ -2,6 +2,7 @@ import { Router } from "express";
 import { requireAuth } from "../middlewares/requireAuth";
 import {
   syncUser,
+  updateProfile,
   addAddress,
   getAddresses,
   setDefaultAddress,
@@ -12,6 +13,7 @@ import {
 const router = Router();
 
 router.post("/sync", requireAuth, syncUser);
+router.patch("/profile", requireAuth, updateProfile);
 router.get("/checkout", requireAuth, getCheckoutData);
 router.post("/address", requireAuth, addAddress);
 router.get("/address", requireAuth, getAddresses);

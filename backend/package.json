@@ -7,10 +7,12 @@
   },
   "dependencies": {
     "@prisma/client": "^6.7.0",
+    "@types/multer": "^2.0.0",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
     "firebase-admin": "^13.6.0",
+    "multer": "^2.0.2",
     "prisma": "^6.7.0"
   },
   "devDependencies": {

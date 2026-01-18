@@ -1,10 +1,19 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Trash2, Plus, Minus, ShoppingBag, AlertCircle, Loader } from 'lucide-react';
-import { useCart } from '../context/CartContext';
-import { useAuth } from '../context/AuthContext';
+import { useCart } from '../components/context/CartContext';
+import { useAuth } from '../components/context/AuthContext';
 import { calculateFinalPrice } from '../data/products';
 import { Breadcrumb } from '../components/Breadcrumb';
+
+// Helper function to get full image URL
+const getFullImageUrl = (imageUrl: string) => {
+  if (!imageUrl) return '/placeholder.png';
+  if (imageUrl.startsWith('http')) return imageUrl;
+  const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+  const backendBase = apiBase.replace('/api', '');
+  return `${backendBase}${imageUrl}`;
+};
 
 export const Cart: React.FC = () => {
   const { cartItems, updateQuantity, removeFromCart, getCartTotal, isLoading, error } = useCart();
@@ -124,10 +133,8 @@ export const Cart: React.FC = () => {
             {cartItems.map((item) => {
               const basePrice = item.product.basePrice;
               const discountPercent = item.product.discountPercent || 0;
-              const gstPercent = item.product.gstPercent || 0;
 
-              const discountedPrice = basePrice - (basePrice * discountPercent) / 100;
-              const finalPrice = discountedPrice + (discountedPrice * gstPercent) / 100;
+              const finalPrice = calculateFinalPrice(basePrice, discountPercent);
               const itemTotal = finalPrice * item.quantity;
               const isUpdating = updatingItems.has(item.product.id);
               const isRemoving = removingItems.has(item.product.id);
@@ -144,7 +151,7 @@ export const Cart: React.FC = () => {
                     <div className="flex-shrink-0">
                       <Link to={`/product/${item.product.id}`}>
                         <img
-                          src={item.product.imageUrls?.[0] || '/placeholder.png'}
+                          src={getFullImageUrl(item.product.imageUrls?.[0] || '')}
                           alt={item.product.name}
                           className="w-24 h-24 object-cover rounded-lg border border-neutral-200 hover:shadow-md transition cursor-pointer"
                         />
@@ -182,23 +189,17 @@ export const Cart: React.FC = () => {
                       <div className="mt-3 space-y-1 text-sm bg-neutral-50 p-3 rounded">
                         <div className="flex justify-between">
                           <span className="text-neutral-600">Base Price (×{item.quantity}):</span>
-                          <span className="font-medium">₹{(basePrice * item.quantity).toFixed(2)}</span>
+                          <span className="font-medium">₹{(basePrice * item.quantity).toFixed(0)}</span>
                         </div>
                         {discountPercent > 0 && (
                           <div className="flex justify-between text-green-600">
                             <span>Discount ({discountPercent}%):</span>
-                            <span>-₹{((basePrice - discountedPrice) * item.quantity).toFixed(2)}</span>
-                          </div>
-                        )}
-                        {gstPercent > 0 && (
-                          <div className="flex justify-between text-neutral-600">
-                            <span>GST ({gstPercent}%):</span>
-                            <span>+₹{((finalPrice - discountedPrice) * item.quantity).toFixed(2)}</span>
+                            <span>-₹{((basePrice - finalPrice) * item.quantity).toFixed(0)}</span>
                           </div>
                         )}
                         <div className="border-t border-neutral-200 mt-1 pt-1 flex justify-between font-bold text-neutral-900">
                           <span>Item Total (×{item.quantity}):</span>
-                          <span>₹{itemTotal.toFixed(2)}</span>
+                          <span>₹{itemTotal.toFixed(0)}</span>
                         </div>
                       </div>
                     </div>
@@ -325,11 +326,7 @@ export const Cart: React.FC = () => {
               <div className="mt-6 pt-4 border-t border-neutral-200 space-y-2 text-xs text-neutral-500">
                 <p className="flex items-start gap-2">
                   <span className="text-lg leading-none">✓</span>
-                  <span>Free shipping on orders above ₹499</span>
-                </p>
-                <p className="flex items-start gap-2">
-                  <span className="text-lg leading-none">✓</span>
-                  <span>Easy returns & exchanges</span>
+                  <span>order placed before 4pm will be shipped on the same day</span>
                 </p>
                 <p className="flex items-start gap-2">
                   <span className="text-lg leading-none">✓</span>

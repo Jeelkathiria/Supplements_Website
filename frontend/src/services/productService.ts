@@ -164,3 +164,70 @@ export const deleteProduct = async (productId: string): Promise<void> => {
     throw error;
   }
 };
+// Upload single image
+export const uploadImage = async (file: File): Promise<string> => {
+  try {
+    const token = await getAuthToken();
+
+    if (!token) {
+      throw new Error("Not authenticated. Please login first.");
+    }
+
+    const formData = new FormData();
+    formData.append("image", file);
+
+    const response = await fetch(`${API_BASE_URL}/images/upload`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || `Failed to upload image (${response.status})`);
+    }
+
+    const data = await response.json();
+    return data.imageUrl;
+  } catch (error) {
+    console.error("Error uploading image:", error);
+    throw error;
+  }
+};
+
+// Upload multiple images
+export const uploadImages = async (files: File[]): Promise<string[]> => {
+  try {
+    const token = await getAuthToken();
+
+    if (!token) {
+      throw new Error("Not authenticated. Please login first.");
+    }
+
+    const formData = new FormData();
+    files.forEach((file) => {
+      formData.append("images", file);
+    });
+
+    const response = await fetch(`${API_BASE_URL}/images/upload-multiple`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || `Failed to upload images (${response.status})`);
+    }
+
+    const data = await response.json();
+    return data.imageUrls;
+  } catch (error) {
+    console.error("Error uploading images:", error);
+    throw error;
+  }
+};

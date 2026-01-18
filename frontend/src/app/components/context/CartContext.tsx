@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { CartItem, Product } from '../types';
-import * as cartService from '../../services/cartService';
+import * as cartService from "../../../services/cartService";
 import { useAuth } from './AuthContext';
 import { toast } from 'sonner';
 
@@ -72,13 +72,41 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const handleLoginMerge = async () => {
     try {
-      // Check if there are guest cart items
+      // If user is already authenticated on page reload, just sync from backend
+      // Only merge if there are actually valid guest cart items to merge
       if (cartItems.length > 0) {
-        await mergeGuestCart();
-      } else {
-        // Just sync the backend cart
-        await syncCart();
+        const guestCartItems = cartItems
+          .filter(item => item.product && item.product.id && item.quantity > 0)
+          .map((item) => ({
+            productId: item.product.id,
+            quantity: item.quantity,
+            flavor: item.selectedColor || null,
+            size: item.selectedSize || null,
+          }));
+
+        // Only merge if we have valid items
+        if (guestCartItems.length > 0) {
+          try {
+            const mergedCart = await cartService.mergeGuestCart(guestCartItems);
+            if (mergedCart && mergedCart.items) {
+              const items: CartItem[] = mergedCart.items.map((item: any) => ({
+                product: item.product,
+                quantity: item.quantity,
+                selectedSize: item.size || undefined,
+                selectedColor: item.flavor || undefined,
+              }));
+              setCartItems(items);
+            }
+            return;
+          } catch (mergeErr) {
+            console.error('Error during guest cart merge:', mergeErr);
+            // If merge fails, fall back to just syncing
+          }
+        }
       }
+      
+      // Sync the backend cart (for authenticated users or if merge fails)
+      await syncCart();
     } catch (err) {
       console.error('Error during login merge:', err);
       // Still try to sync even if merge fails
@@ -288,10 +316,8 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return cartItems.reduce((total, item) => {
       const basePrice = item.product.basePrice;
       const discountPercent = item.product.discountPercent || 0;
-      const gstPercent = item.product.gstPercent || 0;
 
-      const discountedPrice = basePrice - (basePrice * discountPercent) / 100;
-      const finalPrice = discountedPrice + (discountedPrice * gstPercent) / 100;
+      const finalPrice = basePrice - (basePrice * discountPercent) / 100;
 
       return total + finalPrice * item.quantity;
     }, 0);

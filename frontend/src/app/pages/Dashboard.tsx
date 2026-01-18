@@ -13,8 +13,8 @@ import {
 } from "lucide-react";
 import { Address } from "../types";
 import { toast } from "sonner";
-import { useAuth } from "../context/AuthContext";
-import { useCart } from "../context/CartContext";
+import { useAuth } from "../components/context/AuthContext";
+import { useCart } from "../components/context/CartContext";
 import { PRODUCTS } from "../data/products";
 
 export const Dashboard: React.FC = () => {

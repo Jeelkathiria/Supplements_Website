@@ -16,7 +16,7 @@ export const Footer: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-12">
           {/* Brand */}
           <div>
-            <h3 className="text-white text-xl mb-6">ProFit</h3>
+            <h3 className="text-white text-xl mb-6">Saturnimports</h3>
             <p className="text-sm leading-relaxed">
               Your trusted source for premium protein powders
               and fitness supplements. Quality products for your
@@ -54,22 +54,6 @@ export const Footer: React.FC = () => {
                   className="hover:text-white transition-colors"
                 >
                   All Products
-                </Link>
-              </li>
-              <li>
-                <Link
-                  to="/about"
-                  className="hover:text-white transition-colors"
-                >
-                  About Us
-                </Link>
-              </li>
-              <li>
-                <Link
-                  to="/contact"
-                  className="hover:text-white transition-colors"
-                >
-                  Contact
                 </Link>
               </li>
               <li>
@@ -131,18 +115,12 @@ export const Footer: React.FC = () => {
               <li className="flex items-start gap-4">
                 <MapPin className="w-5 h-5 mt-1 flex-shrink-0" />
                 <span className="text-sm">
-                  123 Fitness Street, Gym City, FT 12345
+                  No 52, Old Ashok Talkies Compound, Ambedkar Road, Dehu Road. Pune 412101
                 </span>
               </li>
               <li className="flex items-center gap-4">
                 <Phone className="w-5 h-5 flex-shrink-0" />
-                <span className="text-sm">+91 1234567890</span>
-              </li>
-              <li className="flex items-center gap-4">
-                <Mail className="w-5 h-5 flex-shrink-0" />
-                <span className="text-sm">
-                  support@profit.com
-                </span>
+                <span className="text-sm">+91 8421785660</span>
               </li>
             </ul>
           </div>
@@ -150,7 +128,7 @@ export const Footer: React.FC = () => {
 
         <div className="border-t border-neutral-800 mt-12 pt-6 text-center text-sm">
           <p>
-            &copy; {new Date().getFullYear()} ProFit. All rights
+            &copy; {new Date().getFullYear()} Saturnimports. All rights
             reserved.
           </p>
         </div>

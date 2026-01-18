@@ -5,7 +5,7 @@ import React, {
   useEffect,
   ReactNode,
 } from "react";
-import { safeLocalStorage } from "../utils/localStorage";
+import { safeLocalStorage } from "../../utils/localStorage";
 import { 
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword,
@@ -16,7 +16,7 @@ import {
   signInWithPopup,
   GoogleAuthProvider 
 } from "firebase/auth";
-import { auth } from "../../firebase";
+import { auth } from "../../../firebase";
 
 interface Address {
   id: string;
@@ -32,6 +32,7 @@ interface Address {
 interface User {
   name: string;
   email: string;
+  phone?: string;
   registeredAt?: string;
   loginTime?: string;
   addresses?: Address[];
@@ -40,12 +41,14 @@ interface User {
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
+  isLoading: boolean;
   firebaseUser: FirebaseUser | null;
   login: (email: string, password: string) => Promise<void>;
   register: (
     name: string,
     email: string,
     password: string,
+    phone: string,
   ) => Promise<void>;
   loginWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
@@ -58,6 +61,7 @@ interface AuthContextType {
 const defaultAuthContext: AuthContextType = {
   user: null,
   isAuthenticated: false,
+  isLoading: true,
   firebaseUser: null,
   login: async () => {},
   register: async () => {},
@@ -102,7 +106,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
           const token = await firebaseUserObj.getIdToken();
           safeLocalStorage.setItem("authToken", token);
           
-          // Sync user with backend
+          // Sync user with backend - send email and name
+          let backendUser = null;
           try {
             const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
             const response = await fetch(`${API_BASE_URL}/user/sync`, {
@@ -111,18 +116,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
                 Authorization: `Bearer ${token}`,
                 "Content-Type": "application/json",
               },
+              body: JSON.stringify({
+                email: firebaseUserObj.email,
+                name: firebaseUserObj.displayName  // Send Firebase displayName if available
+              })
             });
             
-            if (!response.ok) {
+            if (response.ok) {
+              backendUser = await response.json();
+            } else {
               console.error("Failed to sync user with backend");
             }
           } catch (error) {
             console.error("Error syncing user:", error);
           }
           
+          // Use name and phone from backend (database) - don't fall back to email prefix
           const userData: User = {
             email: firebaseUserObj.email || "",
-            name: firebaseUserObj.displayName || firebaseUserObj.email?.split("@")[0] || "",
+            name: backendUser?.name && backendUser.name.trim() ? backendUser.name : (firebaseUserObj.displayName || ""),
+            phone: backendUser?.phone || "",
             loginTime: new Date().toISOString(),
           };
           setUser(userData);
@@ -148,17 +161,36 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
     password: string,
   ): Promise<void> => {
     try {
+      // Normalize email - trim whitespace and convert to lowercase
+      const normalizedEmail = email.trim().toLowerCase();
+      
       const userCredential = await signInWithEmailAndPassword(
         auth,
-        email,
+        normalizedEmail,
         password,
       );
       
       // Token will be set by onAuthStateChanged
       const token = await userCredential.user.getIdToken();
       safeLocalStorage.setItem("authToken", token);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Login error:", error);
+      
+      // Provide user-friendly error messages
+      if (error.code === 'auth/invalid-credential') {
+        const customError = new Error('Invalid email or password. Please check and try again.');
+        (customError as any).code = 'auth/invalid-credential';
+        throw customError;
+      } else if (error.code === 'auth/user-not-found') {
+        const customError = new Error('No account found with this email. Please register first.');
+        (customError as any).code = 'auth/user-not-found';
+        throw customError;
+      } else if (error.code === 'auth/wrong-password') {
+        const customError = new Error('Incorrect password. Please try again.');
+        (customError as any).code = 'auth/wrong-password';
+        throw customError;
+      }
+      
       throw error;
     }
   };
@@ -167,24 +199,63 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
     name: string,
     email: string,
     password: string,
+    phone: string,
   ): Promise<void> => {
     try {
+      // Normalize email - trim whitespace and convert to lowercase
+      const normalizedEmail = email.trim().toLowerCase();
+      
       const userCredential = await createUserWithEmailAndPassword(
         auth,
-        email,
+        normalizedEmail,
         password,
       );
       
-      // Set display name
-      await updateProfile(userCredential.user, {
-        displayName: name,
-      });
-      
-      // Token will be set by onAuthStateChanged
+      // Store the name and phone in the database via backend sync
       const token = await userCredential.user.getIdToken();
       safeLocalStorage.setItem("authToken", token);
-    } catch (error) {
+      
+      // Sync user with backend to store the name and phone in database
+      try {
+        const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+        const response = await fetch(`${API_BASE_URL}/user/sync`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email: normalizedEmail,
+            name: name.trim(),  // Send the name entered during registration
+            phone: phone.trim()  // Send the phone number
+          })
+        });
+        
+        if (!response.ok) {
+          console.error("Error syncing user during registration:", response.statusText);
+        }
+      } catch (error) {
+        console.error("Error syncing user during registration:", error);
+        // Don't fail registration if sync fails, it will sync again on auth state change
+      }
+    } catch (error: any) {
       console.error("Register error:", error);
+      
+      // Preserve Firebase error code for handling in component
+      if (error.code === 'auth/email-already-in-use') {
+        const customError = new Error('This email is already registered. Please login instead.');
+        (customError as any).code = 'auth/email-already-in-use';
+        throw customError;
+      } else if (error.code === 'auth/weak-password') {
+        const customError = new Error('Password is too weak. Please choose a stronger password.');
+        (customError as any).code = 'auth/weak-password';
+        throw customError;
+      } else if (error.code === 'auth/invalid-email') {
+        const customError = new Error('Invalid email address. Please check and try again.');
+        (customError as any).code = 'auth/invalid-email';
+        throw customError;
+      }
+      
       throw error;
     }
   };
@@ -252,6 +323,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
   const value: AuthContextType = {
     user,
     isAuthenticated: !!user,
+    isLoading,
     firebaseUser,
     login,
     register,

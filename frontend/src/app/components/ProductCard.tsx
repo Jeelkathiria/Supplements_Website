@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Star, ShoppingCart } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { ShoppingCart, Zap } from 'lucide-react';
 import { Product } from '../types';
-import { useCart } from '../context/CartContext';
+import { useCart } from './context/CartContext';
 import { toast } from 'sonner';
+import { calculateFinalPrice } from '../data/products';
 
 interface ProductCardProps {
   product: Product;
@@ -15,21 +16,30 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   variant = 'featured',
 }) => {
   const { addToCart } = useCart();
+  const navigate = useNavigate();
   const [imageError, setImageError] = useState(false);
 
   // Price calculation - handle both old and new field names
   const basePrice = product.basePrice || 0;
   const discount = product.discountPercent || product.discount || 0;
-  const tax = product.gstPercent || product.tax || 0;
   
-  const discountedPrice = basePrice - (basePrice * discount) / 100;
-  const finalPrice = discountedPrice + (discountedPrice * tax) / 100;
+  const finalPrice = calculateFinalPrice(basePrice, discount);
 
   // Get images from either field
   const images = product.imageUrls || product.images || [];
   
+  // Build full image URL if it's relative
+  const getFullImageUrl = (imageUrl: string) => {
+    if (!imageUrl) return '/placeholder.png';
+    if (imageUrl.startsWith('http')) return imageUrl;
+    // If it's a relative path, add the API base URL
+    const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+    const backendBase = apiBase.replace('/api', '');
+    return `${backendBase}${imageUrl}`;
+  };
+  
   // Filter out base64 images that might be too large, use placeholder if none available
-  const displayImage = images.length > 0 ? images[0] : '/placeholder.png';
+  const displayImage = images.length > 0 ? getFullImageUrl(images[0]) : '/placeholder.png';
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -41,6 +51,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     toast.success(`${product.name} added to cart!`);
   };
 
+  const handleQuickBuy = (e: React.MouseEvent) => {
+    e.preventDefault();
+    navigate(`/product/${product.id}`);
+  };
+
   const isDiscount = variant === 'discount';
   const isOutOfStock = product.stockQuantity === 0;
 
@@ -48,9 +63,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     <Link to={`/product/${product.id}`} className="group block">
       <div
         className={`
-          relative rounded-xl overflow-hidden transition-all
+          relative rounded-lg overflow-hidden transition-all
           ${isDiscount
-            ? 'bg-white/10 backdrop-blur-lg border border-white/20 text-white hover:shadow-xl'
+            ? 'border border-opacity-50 text-white hover:shadow-2xl hover:scale-105 bg-neutral-800'
             : 'bg-white border border-neutral-200 hover:shadow-lg'}
         `}
       >
@@ -74,7 +89,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
           {/* Discount Badge */}
           {discount > 0 && (
-            <div className="absolute top-3 left-3 bg-red-600 text-white px-3 py-1 rounded-full text-sm font-medium">
+            <div className="absolute top-3 left-3 bg-red-600 text-white px-3 py-1 rounded-full text-sm font-bold">
               {discount}% OFF
             </div>
           )}
@@ -91,36 +106,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               </div>
             )}
           </div>
-
-          {/* Quick Add Button */}
-          {!isOutOfStock && (
-            <button
-              onClick={handleAddToCart}
-              className={`
-                absolute bottom-3 right-3 p-3 rounded-full transition
-                ${isDiscount
-                  ? 'bg-white text-neutral-900 opacity-100 hover:bg-neutral-200'
-                  : 'bg-neutral-900 text-white opacity-0 group-hover:opacity-100 hover:bg-neutral-800'}
-              `}
-              aria-label="Add to cart"
-            >
-              <ShoppingCart className="w-5 h-5" />
-            </button>
-          )}
-
-          {/* Out of Stock Badge */}
-          {isOutOfStock && (
-            <div className="absolute bottom-3 right-3 bg-red-600 text-white px-3 py-2 rounded-lg text-xs font-medium">
-              Out of Stock
-            </div>
-          )}
         </div>
 
         {/* Product Info */}
         <div className="p-4">
           {/* Category */}
           <div
-            className={`text-xs uppercase tracking-wide mb-2 ${
+            className={`text-xs uppercase tracking-widest font-semibold mb-1 ${
               isDiscount ? 'text-white/70' : 'text-neutral-500'
             }`}
           >
@@ -129,59 +121,65 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
           {/* Product Name */}
           <h3
-            className={`font-medium mb-2 line-clamp-2 transition-colors ${
+            className={`font-bold mb-2 line-clamp-2 transition-colors text-sm ${
               isDiscount
                 ? 'text-white'
-                : 'group-hover:text-neutral-600'
+                : 'text-neutral-900 group-hover:text-neutral-600'
             }`}
           >
             {product.name}
           </h3>
 
-          {/* Rating */}
-          <div className="flex items-center gap-2 mb-3">
-            <div className="flex items-center gap-1">
-              <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-              <span className="text-sm font-medium">
-                {(product.rating || 4.5).toFixed(1)}
-              </span>
+          {/* Price Section */}
+          <div className="mb-3">
+            {/* Final Price */}
+            <div className={`text-2xl font-bold mb-1 ${isDiscount ? 'text-white' : 'text-neutral-900'}`}>
+              ₹{finalPrice.toFixed(0)}
             </div>
-            <span
-              className={`text-xs ${
-                isDiscount ? 'text-white/60' : 'text-neutral-500'
-              }`}
-            >
-              ({product.reviews || 0} reviews)
-            </span>
-          </div>
-
-          {/* Price */}
-          <div className="flex items-baseline gap-2">
-            <span className="text-xl font-bold">
-              ₹{finalPrice.toFixed(2)}
-            </span>
+            
+            {/* MRP Section */}
             {discount > 0 && (
-              <span
-                className={`text-sm line-through ${
-                  isDiscount ? 'text-white/60' : 'text-neutral-500'
-                }`}
-              >
-                ₹{basePrice.toFixed(2)}
-              </span>
+              <div className="flex items-center gap-2">
+                <span className={`text-xs font-semibold ${isDiscount ? 'text-white/90' : 'text-neutral-600'}`}>MRP</span>
+                <div className={`px-2 py-1 rounded ${isDiscount ? 'bg-white/20' : 'bg-red-100'}`}>
+                  <span className={`text-sm line-through ${isDiscount ? 'text-white/80' : 'text-neutral-600'}`}>
+                    ₹{basePrice.toFixed(2)}
+                  </span>
+                </div>
+              </div>
             )}
           </div>
 
-          {/* Stock Status */}
-          {product.stockQuantity !== undefined && product.stockQuantity < 10 && product.stockQuantity > 0 && (
-            <div className="mt-2 text-xs text-orange-400">
-              Only {product.stockQuantity} left in stock
-            </div>
-          )}
-          {product.stockQuantity === 0 && (
-            <div className="mt-2 text-xs text-red-500 font-medium">
-              Out of Stock
-            </div>
-          )}
+          {/* Two Info Lines */}
+          <div className="mb-3 space-y-1">
+            <p className={`text-xs ${isDiscount ? 'text-white/90' : 'text-neutral-600'}`}>
+              {product.stockQuantity > 0 ? `${product.stockQuantity} In Stock` : 'Out of Stock'}
+            </p>
+            <p className={`text-xs font-medium ${isDiscount ? 'text-yellow-200' : 'text-green-600'}`}>
+              {isDiscount ? '⭐ Limited Time Deal' : '✓ Verified Authentic Product'}
+            </p>
+          </div>
+
+          {/* Quick Buy Button - Fantastic Style */}
+          <button
+            onClick={handleQuickBuy}
+            disabled={isOutOfStock}
+            className={`
+              w-full mt-2 py-3 px-4 rounded-lg font-bold transition-all 
+              relative overflow-hidden group/btn text-sm tracking-wide 
+              ${isOutOfStock
+                ? 'bg-neutral-300 text-neutral-500 cursor-not-allowed'
+                : isDiscount
+                  ? 'bg-white text-neutral-900 hover:bg-neutral-100 shadow-lg hover:shadow-xl hover:scale-110 active:scale-95 font-black'
+                  : 'bg-teal-800 text-white hover:bg-teal-900 shadow-lg hover:shadow-xl hover:scale-105 active:scale-95'
+              }
+            `}
+          >
+            <span className="flex items-center justify-center gap-2 ">
+              <Zap className="w-4 h-4 " />
+              QUICK BUY
+            </span>
+          </button>
         </div>
       </div>
     </Link>

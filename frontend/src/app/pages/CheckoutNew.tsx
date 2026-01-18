@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MapPin, Loader, AlertCircle, Check, Plus } from 'lucide-react';
-import { useCart } from '../context/CartContext';
-import { useAuth } from '../context/AuthContext';
+import { useCart } from '../components/context/CartContext';
+import { useAuth } from '../components/context/AuthContext';
 import { toast } from 'sonner';
 import { Breadcrumb } from '../components/Breadcrumb';
 import * as checkoutService from '../../services/checkoutService';
@@ -346,9 +346,9 @@ export const Checkout: React.FC = () => {
                     </div>
                     <div className="text-right">
                       <p className="font-semibold text-gray-900">
-                        ₹{(item.product.basePrice * item.quantity).toFixed(2)}
+                        ₹{(item.product.basePrice * item.quantity).toFixed(0)}
                       </p>
-                      <p className="text-sm text-gray-500">{item.quantity} x ₹{item.product.basePrice}</p>
+                      <p className="text-sm text-gray-500">{item.quantity} x ₹{item.product.basePrice.toFixed(0)}</p>
                     </div>
                   </div>
                 ))}
@@ -366,25 +366,21 @@ export const Checkout: React.FC = () => {
                   <>
                     <div className="flex justify-between text-gray-600">
                       <span>Subtotal</span>
-                      <span>₹{checkoutData.cart.totals.subtotal.toFixed(2)}</span>
+                      <span>₹{checkoutData.cart.totals.subtotal.toFixed(0)}</span>
                     </div>
                     {(checkoutData.cart.totals.discount ?? 0) > 0 && (
                       <div className="flex justify-between text-green-600">
                         <span>Discount</span>
-                        <span>-₹{(checkoutData.cart.totals.discount ?? 0).toFixed(2)}</span>
+                        <span>-₹{(checkoutData.cart.totals.discount ?? 0).toFixed(0)}</span>
                       </div>
                     )}
-                    <div className="flex justify-between text-gray-600">
-                      <span>GST</span>
-                      <span>₹{checkoutData.cart.totals.gst.toFixed(2)}</span>
-                    </div>
                   </>
                 )}
               </div>
 
               <div className="flex justify-between text-lg font-bold text-gray-900 mb-6">
                 <span>Total Amount</span>
-                <span className="text-blue-600">₹{checkoutData?.cart.totals.grandTotal.toFixed(2)}</span>
+                <span className="text-blue-600">₹{checkoutData?.cart.totals.grandTotal.toFixed(0)}</span>
               </div>
 
               <form onSubmit={handlePlaceOrder}>

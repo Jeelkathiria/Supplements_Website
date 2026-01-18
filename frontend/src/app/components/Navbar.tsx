@@ -13,8 +13,8 @@ import {
   LogOut,
 } from "lucide-react";
 
-import { useCart } from "../context/CartContext";
-import { useAuth } from "../context/AuthContext";
+import { useCart } from "./context/CartContext";
+import { useAuth } from "./context/AuthContext";
 import { CategoryDropdown } from "./CategoryDropdown";
 
 export const Navbar: React.FC = () => {
@@ -32,8 +32,8 @@ export const Navbar: React.FC = () => {
   const [desktopOpen, setDesktopOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const desktopDropdownRef = useRef<HTMLDivElement>(null);
-  const mobileDropdownRef = useRef<HTMLDivElement>(null);
+  const desktopDropdownRef = useRef<HTMLDivElement>(null) as React.RefObject<HTMLDivElement>;
+  const mobileDropdownRef = useRef<HTMLDivElement>(null) as React.RefObject<HTMLDivElement>;
 
   const cartItemsCount = cartItems.reduce(
     (sum, item) => sum + item.quantity,
@@ -43,10 +43,10 @@ export const Navbar: React.FC = () => {
   const isActive = (path: string) => location.pathname === path;
 
   const navLinkClass = (path: string) =>
-    `text-sm transition relative pb-1 ${
+    `text-sm transition relative pb-1 text-white ${
       isActive(path)
-        ? "text-neutral-900 font-medium after:absolute after:left-0 after:-bottom-0.5 after:w-full after:h-[2px] after:bg-neutral-900"
-        : "text-neutral-700 hover:text-neutral-900"
+        ? "font-medium after:absolute after:left-0 after:-bottom-0.5 after:w-full after:h-[2px] after:bg-white"
+        : "hover:text-neutral-200"
     }`;
 
   /* CLICK OUTSIDE */
@@ -104,17 +104,17 @@ export const Navbar: React.FC = () => {
   };
 
   return (
-    <nav className="sticky top-0 z-50 bg-white border-b shadow-sm">
+    <nav className="sticky top-0 z-50 bg-teal-900 border-b shadow-sm">
       <div className="max-w-[1400px] mx-auto px-4 md:px-8">
         <div className="flex items-center justify-between h-16">
-          <Link to="/" className="text-xl font-bold">
-            ProFit
+          <Link to="/" className="text-xl font-bold text-white">
+            Saturnimports
           </Link>
 
           {/* DESKTOP SEARCH */}
           <div className="hidden md:flex flex-1 mx-8 max-w-[760px]">
-            <div className="flex w-full border rounded-xl">
-              <div className="basis-[120px] shrink-0">
+            <div className="flex w-full border rounded-2xl ">
+              <div className="basis-[120px] shrink-0 rounded-l-2xl">
                 <CategoryDropdown
                   isOpen={desktopOpen}
                   setIsOpen={setDesktopOpen}
@@ -124,14 +124,14 @@ export const Navbar: React.FC = () => {
                 />
               </div>
 
-              <div className="relative flex-1">
+              <div className="relative flex-1 rounded-r-2xl">
                 <input
                   value={searchQuery}
                   onChange={(e) =>
                     setSearchQuery(e.target.value)
                   }
                   placeholder="Search supplements..."
-                  className="w-full h-11 px-4 pr-10 focus:outline-none"
+                  className="w-full h-11 px-4 pr-10 focus:outline-none bg-white text-neutral-900 placeholder:text-neutral-400 rounded-r-2xl"
                 />
                 <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
               </div>
@@ -156,7 +156,7 @@ export const Navbar: React.FC = () => {
               Admin
             </Link>
 
-            <Link to="/cart" className="relative">
+            <Link to="/cart" className="relative text-white">
               <ShoppingCart className="w-5 h-5" />
               {cartItemsCount > 0 && (
                 <span className="absolute -top-2 -right-2 bg-black text-white text-[10px] rounded-full px-1">
@@ -167,7 +167,7 @@ export const Navbar: React.FC = () => {
 
             {isAuthenticated ? (
               <>
-                <Link to="/account" title="My Account">
+                <Link to="/account" title="My Account" className="text-white">
                   <User className="w-5 h-5" />
                 </Link>
                 <button 
@@ -176,20 +176,20 @@ export const Navbar: React.FC = () => {
                     navigate('/');
                   }}
                   title="Logout"
-                  className="text-neutral-700 hover:text-neutral-900"
+                  className="text-white hover:text-neutral-200"
                 >
                   <LogOut className="w-5 h-5" />
                 </button>
               </>
             ) : (
-              <Link to="/login" title="Login">
+              <Link to="/login" title="Login" className="text-white">
                 <User className="w-5 h-5" />
               </Link>
             )}
           </div>
 
           {/* MOBILE BUTTONS */}
-          <div className="md:hidden flex items-center gap-3">
+          <div className="md:hidden flex items-center gap-3 text-white">
             <Link to="/cart" className="relative">
               <ShoppingCart className="w-5 h-5" />
             </Link>
@@ -201,8 +201,8 @@ export const Navbar: React.FC = () => {
 
         {/* MOBILE SEARCH */}
         <div className="md:hidden pb-4">
-          <div className="flex border rounded-xl">
-            <div className="basis-[80px] shrink-0 border-r">
+          <div className="flex border rounded-xl ">
+            <div className="basis-[80px] shrink-0">
               <CategoryDropdown
                 isOpen={mobileOpen}
                 setIsOpen={setMobileOpen}
@@ -213,12 +213,12 @@ export const Navbar: React.FC = () => {
               />
             </div>
 
-            <div className="relative flex-1">
+            <div className="relative flex-1 rounded-r-2xl">
               <input
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search supplements..."
-                className="w-full h-11 px-3 pr-9 focus:outline-none"
+                className="w-full h-11 px-3 pr-9 focus:outline-none bg-white text-neutral-900 placeholder:text-neutral-400 rounded-r-2xl"
               />
               <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
             </div>

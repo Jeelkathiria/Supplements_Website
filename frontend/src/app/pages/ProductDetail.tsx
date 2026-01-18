@@ -6,11 +6,14 @@ import {
   Truck,
   Shield,
   RotateCcw,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
-import { useCart } from "../context/CartContext";
+import { useCart } from "../components/context/CartContext";
 import { toast } from "sonner";
 import { Breadcrumb } from "../components/Breadcrumb";
 import { fetchProducts } from "../../services/productService";
+import { calculateFinalPrice } from "../data/products";
 import { Product } from "../types";
 
 export const ProductDetail: React.FC = () => {
@@ -29,6 +32,11 @@ export const ProductDetail: React.FC = () => {
 
   const [isHovering, setIsHovering] = useState(false);
   const [zoomPos, setZoomPos] = useState({ x: 50, y: 50 });
+  
+  const carouselRef = useRef<HTMLDivElement>(null);
+  const [scrollPosition, setScrollPosition] = useState(0);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(true);
 
   // Fetch product
   useEffect(() => {
@@ -79,8 +87,19 @@ export const ProductDetail: React.FC = () => {
     );
   }
 
-  const finalPrice = product.finalPrice || 
-    (product.basePrice - (product.basePrice * (product.discountPercent || 0)) / 100) * (1 + (product.gstPercent || 0) / 100);
+  // Helper function to get full image URL
+  const getFullImageUrl = (imageUrl: string) => {
+    if (!imageUrl) return '/placeholder.png';
+    if (imageUrl.startsWith('http')) return imageUrl;
+    const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+    const backendBase = apiBase.replace('/api', '');
+    return `${backendBase}${imageUrl}`;
+  };
+
+  // Get images array
+  const images = product.imageUrls || product.images || [];
+
+  const finalPrice = calculateFinalPrice(product.basePrice, product.discountPercent || 0);
 
   const handleMouseMove = (
     e: React.MouseEvent<HTMLDivElement, MouseEvent>,
@@ -167,7 +186,7 @@ export const ProductDetail: React.FC = () => {
               onMouseMove={handleMouseMove}
             >
               <img
-                src={(product.imageUrls || product.images)?.[selectedImage] || '/placeholder.png'}
+                src={getFullImageUrl((product.imageUrls || product.images)?.[selectedImage] || '')}
                 alt={product.name}
                 className="w-full aspect-square object-cover"
               />
@@ -176,7 +195,7 @@ export const ProductDetail: React.FC = () => {
                 <div
                   className="absolute inset-0 pointer-events-none"
                   style={{
-                    backgroundImage: `url(${(product.imageUrls || product.images)?.[selectedImage]})`,
+                    backgroundImage: `url(${getFullImageUrl((product.imageUrls || product.images)?.[selectedImage] || '')})`,
                     backgroundRepeat: "no-repeat",
                     backgroundSize: "220%",
                     backgroundPosition: `${zoomPos.x}% ${zoomPos.y}%`,
@@ -185,23 +204,84 @@ export const ProductDetail: React.FC = () => {
               )}
             </div>
 
-            <div className="grid grid-cols-4 gap-3 mt-4">
-              {(product.imageUrls || product.images || []).map((img, index) => (
-                <button
-                  key={index}
-                  onClick={() => setSelectedImage(index)}
-                  className={`border rounded-lg overflow-hidden ${
-                    selectedImage === index
-                      ? "border-neutral-900"
-                      : "border-neutral-300"
-                  }`}
+            <div className="mt-4">
+              <div className="relative">
+                {/* Carousel Container */}
+                <div
+                  ref={carouselRef}
+                  className="flex gap-3 overflow-x-auto scroll-smooth"
+                  style={{
+                    scrollBehavior: 'smooth',
+                    scrollbarWidth: 'none',
+                    msOverflowStyle: 'none',
+                  }}
+                  onScroll={(e) => {
+                    const target = e.currentTarget;
+                    setScrollPosition(target.scrollLeft);
+                    setCanScrollLeft(target.scrollLeft > 0);
+                    setCanScrollRight(
+                      target.scrollLeft < target.scrollWidth - target.clientWidth - 10
+                    );
+                  }}
                 >
-                  <img
-                    src={img}
-                    className="w-full aspect-square object-cover"
-                  />
-                </button>
-              ))}
+                  {images.map((img, index) => (
+                    <button
+                      key={index}
+                      onClick={() => setSelectedImage(index)}
+                      className={`flex-shrink-0 w-24 h-24 md:w-28 md:h-28 border-2 rounded-lg overflow-hidden transition ${
+                        selectedImage === index
+                          ? "border-neutral-900"
+                          : "border-neutral-300 hover:border-neutral-400"
+                      }`}
+                    >
+                      <img
+                        src={getFullImageUrl(img)}
+                        className="w-full h-full object-cover"
+                      />
+                    </button>
+                  ))}
+                </div>
+
+                {/* Left Button */}
+                {canScrollLeft && (
+                  <button
+                    onClick={() => {
+                      if (carouselRef.current) {
+                        carouselRef.current.scrollBy({
+                          left: -100,
+                          behavior: 'smooth',
+                        });
+                      }
+                    }}
+                    className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 md:-translate-x-6 bg-white rounded-full p-2 shadow-md hover:shadow-lg z-10"
+                  >
+                    <ChevronLeft className="w-5 h-5 text-neutral-700" />
+                  </button>
+                )}
+
+                {/* Right Button */}
+                {canScrollRight && (
+                  <button
+                    onClick={() => {
+                      if (carouselRef.current) {
+                        carouselRef.current.scrollBy({
+                          left: 100,
+                          behavior: 'smooth',
+                        });
+                      }
+                    }}
+                    className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 md:translate-x-6 bg-white rounded-full p-2 shadow-md hover:shadow-lg z-10"
+                  >
+                    <ChevronRight className="w-5 h-5 text-neutral-700" />
+                  </button>
+                )}
+              </div>
+
+              <style>{`
+                div::-webkit-scrollbar {
+                  display: none;
+                }
+              `}</style>
             </div>
           </div>
 
@@ -225,40 +305,30 @@ export const ProductDetail: React.FC = () => {
               {product.name}
             </h1>
 
-            <div className="flex items-center gap-2 mt-2">
-              <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-              <span className="text-sm">
-                {(product.rating || 4.5).toFixed(1)} ({product.reviews || 0})
-              </span>
-            </div>
-
             <div className="mt-5 border-b pb-5">
               <div className="space-y-2">
                 {/* Final Price */}
                 <div>
                   <span className="text-4xl font-bold">
-                    ₹{finalPrice.toFixed(2)}
+                    ₹{finalPrice.toFixed(0)}
                   </span>
                 </div>
                 
-                {/* Tax Info */}
-                <p className="text-sm text-neutral-600">
-                  Inclusive of all taxes
-                </p>
+
 
                 {/* Original Price and Savings */}
                 {(product.discountPercent || 0) > 0 && (
                   <div className="flex items-center gap-3 flex-wrap">
                     <span className="text-lg line-through text-neutral-500">
-                      MRP ₹{product.basePrice.toFixed(2)}
+                      MRP ₹{product.basePrice.toFixed(0)}
                     </span>
                     <span className="text-lg font-medium text-green-600">
-                      Save ₹{(product.basePrice - finalPrice).toFixed(2)} ({product.discountPercent}%)
+                      Save ₹{(product.basePrice - finalPrice).toFixed(0)} ({product.discountPercent}%)
                     </span>
                   </div>
                 )}
 
-                {/* Stock Status and Sales */}
+                {/* Stock Status */}
                 <div className="flex items-center gap-4 mt-3 flex-wrap">
                   {product.stockQuantity > 0 ? (
                     <span className="text-sm font-medium text-green-600 flex items-center gap-1">
@@ -267,11 +337,6 @@ export const ProductDetail: React.FC = () => {
                   ) : (
                     <span className="text-sm font-medium text-red-600">
                       Out of stock
-                    </span>
-                  )}
-                  {product.reviews && (
-                    <span className="text-sm text-neutral-600">
-                      {product.reviews}+ sold
                     </span>
                   )}
                 </div>
@@ -406,12 +471,7 @@ export const ProductDetail: React.FC = () => {
 
             <div className="mt-8 space-y-2 text-sm text-neutral-600">
               <div className="flex gap-2">
-                <Truck className="w-4 h-4" /> Free delivery
-                above ₹499
-              </div>
-              <div className="flex gap-2">
-                <RotateCcw className="w-4 h-4" /> 30-day easy
-                returns
+                <Truck className="w-4 h-4" /> order placed before 4pm will be shipped on the same day
               </div>
               <div className="flex gap-2">
                 <Shield className="w-4 h-4" /> 100% authentic

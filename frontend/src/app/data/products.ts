@@ -348,11 +348,7 @@ export const PRODUCTS: Product[] = [
 export const calculateFinalPrice = (
   basePrice: number,
   discount: number,
-  tax: number,
 ): number => {
-  const discountedPrice =
-    basePrice - (basePrice * discount) / 100;
-  const finalPrice =
-    discountedPrice + (discountedPrice * tax) / 100;
+  const finalPrice = basePrice - (basePrice * discount) / 100;
   return Math.round(finalPrice);
 };

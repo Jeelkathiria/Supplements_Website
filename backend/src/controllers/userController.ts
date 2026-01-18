@@ -5,20 +5,92 @@ import * as cartService from "../services/cartService";
 
 export const syncUser = async (req: AuthRequest, res: Response) => {
   try {
-    const dbUser = req.user?.dbUser;
+    const firebaseUid = req.user?.uid;  // Get uid from decoded Firebase token, not firebaseUid
+    const { name, email, phone } = req.body;
 
-    if (!dbUser) {
+    console.log("Sync user called:", { firebaseUid, name, email, phone });
+
+    if (!firebaseUid) {
       return res.status(401).json({ message: "User not authenticated" });
     }
 
-    const user = await prisma.user.findUnique({
-      where: { id: dbUser.id }
+    // Try to find existing user
+    let user = await prisma.user.findUnique({
+      where: { firebaseUid }
     });
+
+    console.log("Found existing user:", user);
+
+    if (user) {
+      // Update existing user only if name, email, or phone is provided AND not null/empty
+      const updateData: any = {};
+      
+      // Only update email if provided and not empty
+      if (email && email.trim()) {
+        updateData.email = email;
+      }
+      
+      // Only update name if provided and not empty (don't overwrite with null)
+      if (name && name.trim()) {
+        updateData.name = name;
+      }
+      
+      // Only update phone if provided and not empty
+      if (phone && phone.trim()) {
+        updateData.phone = phone;
+      }
+      
+      console.log("Update data:", updateData);
+      
+      // Update only if there's data to update
+      if (Object.keys(updateData).length > 0) {
+        user = await prisma.user.update({
+          where: { firebaseUid },
+          data: updateData
+        });
+        console.log("User updated:", user);
+      }
+    } else {
+      // Create new user if doesn't exist
+      user = await prisma.user.create({
+        data: {
+          firebaseUid,
+          email: email || "",
+          name: (name && name.trim()) ? name : null,
+          phone: (phone && phone.trim()) ? phone : null
+        }
+      });
+      console.log("User created:", user);
+    }
 
     res.json(user);
   } catch (error) {
     console.error("Error syncing user:", error);
     res.status(500).json({ message: "Failed to sync user" });
+  }
+};
+
+export const updateProfile = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user?.dbUser?.id;
+    const { name, phone } = req.body;
+
+    if (!userId) {
+      return res.status(401).json({ message: "User not authenticated" });
+    }
+
+    const user = await prisma.user.update({
+      where: { id: userId },
+      data: {
+        ...(name && { name }),
+        ...(phone && { phone })
+      }
+    });
+
+    res.json(user);
+  } catch (error) {
+    console.error("Error updating profile:", error);
+    res.status(500).json({ message: "Failed to update profile" });
   }
 };
 

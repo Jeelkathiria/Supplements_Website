@@ -20,20 +20,23 @@ export const requireAuth = async (
   try {
     const decoded = await admin.auth().verifyIdToken(token);
     
-    // Auto-sync user to database
-    let dbUser = await prisma.user.findUnique({
-      where: { firebaseUid: decoded.uid }
+    console.log("Auth middleware: decoded user", { uid: decoded.uid, email: decoded.email });
+    
+    // Auto-sync user to database using upsert to avoid race conditions
+    const dbUser = await prisma.user.upsert({
+      where: { firebaseUid: decoded.uid },
+      update: {
+        email: decoded.email || undefined
+        // Don't update name here - it's managed via the sync endpoint
+      },
+      create: {
+        firebaseUid: decoded.uid,
+        email: decoded.email || "",
+        name: decoded.name || null
+      }
     });
 
-    if (!dbUser) {
-      dbUser = await prisma.user.create({
-        data: {
-          firebaseUid: decoded.uid,
-          email: decoded.email || "",
-          name: decoded.name || null
-        }
-      });
-    }
+    console.log("Auth middleware: database user", dbUser);
 
     // Attach both decoded token and db user to request
     req.user = {

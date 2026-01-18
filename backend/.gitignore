@@ -6,11 +6,5 @@ frontend/node_modules/
 dist/
 build/
 
-
-backend/firebase-service-account.json
-.env
-.env.*
-
-/src/generated/prisma
-
-prisma/migrations/
+# Uploads
+uploads/

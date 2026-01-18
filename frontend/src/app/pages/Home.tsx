@@ -1,16 +1,19 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, ChevronDown } from "lucide-react";
 
 import { ProductCard } from "../components/ProductCard";
 import { CategoryCard } from "../components/CategoryCard";
 import { fetchProducts } from "../../services/productService";
 import { Product } from "../types";
+import heroBg from "../../images/1001380690 (1).jpg";
+import heroBg2 from "../../images/heroBg2.jpg";
+import heroBg3 from "../../images/heroBg3.webp";
 
 const HERO_IMAGES = [
-  "https://images.unsplash.com/photo-1693996046865-19217d179161?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
-  "https://images.unsplash.com/photo-1709976142774-ce1ef41a8378?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
-  "https://images.unsplash.com/photo-1701859082181-663004d346d2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080",
+  heroBg,
+  heroBg2,
+  heroBg3,
 ];
 
 export const Home: React.FC = () => {
@@ -68,8 +71,7 @@ export const Home: React.FC = () => {
   return (
     <div className="min-h-screen bg-neutral-50">
       {/* HERO */}
-      {/* HERO */}
-      <section className="relative h-[480px] bg-neutral-900 overflow-hidden">
+      <section className="relative h-[480px] bg-gradient-to-r from-teal-800 to-teal-900 overflow-hidden">
         {HERO_IMAGES.map((image, index) => (
           <div
             key={index}
@@ -104,7 +106,7 @@ export const Home: React.FC = () => {
 
             <Link
               to="/products"
-              className="inline-block bg-white text-neutral-900 px-8 py-3 rounded-lg font-medium hover:bg-neutral-100 transition"
+              className="inline-block bg-white text-teal-900 px-8 py-3 rounded-lg font-medium hover:bg-neutral-100 transition font-semibold"
             >
               Shop Supplements
             </Link>
@@ -142,17 +144,17 @@ export const Home: React.FC = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
             {[
               {
-                name: "Whey Protein",
+                name: "Protein",
                 image:
                   "https://plus.unsplash.com/premium_photo-1726842348600-c66c2e2797b4?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
               },
               {
-                name: "Muscle Builder",
+                name: "Mass Gainer",
                 image:
                   "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b",
               },
               {
-                name: "Fat Burner",
+                name: "Fish Oil",
                 image:
                   "https://www.cnet.com/a/img/resize/f6178d76d3336133439b50dda02ad15969ac29cd/hub/2023/01/30/aff431f9-9980-476f-aa59-2b29fe5b46e6/gettyimages-1311464336.jpg?auto=webp&width=1200",
               },
@@ -186,20 +188,21 @@ export const Home: React.FC = () => {
             ))}
           </div>
 
-          <div className="mt-10">
+          <div className="mt-10 flex justify-center">
             <Link
               to="/products"
-              className="inline-block bg-neutral-900 text-white px-7 py-3 rounded-lg hover:bg-neutral-800"
+              className="inline-flex items-center gap-2 bg-neutral-200 text-neutral-800 px-7 py-3 rounded-lg hover:bg-neutral-300 font-semibold transition"
             >
               View All Products
+              <ChevronDown className="animate-bounce" size={20} />
             </Link>
           </div>
         </div>
       </section>
 
       {/* DISCOUNTS */}
-      <section className="relative py-16 bg-neutral-900">
-        <div className="absolute inset-0 bg-white/10 backdrop-blur-xl" />
+      <section className="relative py-16 bg-gradient-to-br from-teal-900 to-neutral-900">
+        <div className="absolute inset-0 bg-white/5 backdrop-blur-xl" />
 
         <div className="relative max-w-[1400px] mx-auto px-6 md:px-12 text-white">
           <div className="mb-10">
@@ -230,7 +233,7 @@ export const Home: React.FC = () => {
               </p>
               <Link
                 to="/products"
-                className="inline-block bg-white text-neutral-900 px-7 py-3 rounded-lg hover:bg-neutral-100 font-medium"
+                className="inline-block bg-white text-teal-900 px-7 py-3 rounded-lg hover:bg-neutral-100 font-semibold"
               >
                 Browse All Products
               </Link>

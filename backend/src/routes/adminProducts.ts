@@ -12,7 +12,6 @@ router.post("/", requireAuth, async (req: AuthRequest, res: Response) => {
       description,
       basePrice,
       discountPercent,
-      gstPercent,
       stockQuantity,
       flavors,
       sizes,
@@ -30,11 +29,8 @@ router.post("/", requireAuth, async (req: AuthRequest, res: Response) => {
       });
     }
 
-    const discountedPrice =
-      Number(basePrice) - (Number(basePrice) * Number(discountPercent || 0)) / 100;
-
     const finalPrice =
-      discountedPrice + (discountedPrice * Number(gstPercent || 0)) / 100;
+      Number(basePrice) - (Number(basePrice) * Number(discountPercent || 0)) / 100;
 
     // Handle category - create if doesn't exist
     let actualCategoryId: string | null = null;
@@ -63,7 +59,6 @@ router.post("/", requireAuth, async (req: AuthRequest, res: Response) => {
         description: description || "",
         basePrice: Number(basePrice),
         discountPercent: Number(discountPercent || 0),
-        gstPercent: Number(gstPercent || 0),
         finalPrice,
         stockQuantity: Number(stockQuantity || 0),
         flavors: flavors || [],
@@ -98,7 +93,6 @@ router.put("/:id", requireAuth, async (req: AuthRequest, res: Response) => {
       description,
       basePrice,
       discountPercent,
-      gstPercent,
       stockQuantity,
       flavors,
       sizes,
@@ -118,11 +112,8 @@ router.put("/:id", requireAuth, async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ message: "Product not found" });
     }
 
-    const discountedPrice =
-      Number(basePrice) - (Number(basePrice) * Number(discountPercent || 0)) / 100;
-
     const finalPrice =
-      discountedPrice + (discountedPrice * Number(gstPercent || 0)) / 100;
+      Number(basePrice) - (Number(basePrice) * Number(discountPercent || 0)) / 100;
 
     // Handle category - create if doesn't exist
     let actualCategoryId: string | null = null;
@@ -152,7 +143,6 @@ router.put("/:id", requireAuth, async (req: AuthRequest, res: Response) => {
         description: description || "",
         basePrice: Number(basePrice),
         discountPercent: Number(discountPercent || 0),
-        gstPercent: Number(gstPercent || 0),
         finalPrice,
         stockQuantity: Number(stockQuantity || 0),
         flavors: flavors || [],

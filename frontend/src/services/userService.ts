@@ -13,6 +13,25 @@ export interface Address {
   updatedAt: string;
 }
 
+export interface UserProfile {
+  id?: string;
+  firebaseUid?: string;
+  email: string;
+  name?: string;
+  phone?: string;
+}
+
+// Update user profile
+export const updateProfile = async (profileData: {
+  name?: string;
+  phone?: string;
+}): Promise<UserProfile> => {
+  return apiCall<UserProfile>('/user/profile', {
+    method: 'PATCH',
+    body: JSON.stringify(profileData),
+  });
+};
+
 // Add a new address
 export const addAddress = async (addressData: {
   name: string;

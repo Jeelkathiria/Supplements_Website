@@ -11,8 +11,18 @@ import {
   createProduct,
   updateProduct,
   deleteProduct,
+  uploadImages,
 } from "../../services/productService";
 import { AdminOrders } from "../components/AdminOrders";
+
+// Helper function to get full image URL
+const getFullImageUrl = (imageUrl: string) => {
+  if (!imageUrl) return '/placeholder.png';
+  if (imageUrl.startsWith('http')) return imageUrl;
+  const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+  const backendBase = apiBase.replace('/api', '');
+  return `${backendBase}${imageUrl}`;
+};
 
 const EMPTY_FORM: Partial<Product> = {
   name: "",
@@ -22,7 +32,6 @@ const EMPTY_FORM: Partial<Product> = {
   flavors: [],
   basePrice: 0,
   discountPercent: 0,
-  gstPercent: 5,
   stockQuantity: 0,
   rating: 4.5,
   reviews: 0,
@@ -47,6 +56,9 @@ export const Admin: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [showCategorySuggestions, setShowCategorySuggestions] =
     useState(false);
+  const [newCategoryInput, setNewCategoryInput] = useState("");
+  const [isAddingCategory, setIsAddingCategory] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const ITEMS_PER_PAGE = 10;
 
@@ -80,7 +92,6 @@ export const Admin: React.FC = () => {
     const numberFields = [
       "basePrice",
       "discountPercent",
-      "gstPercent",
       "stockQuantity",
       "rating",
       "reviews",
@@ -95,33 +106,52 @@ export const Admin: React.FC = () => {
             ? Number(value) || 0
             : value,
     }));
+
+    // Clear error for this field when user starts typing
+    if (errors[name]) {
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      });
+    }
   };
 
   /* ---------------- IMAGE HANDLING ---------------- */
-  const handleImageUpload = (
+  const handleImageUpload = async (
     e: React.ChangeEvent<HTMLInputElement>,
   ) => {
     const files = e.target.files;
     if (!files) return;
 
-    // Convert files to base64 for preview and storage
-    const promises = Array.from(files).map((file) => {
-      return new Promise<string>((resolve) => {
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          resolve(event.target?.result as string);
-        };
-        reader.readAsDataURL(file);
-      });
-    });
-
-    Promise.all(promises).then((base64Images) => {
+    try {
+      toast.loading(`Uploading ${files.length} image(s)...`);
+      
+      // Upload files to backend
+      const uploadedUrls = await uploadImages(Array.from(files));
+      
+      // Add uploaded URLs to form data
       setFormData((prev) => ({
         ...prev,
-        imageUrls: [...(prev.imageUrls || []), ...base64Images],
+        imageUrls: [...(prev.imageUrls || []), ...uploadedUrls],
       }));
-      toast.success(`${files.length} image(s) added`);
-    });
+
+      // Clear imageUrls error when images are uploaded
+      if (errors.imageUrls) {
+        setErrors((prev) => {
+          const newErrors = { ...prev };
+          delete newErrors.imageUrls;
+          return newErrors;
+        });
+      }
+      
+      toast.dismiss();
+      toast.success(`${files.length} image(s) uploaded successfully`);
+    } catch (error) {
+      toast.dismiss();
+      toast.error(error instanceof Error ? error.message : "Failed to upload images");
+      console.error("Image upload error:", error);
+    }
   };
 
   const removeImage = (index: number) => {
@@ -151,6 +181,43 @@ export const Admin: React.FC = () => {
   const closeModal = () => {
     setIsModalOpen(false);
     setEditingProduct(null);
+    setErrors({});
+  };
+
+  /* ---------------- VALIDATION ---------------- */
+  const validateForm = (): boolean => {
+    const newErrors: Record<string, string> = {};
+
+    // Check required fields
+    if (!formData.name || formData.name.trim() === "") {
+      newErrors.name = "Product name is required";
+    }
+    if (!formData.description || formData.description.trim() === "") {
+      newErrors.description = "Description is required";
+    }
+    if (!formData.categoryId || formData.categoryId.trim() === "") {
+      newErrors.categoryId = "Category is required";
+    }
+    if (!formData.basePrice || formData.basePrice === 0) {
+      newErrors.basePrice = "Base price is required and must be greater than 0";
+    }
+    if (formData.stockQuantity === undefined || formData.stockQuantity === null) {
+      newErrors.stockQuantity = "Stock quantity is required";
+    } else if (formData.stockQuantity === 0) {
+      newErrors.stockQuantity = "Stock can't be 0";
+    }
+    if (!formData.imageUrls || formData.imageUrls.length === 0) {
+      newErrors.imageUrls = "At least one image is required";
+    }
+    if (!formData.sizes || formData.sizes.length === 0) {
+      newErrors.sizes = "At least one size is required";
+    }
+    if (formData.isVegetarian === undefined || formData.isVegetarian === null) {
+      newErrors.isVegetarian = "Please select product type (Vegetarian/Non-Vegetarian)";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const [categoryNames, setCategoryNames] = useState<string[]>([]);
@@ -184,21 +251,20 @@ export const Admin: React.FC = () => {
   /* ---------------- SUBMIT ---------------- */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validate form before submitting
+    if (!validateForm()) {
+      toast.error("Please fill all required fields correctly");
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
-      // Helper function to check if a URL is a data URL (base64)
-      const isDataUrl = (url: string) => url?.startsWith("data:");
-
-      // Separate existing URLs from new base64 images
-      const existingImages = (formData.imageUrls || []).filter(
-        (url) => !isDataUrl(url),
-      );
-
-      // For updates, don't send base64 images (too large)
+      // The imageUrls now contain only uploaded URLs from the backend
       const dataToSend = {
         ...formData,
-        imageUrls: editingProduct ? existingImages : formData.imageUrls,
+        imageUrls: formData.imageUrls || [],
       };
 
       if (editingProduct) {
@@ -271,6 +337,14 @@ export const Admin: React.FC = () => {
         sizes: [...(prev.sizes || []), prev.newSize!],
         newSize: "",
       }));
+      // Clear sizes error when user adds a size
+      if (errors.sizes) {
+        setErrors((prev) => {
+          const newErrors = { ...prev };
+          delete newErrors.sizes;
+          return newErrors;
+        });
+      }
     }
   };
 
@@ -299,6 +373,40 @@ export const Admin: React.FC = () => {
       ...prev,
       flavors: prev.flavors?.filter((f) => f !== flavor),
     }));
+  };
+
+  const handleAddCategory = () => {
+    const trimmedName = newCategoryInput.trim();
+    if (!trimmedName) {
+      toast.error("Please enter a category name");
+      return;
+    }
+
+    // Check if category already exists (case-insensitive)
+    const existingCategory = existingCategories.find(
+      (cat) => cat.toLowerCase() === trimmedName.toLowerCase()
+    );
+
+    if (existingCategory) {
+      // If category already exists, select it
+      setFormData((prev) => ({
+        ...prev,
+        categoryId: existingCategory,
+      }));
+      setNewCategoryInput("");
+      setIsAddingCategory(false);
+      toast.success(`Category "${existingCategory}" selected`);
+    } else {
+      // Add new category
+      setCategoryNames((prev) => [...prev, trimmedName].sort());
+      setFormData((prev) => ({
+        ...prev,
+        categoryId: trimmedName,
+      }));
+      setNewCategoryInput("");
+      setIsAddingCategory(false);
+      toast.success(`Category "${trimmedName}" added`);
+    }
   };
 
   /* ---------------- RENDER ---------------- */
@@ -392,7 +500,7 @@ export const Admin: React.FC = () => {
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
                       <img
-                        src={p.imageUrls?.[0] || "/placeholder.png"}
+                        src={getFullImageUrl(p.imageUrls?.[0] || "")}
                         className="h-10 w-10 rounded-lg border object-cover"
                         alt={p.name}
                       />
@@ -518,9 +626,9 @@ export const Admin: React.FC = () => {
                   name="name"
                   value={formData.name}
                   onChange={handleInputChange}
-                  className="w-full rounded-lg border px-3 py-2"
-                  required
+                  className={`w-full rounded-lg border px-3 py-2 ${errors.name ? "border-b-2 border-b-red-500" : ""}`}
                 />
+                {errors.name && <p className="mt-1 text-xs text-red-500">{errors.name}</p>}
               </div>
 
               {/* DESCRIPTION */}
@@ -532,8 +640,9 @@ export const Admin: React.FC = () => {
                   name="description"
                   value={formData.description}
                   onChange={handleInputChange}
-                  className="w-full rounded-lg border px-3 py-2"
+                  className={`w-full rounded-lg border px-3 py-2 ${errors.description ? "border-b-2 border-b-red-500" : ""}`}
                 />
+                {errors.description && <p className="mt-1 text-xs text-red-500">{errors.description}</p>}
               </div>
 
               {/* SIZES */}
@@ -619,6 +728,7 @@ export const Admin: React.FC = () => {
                     Add
                   </button>
                 </div>
+                {errors.sizes && <p className="mt-1 text-xs text-red-500">{errors.sizes}</p>}
               </div>
 
               {/* FLAVORS */}
@@ -667,75 +777,90 @@ export const Admin: React.FC = () => {
                 </div>
               </div>
 
-              {/* CATEGORY (Search + Create) */}
-              <div className="relative">
-                <label className="mb-1 block text-sm font-medium">
-                  Category Name
+              {/* CATEGORY (Dropdown + Add New) */}
+              <div>
+                <label className="mb-2 block text-sm font-medium">
+                  Category
                 </label>
 
-                <input
-                  name="categoryId"
-                  value={formData.categoryId || ""}
-                  onChange={(e) => {
-                    handleInputChange(e);
-                    setShowCategorySuggestions(true);
-                  }}
-                  onFocus={() =>
-                    setShowCategorySuggestions(true)
-                  }
-                  onBlur={() =>
-                    setTimeout(
-                      () => setShowCategorySuggestions(false),
-                      150,
-                    )
-                  }
-                  placeholder="Search or type category name..."
-                  className="w-full rounded-lg border px-3 py-2"
-                />
+                {!isAddingCategory ? (
+                  <div className="flex gap-2">
+                    <select
+                      value={formData.categoryId || ""}
+                      onChange={(e) => {
+                        setFormData((prev) => ({
+                          ...prev,
+                          categoryId: e.target.value,
+                        }));
+                        // Clear category error when user selects
+                        if (errors.categoryId) {
+                          setErrors((prev) => {
+                            const newErrors = { ...prev };
+                            delete newErrors.categoryId;
+                            return newErrors;
+                          });
+                        }
+                      }}
+                      className={`flex-1 rounded-lg border px-3 py-2 ${errors.categoryId ? "border-b-2 border-b-red-500" : ""}`}
+                    >
+                      <option value="">Select a category...</option>
+                      {existingCategories.map((cat) => (
+                        <option key={cat} value={cat}>
+                          {cat}
+                        </option>
+                      ))}
+                    </select>
 
-                {/* Category Dropdown Suggestions */}
-                {showCategorySuggestions &&
-                  formData.categoryId &&
-                  existingCategories.length > 0 && (
-                    <div className="absolute z-20 mt-1 max-h-48 w-full overflow-y-auto rounded-lg border bg-white shadow">
-                      {existingCategories
-                        .filter((cat) =>
-                          (cat || "")
-                            .toLowerCase()
-                            .includes(
-                              (formData.categoryId || "").toLowerCase(),
-                            ),
-                        )
-                        .map((cat) => (
-                          <button
-                            key={cat}
-                            type="button"
-                            onClick={() => {
-                              setFormData((prev) => ({
-                                ...prev,
-                                categoryId: cat,
-                              }));
-                              setShowCategorySuggestions(false);
-                            }}
-                            className="block w-full px-3 py-2 text-left text-sm hover:bg-neutral-100"
-                          >
-                            {cat}
-                          </button>
-                        ))}
+                    <button
+                      type="button"
+                      onClick={() => setIsAddingCategory(true)}
+                      className="flex items-center gap-2 rounded-lg bg-neutral-900 px-4 py-2 text-white hover:bg-neutral-800"
+                    >
+                      <Plus className="h-4 w-4" />
+                      Add
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={newCategoryInput}
+                      onChange={(e) =>
+                        setNewCategoryInput(e.target.value)
+                      }
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          handleAddCategory();
+                        } else if (e.key === "Escape") {
+                          setIsAddingCategory(false);
+                          setNewCategoryInput("");
+                        }
+                      }}
+                      placeholder="Enter category name..."
+                      autoFocus
+                      className="flex-1 rounded-lg border px-3 py-2"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleAddCategory}
+                      className="rounded-lg bg-green-600 px-4 py-2 text-white hover:bg-green-700"
+                    >
+                      Save
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsAddingCategory(false);
+                        setNewCategoryInput("");
+                      }}
+                      className="rounded-lg bg-neutral-300 px-4 py-2 text-neutral-700 hover:bg-neutral-400"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                )}
 
-                      {/* CREATE NEW CATEGORY */}
-                      {!existingCategories.some(
-                        (cat) =>
-                          (cat || "").toLowerCase() ===
-                          (formData.categoryId || "").toLowerCase(),
-                      ) && (
-                        <div className="border-t px-3 py-2 text-xs text-neutral-500 bg-neutral-50">
-                          Press Enter or click below to create new category
-                        </div>
-                      )}
-                    </div>
-                  )}
-
+                {errors.categoryId && <p className="mt-1 text-xs text-red-500">{errors.categoryId}</p>}
                 <p className="mt-1 text-xs text-neutral-500">
                   {existingCategories.length} categories available
                 </p>
@@ -789,7 +914,16 @@ export const Admin: React.FC = () => {
                       type="radio"
                       name="isVegetarian"
                       checked={formData.isVegetarian === true}
-                      onChange={() => setFormData((prev) => ({ ...prev, isVegetarian: true }))}
+                      onChange={() => {
+                        setFormData((prev) => ({ ...prev, isVegetarian: true }));
+                        if (errors.isVegetarian) {
+                          setErrors((prev) => {
+                            const newErrors = { ...prev };
+                            delete newErrors.isVegetarian;
+                            return newErrors;
+                          });
+                        }
+                      }}
                       className="h-4 w-4"
                     />
                     <div className="flex items-center gap-2">
@@ -810,7 +944,16 @@ export const Admin: React.FC = () => {
                       type="radio"
                       name="isVegetarian"
                       checked={formData.isVegetarian === false}
-                      onChange={() => setFormData((prev) => ({ ...prev, isVegetarian: false }))}
+                      onChange={() => {
+                        setFormData((prev) => ({ ...prev, isVegetarian: false }));
+                        if (errors.isVegetarian) {
+                          setErrors((prev) => {
+                            const newErrors = { ...prev };
+                            delete newErrors.isVegetarian;
+                            return newErrors;
+                          });
+                        }
+                      }}
                       className="h-4 w-4"
                     />
                     <div className="flex items-center gap-2">
@@ -826,6 +969,7 @@ export const Admin: React.FC = () => {
                     </div>
                   </label>
                 </div>
+                {errors.isVegetarian && <p className="mt-1 text-xs text-red-500">{errors.isVegetarian}</p>}
               </div>
 
               {/* IMAGES */}
@@ -840,7 +984,7 @@ export const Admin: React.FC = () => {
                     {(formData.imageUrls || []).map((img, idx) => (
                       <div key={idx} className="relative">
                         <img
-                          src={img}
+                          src={getFullImageUrl(img)}
                           alt={`Preview ${idx}`}
                           className="w-full h-24 object-cover rounded-lg border"
                         />
@@ -856,7 +1000,7 @@ export const Admin: React.FC = () => {
                   </div>
                 )}
 
-                <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border px-4 py-2 hover:bg-neutral-50">
+                <label className={`inline-flex cursor-pointer items-center gap-2 rounded-lg border px-4 py-2 hover:bg-neutral-50 ${errors.imageUrls ? "border-b-2 border-b-red-500" : ""}`}>
                   <Upload className="h-4 w-4" />
                   Upload Images
                   <input
@@ -867,14 +1011,10 @@ export const Admin: React.FC = () => {
                     onChange={handleImageUpload}
                   />
                 </label>
+                {errors.imageUrls && <p className="mt-1 text-xs text-red-500">{errors.imageUrls}</p>}
                 <p className="mt-1 text-xs text-neutral-500">
                   {(formData.imageUrls || []).length} image(s) added
                 </p>
-                {editingProduct && (
-                  <p className="mt-2 text-xs text-orange-600 bg-orange-50 p-2 rounded">
-                    ℹ️ Note: To change images, please delete this product and create a new one with updated images.
-                  </p>
-                )}
               </div>
 
               {/* PRICING & STOCK */}
@@ -888,8 +1028,9 @@ export const Admin: React.FC = () => {
                     name="basePrice"
                     value={formData.basePrice}
                     onChange={handleInputChange}
-                    className="w-full rounded-lg border px-3 py-2"
+                    className={`w-full rounded-lg border px-3 py-2 ${errors.basePrice ? "border-b-2 border-b-red-500" : ""}`}
                   />
+                  {errors.basePrice && <p className="mt-1 text-xs text-red-500">{errors.basePrice}</p>}
                 </div>
 
                 <div>
@@ -907,19 +1048,6 @@ export const Admin: React.FC = () => {
 
                 <div>
                   <label className="mb-1 block text-sm font-medium">
-                    Tax (%)
-                  </label>
-                  <input
-                    type="number"
-                    name="gstPercent"
-                    value={formData.gstPercent}
-                    onChange={handleInputChange}
-                    className="w-full rounded-lg border px-3 py-2"
-                  />
-                </div>
-
-                <div>
-                  <label className="mb-1 block text-sm font-medium">
                     Stock Quantity
                   </label>
                   <input
@@ -927,8 +1055,9 @@ export const Admin: React.FC = () => {
                     name="stockQuantity"
                     value={formData.stockQuantity}
                     onChange={handleInputChange}
-                    className="w-full rounded-lg border px-3 py-2"
+                    className={`w-full rounded-lg border px-3 py-2 ${errors.stockQuantity ? "border-b-2 border-b-red-500" : ""}`}
                   />
+                  {errors.stockQuantity && <p className="mt-1 text-xs text-red-500">{errors.stockQuantity}</p>}
                 </div>
               </div>
 
@@ -938,7 +1067,6 @@ export const Admin: React.FC = () => {
                 {calculateFinalPrice(
                   formData.basePrice || 0,
                   formData.discountPercent || 0,
-                  formData.gstPercent || 0,
                 )}
               </div>
 

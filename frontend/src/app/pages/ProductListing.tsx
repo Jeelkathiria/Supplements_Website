@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { Filter, ChevronDown } from "lucide-react";
+import { Filter, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { ProductCard } from "../components/ProductCard";
 import { Breadcrumb } from "../components/Breadcrumb";
@@ -24,6 +24,8 @@ export const ProductListing: React.FC = () => {
   const [selectedType, setSelectedType] = useState<string>("all"); // all, vegetarian, non-vegetarian
 
   const [showFilters, setShowFilters] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 12; // 4 rows × 3 columns
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -123,6 +125,17 @@ export const ProductListing: React.FC = () => {
     return result;
   }, [priceRange, sortBy, selectedCategory, selectedType, searchQuery, products]);
 
+  // Pagination logic
+  const totalPages = Math.ceil(filteredAndSortedProducts.length / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const endIndex = startIndex + ITEMS_PER_PAGE;
+  const paginatedProducts = filteredAndSortedProducts.slice(startIndex, endIndex);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedCategory, selectedType, searchQuery, sortBy]);
+
   return (
     <div className="min-h-screen bg-neutral-50">
       <div className="max-w-[1400px] mx-auto px-6 md:px-12 py-14">
@@ -177,7 +190,7 @@ export const ProductListing: React.FC = () => {
                         `/products?${params.toString()}`,
                       );
                     }}
-                    className="w-full px-4 py-2 border border-neutral-300 rounded-lg text-sm appearance-none focus:ring-2 focus:ring-neutral-900"
+                    className="w-full px-4 py-2 border border-neutral-300 rounded-lg text-sm appearance-none focus:ring-2 focus:ring-teal-800"
                   >
                     {categories.map((cat) => (
                       <option key={cat} value={cat}>
@@ -200,7 +213,7 @@ export const ProductListing: React.FC = () => {
                     onChange={(e) =>
                       setSortBy(e.target.value as SortType)
                     }
-                    className="w-full px-4 py-2 border border-neutral-300 rounded-lg text-sm appearance-none focus:ring-2 focus:ring-neutral-900"
+                    className="w-full px-4 py-2 border border-neutral-300 rounded-lg text-sm appearance-none focus:ring-2 focus:ring-teal-800"
                   >
                     <option value="popularity">
                       Popularity
@@ -242,7 +255,7 @@ export const ProductListing: React.FC = () => {
                         `/products?${params.toString()}`,
                       );
                     }}
-                    className="w-full px-4 py-2 border border-neutral-300 rounded-lg text-sm appearance-none focus:ring-2 focus:ring-neutral-900"
+                    className="w-full px-4 py-2 border border-neutral-300 rounded-lg text-sm appearance-none focus:ring-2 focus:ring-teal-800"
                   >
                     <option value="all">All Types</option>
                     <option value="vegetarian">Vegetarian</option>
@@ -279,31 +292,64 @@ export const ProductListing: React.FC = () => {
               </button>
             </div>
 
-            {/* Grid */}
-            {isLoading ? (
-              <div className="flex justify-center items-center h-64">
-                <p className="text-neutral-600">Loading products...</p>
+            {/* Products Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+              {paginatedProducts.map((product) => (
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                />
+              ))}
+            </div>
+
+            {/* Empty */}
+            {filteredAndSortedProducts.length === 0 && (
+              <div className="text-center py-32">
+                <p className="text-neutral-600">
+                  No products found for selected filters
+                </p>
               </div>
-            ) : (
-              <>
-                <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6 lg:gap-10">
-                  {filteredAndSortedProducts.map((product) => (
-                    <ProductCard
-                      key={product.id}
-                      product={product}
-                    />
-                  ))}
+            )}
+
+            {/* Pagination */}
+            {filteredAndSortedProducts.length > 0 && totalPages > 1 && (
+              <div className="flex items-center justify-center gap-2 mt-12">
+                <button
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
+                  className="p-2 border border-neutral-300 rounded-lg hover:bg-neutral-100 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                  aria-label="Previous page"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                    (page) => (
+                      <button
+                        key={page}
+                        onClick={() => setCurrentPage(page)}
+                        className={`px-3 py-2 rounded-lg transition ${
+                          currentPage === page
+                            ? 'bg-teal-800 text-white'
+                            : 'border border-neutral-300 hover:bg-neutral-100'
+                        }`}
+                      >
+                        {page}
+                      </button>
+                    ),
+                  )}
                 </div>
 
-                {/* Empty */}
-                {filteredAndSortedProducts.length === 0 && (
-                  <div className="text-center py-32">
-                    <p className="text-neutral-600">
-                      No products found for selected filters
-                    </p>
-                  </div>
-                )}
-              </>
+                <button
+                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                  disabled={currentPage === totalPages}
+                  className="p-2 border border-neutral-300 rounded-lg hover:bg-neutral-100 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                  aria-label="Next page"
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+              </div>
             )}
           </div>
         </div>

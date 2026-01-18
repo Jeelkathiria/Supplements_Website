@@ -1,14 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, User, MapPin, Package, Settings, AlertCircle, Trash2, Plus, Eye, EyeOff } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
-import { toast } from 'sonner';
+import { LogOut, User, MapPin, Package, AlertCircle, Trash2, Plus } from 'lucide-react';
+import { useAuth } from '../components/context/AuthContext';
 import * as userService from '../../services/userService';
 import * as orderService from '../../services/orderService';
 import type { Address } from '../../services/userService';
 import type { Order } from '../../services/orderService';
 
-type TabType = 'profile' | 'addresses' | 'orders' | 'settings';
+type TabType = 'profile' | 'addresses' | 'orders';
 
 interface AddressFormData {
   name: string;
@@ -62,7 +61,7 @@ const validateAddressForm = (form: AddressFormData): ValidationErrors => {
   }
 
   if (!form.pincode.trim()) {
-    errors.pincode = 'Pincode is required';
+    errors.pincode = 'Pincode must be 6 digits';
   } else if (!validatePincode(form.pincode)) {
     errors.pincode = 'Pincode must be 6 digits';
   }
@@ -71,7 +70,7 @@ const validateAddressForm = (form: AddressFormData): ValidationErrors => {
 };
 
 export const Account: React.FC = () => {
-  const { isAuthenticated, user, logout } = useAuth();
+  const { isAuthenticated, isLoading, user, logout, updateUser } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<TabType>('profile');
   const [loading, setLoading] = useState(false);
@@ -92,13 +91,12 @@ export const Account: React.FC = () => {
   const [profileForm, setProfileForm] = useState({
     name: user?.name || '',
     email: user?.email || '',
+    phone: user?.phone || '',
   });
 
-  const [showPassword, setShowPassword] = useState(false);
-  const [passwordForm, setPasswordForm] = useState({
-    oldPassword: '',
-    newPassword: '',
-    confirmPassword: '',
+  const [profileErrors, setProfileErrors] = useState({
+    name: '',
+    phone: '',
   });
 
   const [deleteConfirmation, setDeleteConfirmation] = useState<{
@@ -111,10 +109,21 @@ export const Account: React.FC = () => {
 
   // Redirect if not authenticated
   useEffect(() => {
-    if (!isAuthenticated) {
+    if (!isLoading && !isAuthenticated) {
       navigate('/login?redirect=account');
     }
-  }, [isAuthenticated, navigate]);
+  }, [isLoading, isAuthenticated, navigate]);
+
+  // Update profile form when user data changes
+  useEffect(() => {
+    if (user) {
+      setProfileForm({
+        name: user.name || '',
+        email: user.email || '',
+        phone: user.phone || '',
+      });
+    }
+  }, [user]);
 
   // Load addresses and orders on mount
   useEffect(() => {
@@ -130,7 +139,6 @@ export const Account: React.FC = () => {
       setAddresses(data);
     } catch (err) {
       console.error('Error loading addresses:', err);
-      toast.error('Failed to load addresses');
     }
   };
 
@@ -140,7 +148,6 @@ export const Account: React.FC = () => {
       setOrders(data);
     } catch (err) {
       console.error('Error loading orders:', err);
-      toast.error('Failed to load orders');
     }
   };
 
@@ -158,14 +165,12 @@ export const Account: React.FC = () => {
       setLoading(true);
       await userService.addAddress(newAddress);
 
-      toast.success('Address added successfully!');
       setShowAddressForm(false);
       setNewAddress({ name: '', phone: '', address: '', city: '', state: '', pincode: '' });
       setValidationErrors({});
       await loadAddresses();
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to add address';
-      toast.error(errorMessage);
+      console.error('Error adding address:', err);
     } finally {
       setLoading(false);
     }
@@ -181,12 +186,10 @@ export const Account: React.FC = () => {
     try {
       setLoading(true);
       await userService.deleteAddress(deleteConfirmation.addressId);
-      toast.success('Address deleted successfully!');
       setDeleteConfirmation({ isOpen: false, addressId: null });
       await loadAddresses();
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to delete address';
-      toast.error(errorMessage);
+      console.error('Error deleting address:', err);
     } finally {
       setLoading(false);
     }
@@ -196,11 +199,57 @@ export const Account: React.FC = () => {
     try {
       setLoading(true);
       await userService.setDefaultAddress(addressId);
-      toast.success('Default address updated!');
       await loadAddresses();
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to update default address';
-      toast.error(errorMessage);
+      console.error('Error updating default address:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleProfileNameChange = (value: string) => {
+    setProfileForm({ ...profileForm, name: value });
+    if (value.trim()) {
+      setProfileErrors({ ...profileErrors, name: '' });
+    }
+  };
+
+  const handleProfilePhoneChange = (value: string) => {
+    setProfileForm({ ...profileForm, phone: value });
+    if (!value.trim()) {
+      setProfileErrors({ ...profileErrors, phone: '' });
+    } else if (!/^\+91\d{10}$/.test(value)) {
+      setProfileErrors({ ...profileErrors, phone: 'Phone must be +91 followed by 10 digits' });
+    } else {
+      setProfileErrors({ ...profileErrors, phone: '' });
+    }
+  };
+
+  const handleProfileSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    const errors = {
+      name: !profileForm.name.trim() ? 'Full name is required' : '',
+      phone: !profileForm.phone.trim() ? 'Phone number is required' : !/^\+91\d{10}$/.test(profileForm.phone) ? 'Phone must be +91 followed by 10 digits' : '',
+    };
+
+    setProfileErrors(errors);
+
+    if (Object.values(errors).some(err => err)) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await userService.updateProfile({
+        name: profileForm.name,
+        phone: profileForm.phone,
+      });
+      
+      // Update the user context
+      updateUser({ name: profileForm.name, phone: profileForm.phone });
+    } catch (err) {
+      console.error('Error updating profile:', err);
     } finally {
       setLoading(false);
     }
@@ -209,33 +258,37 @@ export const Account: React.FC = () => {
   const handleLogout = async () => {
     try {
       await logout();
-      toast.success('Logged out successfully!');
       navigate('/');
     } catch (err) {
-      toast.error('Failed to logout');
+      console.error('Error logging out:', err);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-neutral-50">
+      {isLoading ? (
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <div className="w-12 h-12 border-4 border-neutral-200 border-t-teal-800 rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-neutral-600">Loading your account...</p>
+          </div>
+        </div>
+      ) : (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">My Account</h1>
-          <p className="text-gray-600 mt-1">Manage your profile, addresses, and orders</p>
+          <h1 className="text-3xl font-bold text-neutral-900">My Account</h1>
+          <p className="text-neutral-600 mt-1">Manage your profile, addresses, and orders</p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           {/* Sidebar */}
           <div className="lg:col-span-1">
             <div className="bg-white rounded-lg shadow-md p-6">
-              {/* User Profile Card */}
-              <div className="mb-6 pb-6 border-b border-gray-200">
-                <div className="w-16 h-16 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <User className="h-8 w-8 text-white" />
-                </div>
-                <h2 className="text-center font-semibold text-gray-900">{user?.name}</h2>
-                <p className="text-center text-sm text-gray-600">{user?.email}</p>
+              {/* User Info Card */}
+              <div className="mb-6 pb-6 border-b border-neutral-200">
+                <h2 className="text-lg font-semibold text-neutral-900">{user?.name}</h2>
+                <p className="text-sm text-neutral-600 mt-1">{user?.email}</p>
               </div>
 
               {/* Navigation Tabs */}
@@ -244,15 +297,14 @@ export const Account: React.FC = () => {
                   { id: 'profile' as TabType, label: 'Profile', icon: User },
                   { id: 'addresses' as TabType, label: 'Addresses', icon: MapPin },
                   { id: 'orders' as TabType, label: 'Orders', icon: Package },
-                  { id: 'settings' as TabType, label: 'Settings', icon: Settings },
                 ].map(({ id, label, icon: Icon }) => (
                   <button
                     key={id}
                     onClick={() => setActiveTab(id)}
                     className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition ${
                       activeTab === id
-                        ? 'bg-blue-50 text-blue-700 font-semibold'
-                        : 'text-gray-600 hover:bg-gray-50'
+                        ? 'bg-teal-50 text-teal-800 font-semibold'
+                        : 'text-neutral-600 hover:bg-neutral-50'
                     }`}
                   >
                     <Icon className="h-5 w-5" />
@@ -277,44 +329,56 @@ export const Account: React.FC = () => {
             {/* Profile Tab */}
             {activeTab === 'profile' && (
               <div className="bg-white rounded-lg shadow-md p-8">
-                <h2 className="text-2xl font-bold text-gray-900 mb-6">Profile Information</h2>
+                <h2 className="text-2xl font-bold text-neutral-900 mb-6">Profile Information</h2>
 
-                <form className="space-y-6">
+                <form className="space-y-6" onSubmit={handleProfileSave}>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Full Name
+                    <label className="block text-sm font-medium text-neutral-900 mb-2">
+                      Full Name <span className="text-xs text-neutral-500">(required)</span>
                     </label>
                     <input
                       type="text"
                       value={profileForm.name}
-                      onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value })}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      onChange={(e) => handleProfileNameChange(e.target.value)}
+                      className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-800 transition ${
+                        profileErrors.name ? 'border-red-500' : 'border-neutral-300'
+                      }`}
+                    />
+                    {profileErrors.name && <p className="mt-1 text-xs text-red-500">{profileErrors.name}</p>}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-900 mb-2">
+                      Email Address <span className="text-xs text-neutral-500">(not changeable)</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={profileForm.email}
+                      disabled
+                      className="w-full px-4 py-3 border border-neutral-300 rounded-lg bg-neutral-50 text-neutral-600"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Email Address
+                    <label className="block text-sm font-medium text-neutral-900 mb-2">
+                      Phone Number <span className="text-xs text-neutral-500">(+91 only)</span>
                     </label>
                     <input
-                      type="email"
-                      value={profileForm.email}
-                      disabled
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-600"
+                      type="text"
+                      value={profileForm.phone}
+                      onChange={(e) => handleProfilePhoneChange(e.target.value)}
+                      className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-800 transition ${
+                        profileErrors.phone ? 'border-red-500' : 'border-neutral-300'
+                      }`}
+                      placeholder="+919876543210"
                     />
-                    <p className="text-xs text-gray-500 mt-1">Email cannot be changed</p>
-                  </div>
-
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <p className="text-sm text-blue-900">
-                      ✓ Your profile is linked to your Firebase authentication account
-                    </p>
+                    {profileErrors.phone && <p className="mt-1 text-xs text-red-500">{profileErrors.phone}</p>}
                   </div>
 
                   <button
-                    type="button"
+                    type="submit"
                     disabled={loading}
-                    className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 transition font-semibold"
+                    className="px-6 py-3 bg-teal-800 text-white rounded-lg hover:bg-teal-900 disabled:bg-neutral-400 transition font-semibold"
                   >
                     {loading ? 'Saving...' : 'Save Changes'}
                   </button>
@@ -328,10 +392,10 @@ export const Account: React.FC = () => {
                 {/* Addresses List */}
                 <div className="bg-white rounded-lg shadow-md p-8">
                   <div className="flex justify-between items-center mb-6">
-                    <h2 className="text-2xl font-bold text-gray-900">Saved Addresses</h2>
+                    <h2 className="text-2xl font-bold text-neutral-900">Saved Addresses</h2>
                     <button
                       onClick={() => setShowAddressForm(!showAddressForm)}
-                      className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                      className="flex items-center gap-2 px-4 py-2 bg-teal-800 text-white rounded-lg hover:bg-teal-900 transition"
                     >
                       <Plus className="h-5 w-5" />
                       Add Address
@@ -343,23 +407,22 @@ export const Account: React.FC = () => {
                       {addresses.map((address) => (
                         <div
                           key={address.id}
-                          className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition"
+                          className="border border-neutral-200 rounded-lg p-4 hover:shadow-md transition"
                         >
                           <div className="flex justify-between items-start mb-3">
                             <div className="flex-1">
                               <div className="flex items-center gap-2 mb-1">
-                                <h3 className="font-semibold text-gray-900">{address.name}</h3>
+                                <h3 className="font-semibold text-neutral-900">{address.name}</h3>
                                 {address.isDefault && (
                                   <span className="px-2 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded">
                                     Default
                                   </span>
                                 )}
                               </div>
-                              <p className="text-sm text-gray-600">{address.phone}</p>
-                              <p className="text-sm text-gray-600 mt-2">
+                              <p className="text-sm text-neutral-600 mt-2">
                                 {address.address}
                               </p>
-                              <p className="text-sm text-gray-600">
+                              <p className="text-sm text-neutral-600">
                                 {address.city}, {address.state} {address.pincode}
                               </p>
                             </div>
@@ -368,7 +431,7 @@ export const Account: React.FC = () => {
                               {!address.isDefault && (
                                 <button
                                   onClick={() => handleSetDefaultAddress(address.id)}
-                                  className="px-3 py-1 text-sm bg-blue-50 text-blue-600 rounded hover:bg-blue-100 transition"
+                                  className="px-3 py-1 text-sm bg-teal-50 text-teal-800 rounded hover:bg-teal-100 transition"
                                 >
                                   Set Default
                                 </button>
@@ -387,8 +450,8 @@ export const Account: React.FC = () => {
                     </div>
                   ) : (
                     <div className="text-center py-8">
-                      <MapPin className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                      <p className="text-gray-600">No addresses saved yet</p>
+                      <MapPin className="h-12 w-12 text-neutral-300 mx-auto mb-3" />
+                      <p className="text-neutral-600">No addresses saved yet</p>
                     </div>
                   )}
                 </div>
@@ -396,12 +459,12 @@ export const Account: React.FC = () => {
                 {/* Add Address Form */}
                 {showAddressForm && (
                   <div className="bg-white rounded-lg shadow-md p-8">
-                    <h3 className="text-xl font-bold text-gray-900 mb-6">Add New Address</h3>
+                    <h3 className="text-xl font-bold text-neutral-900 mb-6">Add New Address</h3>
 
                     <form onSubmit={handleAddressSubmit} className="space-y-4">
                       <div className="grid grid-cols-2 gap-4">
                         <div className="col-span-2 sm:col-span-1">
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                          <label className="block text-sm font-medium text-neutral-900 mb-1">
                             Full Name *
                           </label>
                           <input
@@ -412,35 +475,15 @@ export const Account: React.FC = () => {
                               if (validationErrors.name) setValidationErrors({ ...validationErrors, name: undefined });
                             }}
                             className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
-                              validationErrors.name ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
+                              validationErrors.name ? 'border-red-500 focus:ring-red-500' : 'border-neutral-300 focus:ring-teal-800'
                             }`}
                             placeholder="John Doe"
                           />
                           {validationErrors.name && <p className="text-red-600 text-xs mt-1">{validationErrors.name}</p>}
                         </div>
 
-                        <div className="col-span-2 sm:col-span-1">
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Phone Number *
-                          </label>
-                          <input
-                            type="text"
-                            value={newAddress.phone}
-                            onChange={(e) => {
-                              const val = e.target.value.replace(/\D/g, '').slice(0, 10);
-                              setNewAddress({ ...newAddress, phone: val });
-                              if (validationErrors.phone) setValidationErrors({ ...validationErrors, phone: undefined });
-                            }}
-                            className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
-                              validationErrors.phone ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
-                            }`}
-                            placeholder="9876543210"
-                          />
-                          {validationErrors.phone && <p className="text-red-600 text-xs mt-1">{validationErrors.phone}</p>}
-                        </div>
-
                         <div className="col-span-2">
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                          <label className="block text-sm font-medium text-neutral-900 mb-1">
                             Address *
                           </label>
                           <input
@@ -451,7 +494,7 @@ export const Account: React.FC = () => {
                               if (validationErrors.address) setValidationErrors({ ...validationErrors, address: undefined });
                             }}
                             className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
-                              validationErrors.address ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
+                              validationErrors.address ? 'border-red-500 focus:ring-red-500' : 'border-neutral-300 focus:ring-teal-800'
                             }`}
                             placeholder="123 Main Street, Apt 4B"
                           />
@@ -459,7 +502,7 @@ export const Account: React.FC = () => {
                         </div>
 
                         <div className="col-span-2 sm:col-span-1">
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                          <label className="block text-sm font-medium text-neutral-900 mb-1">
                             City *
                           </label>
                           <input
@@ -470,7 +513,7 @@ export const Account: React.FC = () => {
                               if (validationErrors.city) setValidationErrors({ ...validationErrors, city: undefined });
                             }}
                             className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
-                              validationErrors.city ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
+                              validationErrors.city ? 'border-red-500 focus:ring-red-500' : 'border-neutral-300 focus:ring-teal-800'
                             }`}
                             placeholder="New York"
                           />
@@ -478,7 +521,7 @@ export const Account: React.FC = () => {
                         </div>
 
                         <div className="col-span-2 sm:col-span-1">
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                          <label className="block text-sm font-medium text-neutral-900 mb-1">
                             State *
                           </label>
                           <input
@@ -489,7 +532,7 @@ export const Account: React.FC = () => {
                               if (validationErrors.state) setValidationErrors({ ...validationErrors, state: undefined });
                             }}
                             className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
-                              validationErrors.state ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
+                              validationErrors.state ? 'border-red-500 focus:ring-red-500' : 'border-neutral-300 focus:ring-teal-800'
                             }`}
                             placeholder="Maharashtra"
                           />
@@ -497,7 +540,7 @@ export const Account: React.FC = () => {
                         </div>
 
                         <div className="col-span-2 sm:col-span-1">
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                          <label className="block text-sm font-medium text-neutral-900 mb-1">
                             Pincode *
                           </label>
                           <input
@@ -509,7 +552,7 @@ export const Account: React.FC = () => {
                               if (validationErrors.pincode) setValidationErrors({ ...validationErrors, pincode: undefined });
                             }}
                             className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
-                              validationErrors.pincode ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
+                              validationErrors.pincode ? 'border-red-500 focus:ring-red-500' : 'border-neutral-300 focus:ring-teal-800'
                             }`}
                             placeholder="400001"
                           />
@@ -521,7 +564,7 @@ export const Account: React.FC = () => {
                         <button
                           type="submit"
                           disabled={loading}
-                          className="flex-1 py-2 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 transition"
+                          className="flex-1 py-2 px-4 bg-teal-800 text-white rounded-lg hover:bg-teal-900 disabled:bg-neutral-400 transition"
                         >
                           {loading ? 'Saving...' : 'Save Address'}
                         </button>
@@ -531,7 +574,7 @@ export const Account: React.FC = () => {
                             setShowAddressForm(false);
                             setValidationErrors({});
                           }}
-                          className="flex-1 py-2 px-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+                          className="flex-1 py-2 px-4 border border-neutral-300 rounded-lg hover:bg-neutral-50 transition"
                         >
                           Cancel
                         </button>
@@ -545,14 +588,14 @@ export const Account: React.FC = () => {
             {/* Orders Tab */}
             {activeTab === 'orders' && (
               <div className="bg-white rounded-lg shadow-md p-8">
-                <h2 className="text-2xl font-bold text-gray-900 mb-6">My Orders</h2>
+                <h2 className="text-2xl font-bold text-neutral-900 mb-6">My Orders</h2>
 
                 {orders.length > 0 ? (
                   <div className="space-y-4">
                     {orders.map((order) => (
                       <div
                         key={order.id}
-                        className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition"
+                        className="border border-neutral-200 rounded-lg p-4 hover:shadow-md transition"
                       >
                         <div className="flex justify-between items-start mb-4">
                           <div className="flex-1">
@@ -606,11 +649,11 @@ export const Account: React.FC = () => {
                   </div>
                 ) : (
                   <div className="text-center py-12">
-                    <Package className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                    <p className="text-gray-600 mb-4">No orders yet</p>
+                    <Package className="h-16 w-16 text-neutral-300 mx-auto mb-4" />
+                    <p className="text-neutral-600 mb-4">No orders yet</p>
                     <button
                       onClick={() => navigate('/products')}
-                      className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                      className="px-6 py-2 bg-teal-800 text-white rounded-lg hover:bg-teal-900 transition"
                     >
                       Start Shopping
                     </button>
@@ -618,108 +661,10 @@ export const Account: React.FC = () => {
                 )}
               </div>
             )}
-
-            {/* Settings Tab */}
-            {activeTab === 'settings' && (
-              <div className="bg-white rounded-lg shadow-md p-8">
-                <h2 className="text-2xl font-bold text-gray-900 mb-6">Account Settings</h2>
-
-                <div className="space-y-8">
-                  {/* Change Password Section */}
-                  <div className="border-b border-gray-200 pb-8">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Change Password</h3>
-
-                    <form className="space-y-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Old Password
-                        </label>
-                        <div className="relative">
-                          <input
-                            type={showPassword ? 'text' : 'password'}
-                            value={passwordForm.oldPassword}
-                            onChange={(e) => setPasswordForm({ ...passwordForm, oldPassword: e.target.value })}
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            placeholder="Enter old password"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setShowPassword(!showPassword)}
-                            className="absolute right-3 top-2.5 text-gray-500 hover:text-gray-700"
-                          >
-                            {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                          </button>
-                        </div>
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          New Password
-                        </label>
-                        <input
-                          type={showPassword ? 'text' : 'password'}
-                          value={passwordForm.newPassword}
-                          onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          placeholder="Enter new password"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Confirm Password
-                        </label>
-                        <input
-                          type={showPassword ? 'text' : 'password'}
-                          value={passwordForm.confirmPassword}
-                          onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          placeholder="Confirm new password"
-                        />
-                      </div>
-
-                      <button
-                        type="button"
-                        disabled={loading}
-                        className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 transition font-semibold"
-                      >
-                        {loading ? 'Updating...' : 'Update Password'}
-                      </button>
-
-                      <p className="text-xs text-gray-500 pt-2">
-                        Password must be at least 8 characters long
-                      </p>
-                    </form>
-                  </div>
-
-                  {/* Notifications Section */}
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Notifications</h3>
-
-                    <div className="space-y-3">
-                      {[
-                        { label: 'Order confirmation emails', id: 'order_confirm' },
-                        { label: 'Shipping updates', id: 'shipping_updates' },
-                        { label: 'Promotional emails', id: 'promo' },
-                        { label: 'Product recommendations', id: 'recommendations' },
-                      ].map(({ label, id }) => (
-                        <label key={id} className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50">
-                          <input
-                            type="checkbox"
-                            defaultChecked={true}
-                            className="w-4 h-4 rounded border-gray-300 text-blue-600"
-                          />
-                          <span className="text-sm text-gray-700">{label}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
         </div>
       </div>
+      )}
 
       {/* Delete Confirmation Modal */}
       {deleteConfirmation.isOpen && (
@@ -728,10 +673,10 @@ export const Account: React.FC = () => {
             <div className="p-6">
               <div className="flex items-center gap-3 mb-4">
                 <AlertCircle className="h-6 w-6 text-red-600" />
-                <h3 className="text-lg font-semibold text-gray-900">Delete Address</h3>
+                <h3 className="text-lg font-semibold text-neutral-900">Delete Address</h3>
               </div>
               
-              <p className="text-gray-600 mb-6">
+              <p className="text-neutral-600 mb-6">
                 Are you sure you want to delete this address? This action cannot be undone.
               </p>
 
@@ -739,14 +684,14 @@ export const Account: React.FC = () => {
                 <button
                   onClick={() => setDeleteConfirmation({ isOpen: false, addressId: null })}
                   disabled={loading}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition disabled:opacity-50"
+                  className="flex-1 px-4 py-2 border border-neutral-300 rounded-lg text-neutral-700 hover:bg-neutral-50 transition disabled:opacity-50"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={confirmDeleteAddress}
                   disabled={loading}
-                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition disabled:bg-gray-400"
+                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition disabled:bg-neutral-400"
                 >
                   {loading ? 'Deleting...' : 'Delete'}
                 </button>

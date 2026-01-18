@@ -111,8 +111,8 @@ export const OrderSuccess: React.FC = () => {
                       {item.size && <p className="text-sm text-gray-600">Size: {item.size}</p>}
                     </div>
                     <div className="text-right">
-                      <p className="font-semibold text-gray-900">₹{(item.price * item.quantity).toFixed(2)}</p>
-                      <p className="text-sm text-gray-500">{item.quantity} x ₹{item.price.toFixed(2)}</p>
+                      <p className="font-semibold text-gray-900">₹{(item.price * item.quantity).toFixed(0)}</p>
+                      <p className="text-sm text-gray-500">{item.quantity} x ₹{item.price.toFixed(0)}</p>
                     </div>
                   </div>
                 ))}
@@ -162,23 +162,19 @@ export const OrderSuccess: React.FC = () => {
               <div className="space-y-3 mb-6 pb-6 border-b border-gray-200">
                 <div className="flex justify-between text-gray-600">
                   <span>Subtotal</span>
-                  <span>₹{(order.totalAmount - order.gstAmount).toFixed(2)}</span>
+                  <span>₹{order.totalAmount.toFixed(0)}</span>
                 </div>
                 {order.discountAmount > 0 && (
                   <div className="flex justify-between text-green-600">
                     <span>Discount</span>
-                    <span>-₹{order.discountAmount.toFixed(2)}</span>
+                    <span>-₹{order.discountAmount.toFixed(0)}</span>
                   </div>
                 )}
-                <div className="flex justify-between text-gray-600">
-                  <span>GST</span>
-                  <span>₹{order.gstAmount.toFixed(2)}</span>
-                </div>
               </div>
 
               <div className="flex justify-between text-lg font-bold text-gray-900 mb-6">
                 <span>Total Amount</span>
-                <span className="text-green-600">₹{order.totalAmount.toFixed(2)}</span>
+                <span className="text-green-600">₹{order.totalAmount.toFixed(0)}</span>
               </div>
 
               <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">

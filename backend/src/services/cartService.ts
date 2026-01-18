@@ -164,30 +164,24 @@ export const getCartWithTotals = async (userId: string) => {
 
     // Calculate totals
     let subtotal = 0;
-    let totalGst = 0;
     let totalDiscount = 0;
 
     const itemsWithTotals = cart.items.map((item) => {
       const product = item.product;
       const basePrice = product.basePrice;
       const discountAmount = (basePrice * (product.discountPercent || 0)) / 100;
-      const priceAfterDiscount = basePrice - discountAmount;
-      const gstAmount = (priceAfterDiscount * (product.gstPercent || 0)) / 100;
-      const finalPrice = priceAfterDiscount + gstAmount;
+      const finalPrice = basePrice - discountAmount;
 
       const itemTotal = finalPrice * item.quantity;
-      const itemGst = gstAmount * item.quantity;
       const itemDiscount = discountAmount * item.quantity;
 
       subtotal += itemTotal;
-      totalGst += itemGst;
       totalDiscount += itemDiscount;
 
       return {
         ...item,
         unitPrice: finalPrice,
         totalPrice: itemTotal,
-        gstAmount: itemGst,
         discountAmount: itemDiscount
       };
     });
@@ -197,7 +191,6 @@ export const getCartWithTotals = async (userId: string) => {
       items: itemsWithTotals,
       totals: {
         subtotal,
-        gst: totalGst,
         discount: totalDiscount,
         grandTotal: subtotal
       }

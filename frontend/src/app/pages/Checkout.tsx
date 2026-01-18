@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MapPin, Loader, AlertCircle, Check, Plus } from 'lucide-react';
-import { useCart } from '../context/CartContext';
-import { useAuth } from '../context/AuthContext';
+import { useCart } from '../components/context/CartContext';
+import { useAuth } from '../components/context/AuthContext';
 import { toast } from 'sonner';
 import { Breadcrumb } from '../components/Breadcrumb';
 import * as checkoutService from '../../services/checkoutService';
@@ -29,8 +29,12 @@ interface ValidationErrors {
 }
 
 const validatePhone = (phone: string): boolean => {
-  return /^[0-9]{10}$/.test(phone.replace(/\D/g, ''));
+  const cleaned = phone.replace(/\D/g, '');
+
+  // Allow: 10-digit OR +91 followed by 10-digit
+  return cleaned.length === 10 || (cleaned.length === 12 && cleaned.startsWith('91'));
 };
+
 
 const validatePincode = (pincode: string): boolean => {
   return /^[0-9]{6}$/.test(pincode);
@@ -72,7 +76,7 @@ const validateAddressForm = (form: AddressFormData): ValidationErrors => {
 
 export const Checkout: React.FC = () => {
   const { cartItems, clearCart } = useCart();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
 
   // State management
@@ -87,7 +91,7 @@ export const Checkout: React.FC = () => {
   // New address form state
   const [newAddress, setNewAddress] = useState<AddressFormData>({
     name: '',
-    phone: '',
+    phone: user?.phone || '',
     address: '',
     city: '',
     state: '',
@@ -111,8 +115,12 @@ export const Checkout: React.FC = () => {
   useEffect(() => {
     if (isAuthenticated && cartItems.length > 0) {
       loadCheckoutData();
+      // Set phone from user profile
+      if (user?.phone) {
+        setNewAddress(prev => ({ ...prev, phone: user.phone || '' }));
+      }
     }
-  }, [isAuthenticated, cartItems.length]);
+  }, [isAuthenticated, cartItems.length, user?.phone]);
 
   const loadCheckoutData = async () => {
     try {
@@ -160,7 +168,7 @@ export const Checkout: React.FC = () => {
       // Reset form
       setNewAddress({
         name: '',
-        phone: '',
+        phone: user?.phone || '',
         address: '',
         city: '',
         state: '',
@@ -217,10 +225,8 @@ export const Checkout: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Breadcrumb items={[{ label: 'Checkout' }]} />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-8">Checkout</h1>
 
         {error && (
           <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
@@ -308,20 +314,14 @@ export const Checkout: React.FC = () => {
 
                     <div className="col-span-2 sm:col-span-1">
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Phone Number *
+                        Phone Number <span className="text-xs text-gray-500">(from profile)</span>
                       </label>
                       <input
                         type="text"
                         value={newAddress.phone}
-                        onChange={(e) => {
-                          const val = e.target.value.replace(/\D/g, '').slice(0, 10);
-                          setNewAddress({ ...newAddress, phone: val });
-                          if (validationErrors.phone) setValidationErrors({ ...validationErrors, phone: undefined });
-                        }}
-                        className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
-                          validationErrors.phone ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
-                        }`}
-                        placeholder="9876543210"
+                        disabled
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed"
+                        placeholder="Phone from profile"
                       />
                       {validationErrors.phone && <p className="text-red-600 text-xs mt-1">{validationErrors.phone}</p>}
                     </div>
@@ -469,10 +469,6 @@ export const Checkout: React.FC = () => {
                         <span>-₹{(checkoutData.cart.totals.discount ?? 0).toFixed(2)}</span>
                       </div>
                     )}
-                    <div className="flex justify-between text-gray-600">
-                      <span>GST</span>
-                      <span>₹{checkoutData.cart.totals.gst.toFixed(2)}</span>
-                    </div>
                   </>
                 )}
               </div>

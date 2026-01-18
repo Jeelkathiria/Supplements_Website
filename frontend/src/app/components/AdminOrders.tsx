@@ -7,6 +7,16 @@ import {
   Order,
   OrderItem,
 } from "../../services/adminOrderService";
+import { useAuth } from "./context/AuthContext";
+
+// Helper function to get full image URL
+const getFullImageUrl = (imageUrl: string) => {
+  if (!imageUrl) return '/placeholder.png';
+  if (imageUrl.startsWith('http')) return imageUrl;
+  const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+  const backendBase = apiBase.replace('/api', '');
+  return `${backendBase}${imageUrl}`;
+};
 
 const ORDER_STATUSES = ["PENDING", "PAID", "SHIPPED", "DELIVERED", "CANCELLED"];
 
@@ -23,10 +33,17 @@ export const AdminOrders: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
   const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null);
+  const { firebaseUser } = useAuth();
 
   useEffect(() => {
-    loadOrders();
-  }, []);
+    // Only load orders once the user is authenticated
+    if (firebaseUser) {
+      loadOrders();
+    } else if (!isLoading) {
+      // If we've finished loading but no user, set isLoading to false
+      setIsLoading(false);
+    }
+  }, [firebaseUser]);
 
   const loadOrders = async () => {
     try {
@@ -186,7 +203,7 @@ export const AdminOrders: React.FC = () => {
                         <div className="col-span-1">
                           {item.product.imageUrls[0] && (
                             <img
-                              src={item.product.imageUrls[0]}
+                              src={getFullImageUrl(item.product.imageUrls[0])}
                               alt={item.product.name}
                               className="h-10 w-10 rounded object-cover border border-neutral-200"
                             />
@@ -240,7 +257,7 @@ export const AdminOrders: React.FC = () => {
                   <div className="bg-gradient-to-b from-blue-100 to-blue-50 px-3 py-3 border-t-2 border-blue-300 space-y-2">
                     <div className="flex justify-between text-sm">
                       <span className="text-neutral-700">Subtotal:</span>
-                      <span className="font-bold text-neutral-900">₹{(order.totalAmount - order.gstAmount).toFixed(2)}</span>
+                      <span className="font-bold text-neutral-900">₹{order.totalAmount.toFixed(2)}</span>
                     </div>
                     {order.discount > 0 && (
                       <div className="flex justify-between text-sm">
@@ -248,10 +265,6 @@ export const AdminOrders: React.FC = () => {
                         <span className="font-bold text-red-600">-₹{order.discount.toFixed(2)}</span>
                       </div>
                     )}
-                    <div className="flex justify-between text-sm">
-                      <span className="text-neutral-700">GST (18%):</span>
-                      <span className="font-bold text-neutral-900">₹{order.gstAmount.toFixed(2)}</span>
-                    </div>
                     <div className="border-t-2 border-dashed border-blue-300 pt-2 mt-2 flex justify-between items-center">
                       <span className="font-bold text-neutral-900 text-base">TOTAL:</span>
                       <span className="font-bold text-2xl text-green-600">₹{order.totalAmount.toFixed(2)}</span>

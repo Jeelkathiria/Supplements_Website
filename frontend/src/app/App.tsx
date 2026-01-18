@@ -1,8 +1,8 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Toaster } from './components/ui/sonner';
-import { CartProvider } from './context/CartContext';
-import { AuthProvider } from './context/AuthContext';
+import { CartProvider } from './components/context/CartContext';
+import { AuthProvider } from './components/context/AuthContext';
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
 import { Home } from './pages/Home';
@@ -56,7 +56,14 @@ function AppContent() {
                 </Routes>
               </main>
               <Footer />
-              <Toaster position="bottom-right" />
+              <Toaster 
+                position="top-right" 
+                toastOptions={{
+                  style: {
+                    marginTop: '80px',
+                  }
+                }}
+              />
             </>
           );
         }

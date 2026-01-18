@@ -11,7 +11,6 @@ export interface Product {
   description: string;
   basePrice: number;
   discountPercent: number;
-  gstPercent: number;
   imageUrls: string[];
   categoryId?: string;
   categoryName?: string; // Store category name for display
@@ -28,7 +27,6 @@ export interface Product {
   updatedAt?: string;
   // For backward compatibility with frontend form
   discount?: number;
-  tax?: number;
   images?: string[];
   category?: Category | string; // Can be Category object or string (legacy)
   stock?: number;
