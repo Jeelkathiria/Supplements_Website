@@ -32,7 +32,7 @@ const EMPTY_FORM: Partial<Product> = {
   flavors: [],
   basePrice: 0,
   discountPercent: 0,
-  stockQuantity: 0,
+  isOutOfStock: false,
   rating: 4.5,
   reviews: 0,
   imageUrls: [],
@@ -92,7 +92,6 @@ export const Admin: React.FC = () => {
     const numberFields = [
       "basePrice",
       "discountPercent",
-      "stockQuantity",
       "rating",
       "reviews",
     ];
@@ -200,11 +199,6 @@ export const Admin: React.FC = () => {
     }
     if (!formData.basePrice || formData.basePrice === 0) {
       newErrors.basePrice = "Base price is required and must be greater than 0";
-    }
-    if (formData.stockQuantity === undefined || formData.stockQuantity === null) {
-      newErrors.stockQuantity = "Stock quantity is required";
-    } else if (formData.stockQuantity === 0) {
-      newErrors.stockQuantity = "Stock can't be 0";
     }
     if (!formData.imageUrls || formData.imageUrls.length === 0) {
       newErrors.imageUrls = "At least one image is required";
@@ -443,14 +437,6 @@ export const Admin: React.FC = () => {
         <>
       {/* HEADER */}
       <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">
-            Product Management
-          </h1>
-          <p className="text-sm text-neutral-600">
-            Add and edit products
-          </p>
-        </div>
 
         <div className="flex gap-3">
           <input
@@ -532,7 +518,7 @@ export const Admin: React.FC = () => {
                   <td className="text-center font-bold">
                     ₹{p.finalPrice}
                   </td>
-                  <td className="text-center">{p.stockQuantity}</td>
+                  <td className="text-center">{p.isOutOfStock ? 'Out of Stock' : 'In Stock'}</td>
 
                   <td>
                     <div className="flex justify-center gap-2">
@@ -1048,16 +1034,18 @@ export const Admin: React.FC = () => {
 
                 <div>
                   <label className="mb-1 block text-sm font-medium">
-                    Stock Quantity
+                    Out of Stock
                   </label>
-                  <input
-                    type="number"
-                    name="stockQuantity"
-                    value={formData.stockQuantity}
-                    onChange={handleInputChange}
-                    className={`w-full rounded-lg border px-3 py-2 ${errors.stockQuantity ? "border-b-2 border-b-red-500" : ""}`}
-                  />
-                  {errors.stockQuantity && <p className="mt-1 text-xs text-red-500">{errors.stockQuantity}</p>}
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      name="isOutOfStock"
+                      checked={formData.isOutOfStock || false}
+                      onChange={handleInputChange}
+                      className="w-5 h-5 rounded border-gray-300 cursor-pointer"
+                    />
+                    <span className="text-sm text-gray-600">Mark this product as out of stock</span>
+                  </div>
                 </div>
               </div>
 
@@ -1091,12 +1079,6 @@ export const Admin: React.FC = () => {
       {/* ORDERS TAB */}
       {activeTab === "orders" && (
         <div>
-          <div className="mb-8">
-            <h1 className="text-2xl font-bold">Order Management</h1>
-            <p className="text-sm text-neutral-600">
-              View and manage all customer orders
-            </p>
-          </div>
           <AdminOrders />
         </div>
       )}

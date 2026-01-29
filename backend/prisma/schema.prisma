@@ -37,7 +37,7 @@ model Product {
   discountPercent Float @default(0)
   finalPrice      Float // computed in backend
 
-  stockQuantity Int @default(0)
+  isOutOfStock    Boolean @default(false)
 
   flavors   String[]
   sizes     String[]
@@ -100,7 +100,7 @@ model Order {
 
   items     OrderItem[]
   addressId String?
-  address   Address? @relation(fields: [addressId], references: [id])
+  address   OrderAddress? @relation(fields: [addressId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -123,7 +123,27 @@ model OrderItem {
 }
 
 /**
- * ================= User Address=================
+ * ================= Order Address (Historical Address Snapshot) =================
+ */
+model OrderAddress {
+  id     String @id @default(uuid())
+  orderId String? @unique
+
+  name    String
+  phone   String
+  address String
+  city    String
+  state   String
+  pincode String
+
+  orders Order[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+/**
+ * ================= User Address =================
  */
 model Address {
   id     String @id @default(uuid())
@@ -139,7 +159,6 @@ model Address {
   isDefault Boolean @default(false)
 
   user   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  orders Order[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

@@ -117,7 +117,7 @@ export const ProductDetail: React.FC = () => {
   };
 
   const handleAddToCart = () => {
-    if (product.stockQuantity === 0) {
+    if (product.isOutOfStock) {
       toast.error('This product is out of stock');
       return;
     }
@@ -137,7 +137,7 @@ export const ProductDetail: React.FC = () => {
   };
 
   const handleBuyNow = () => {
-  if (product.stockQuantity === 0) {
+  if (product.isOutOfStock) {
     toast.error('This product is out of stock');
     return;
   }
@@ -330,13 +330,13 @@ export const ProductDetail: React.FC = () => {
 
                 {/* Stock Status */}
                 <div className="flex items-center gap-4 mt-3 flex-wrap">
-                  {product.stockQuantity > 0 ? (
-                    <span className="text-sm font-medium text-green-600 flex items-center gap-1">
-                      ✓ In stock!
-                    </span>
-                  ) : (
+                  {product.isOutOfStock ? (
                     <span className="text-sm font-medium text-red-600">
                       Out of stock
+                    </span>
+                  ) : (
+                    <span className="text-sm font-medium text-green-600 flex items-center gap-1">
+                      ✓ In stock!
                     </span>
                   )}
                 </div>
@@ -403,17 +403,13 @@ export const ProductDetail: React.FC = () => {
                 <span>{quantity}</span>
                 <button
                   onClick={() =>
-                    setQuantity(
-                      Math.min(product.stockQuantity || product.stock || 0, quantity + 1),
-                    )
+                    setQuantity(quantity + 1)
                   }
                   className="w-8 h-8 border rounded-md"
                 >
                   +
                 </button>
-                <span className="text-xs text-neutral-500">
-                  {product.stockQuantity || product.stock || 0} left
-                </span>
+                <span className="text-xs text-neutral-500"></span>
               </div>
             </div>
 
@@ -421,25 +417,25 @@ export const ProductDetail: React.FC = () => {
             <div className="hidden md:flex gap-3 mt-6">
               <button
                 onClick={handleAddToCart}
-                disabled={product.stockQuantity === 0}
+                disabled={product.isOutOfStock}
                 className={`flex-1 border border-black py-3 rounded-md transition ${
-                  product.stockQuantity === 0
+                  product.isOutOfStock
                     ? 'bg-neutral-100 text-neutral-400 border-neutral-300 cursor-not-allowed'
                     : 'hover:bg-neutral-50'
                 }`}
               >
-                {product.stockQuantity === 0 ? 'Out of Stock' : 'Add to Cart'}
+                {product.isOutOfStock ? 'Out of Stock' : 'Add to Cart'}
               </button>
               <button
                 onClick={handleBuyNow}
-                disabled={product.stockQuantity === 0}
+                disabled={product.isOutOfStock}
                 className={`flex-1 text-white py-3 rounded-md transition ${
-                  product.stockQuantity === 0
+                  product.isOutOfStock
                     ? 'bg-neutral-400 cursor-not-allowed'
                     : 'bg-black hover:bg-neutral-800'
                 }`}
               >
-                {product.stockQuantity === 0 ? 'Out of Stock' : 'Buy Now'}
+                {product.isOutOfStock ? 'Out of Stock' : 'Buy Now'}
               </button>
             </div>
 
@@ -447,25 +443,25 @@ export const ProductDetail: React.FC = () => {
             <div className="sticky bottom-0 bg-white border-t p-3 flex gap-3 md:hidden z-30">
               <button
                 onClick={handleAddToCart}
-                disabled={product.stockQuantity === 0}
+                disabled={product.isOutOfStock}
                 className={`flex-1 border border-black py-3 rounded-md transition ${
-                  product.stockQuantity === 0
+                  product.isOutOfStock
                     ? 'bg-neutral-100 text-neutral-400 border-neutral-300 cursor-not-allowed'
                     : 'hover:bg-neutral-50'
                 }`}
               >
-                {product.stockQuantity === 0 ? 'Out of Stock' : 'Add to Cart'}
+                {product.isOutOfStock ? 'Out of Stock' : 'Add to Cart'}
               </button>
               <button
                 onClick={handleBuyNow}
-                disabled={product.stockQuantity === 0}
+                disabled={product.isOutOfStock}
                 className={`flex-1 text-white py-3 rounded-md transition ${
-                  product.stockQuantity === 0
+                  product.isOutOfStock
                     ? 'bg-neutral-400 cursor-not-allowed'
                     : 'bg-black hover:bg-neutral-800'
                 }`}
               >
-                {product.stockQuantity === 0 ? 'Out of Stock' : 'Buy Now'}
+                {product.isOutOfStock ? 'Out of Stock' : 'Buy Now'}
               </button>
             </div>
 

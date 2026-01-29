@@ -10,6 +10,84 @@ import * as orderService from '../../services/orderService';
 import * as userService from '../../services/userService';
 import type { CheckoutData } from '../../services/checkoutService';
 
+// Indian States and Union Territories
+const INDIAN_STATES = [
+  'Andaman and Nicobar Islands',
+  'Andhra Pradesh',
+  'Arunachal Pradesh',
+  'Assam',
+  'Bihar',
+  'Chandigarh',
+  'Chhattisgarh',
+  'Dadra and Nagar Haveli and Daman and Diu',
+  'Delhi',
+  'Goa',
+  'Gujarat',
+  'Haryana',
+  'Himachal Pradesh',
+  'Jharkhand',
+  'Karnataka',
+  'Kerala',
+  'Ladakh',
+  'Lakshadweep',
+  'Madhya Pradesh',
+  'Maharashtra',
+  'Manipur',
+  'Meghalaya',
+  'Mizoram',
+  'Nagaland',
+  'Odisha',
+  'Puducherry',
+  'Punjab',
+  'Rajasthan',
+  'Sikkim',
+  'Tamil Nadu',
+  'Telangana',
+  'Tripura',
+  'Uttar Pradesh',
+  'Uttarakhand',
+  'West Bengal',
+].sort();
+
+// Indian Cities by State
+const CITIES_BY_STATE: { [key: string]: string[] } = {
+  'Andaman and Nicobar Islands': ['Port Blair', 'Car Nicobar'],
+  'Andhra Pradesh': ['Visakhapatnam', 'Vijayawada', 'Guntur', 'Tirupati', 'Nellore'],
+  'Arunachal Pradesh': ['Itanagar', 'Pasighat', 'Tawang'],
+  'Assam': ['Guwahati', 'Silchar', 'Dibrugarh', 'Nagaon', 'Barpeta'],
+  'Bihar': ['Patna', 'Gaya', 'Bhagalpur', 'Muzaffarpur', 'Darbhanga'],
+  'Chandigarh': ['Chandigarh', 'Mohali'],
+  'Chhattisgarh': ['Raipur', 'Bilaspur', 'Durg', 'Rajnandgaon', 'Jagdalpur'],
+  'Dadra and Nagar Haveli and Daman and Diu': ['Silvassa', 'Daman', 'Diu'],
+  'Delhi': ['New Delhi', 'Delhi', 'South Delhi', 'East Delhi', 'West Delhi'],
+  'Goa': ['Panaji', 'Margao', 'Vasco da Gama', 'Ponda'],
+  'Gujarat': ['Ahmedabad', 'Surat', 'Vadodara', 'Rajkot', 'Gandhinagar'],
+  'Haryana': ['Faridabad', 'Gurgaon', 'Hisar', 'Rohtak', 'Panipat'],
+  'Himachal Pradesh': ['Shimla', 'Mandi', 'Kangra', 'Solan', 'Bilaspur'],
+  'Jharkhand': ['Ranchi', 'Jamshedpur', 'Dhanbad', 'Giridih', 'Bokaro'],
+  'Karnataka': ['Bangalore', 'Mysore', 'Mangalore', 'Hubballi', 'Belgaum'],
+  'Kerala': ['Kochi', 'Thiruvananthapuram', 'Kozhikode', 'Thrissur', 'Kottayam'],
+  'Ladakh': ['Leh', 'Kargil'],
+  'Lakshadweep': ['Kavaratti', 'Agatti'],
+  'Madhya Pradesh': ['Indore', 'Bhopal', 'Jabalpur', 'Gwalior', 'Ujjain'],
+  'Maharashtra': ['Mumbai', 'Pune', 'Nagpur', 'Ahmedabad', 'Thane'],
+  'Manipur': ['Imphal', 'Bishnupur', 'Thoubal', 'Churachandpur'],
+  'Meghalaya': ['Shillong', 'Tura', 'Jowai', 'Nongstoin'],
+  'Mizoram': ['Aizawl', 'Lunglei', 'Saiha'],
+  'Nagaland': ['Kohima', 'Dimapur', 'Mon'],
+  'Odisha': ['Bhubaneswar', 'Cuttack', 'Raurkela', 'Balasore', 'Sambalpur'],
+  'Puducherry': ['Puducherry', 'Yanam', 'Mahe', 'Karaikal'],
+  'Punjab': ['Ludhiana', 'Amritsar', 'Chandigarh', 'Jalandhar', 'Patiala'],
+  'Rajasthan': ['Jaipur', 'Jodhpur', 'Kota', 'Ajmer', 'Udaipur'],
+  'Sikkim': ['Gangtok', 'Namchi', 'Mangan', 'Gyalshing'],
+  'Tamil Nadu': ['Chennai', 'Coimbatore', 'Madurai', 'Salem', 'Tiruchirappalli'],
+  'Telangana': ['Hyderabad', 'Secunderabad', 'Warangal', 'Vijayawada', 'Karimnagar'],
+  'Tripura': ['Agartala', 'Udaipur', 'Dharmanagar'],
+  'Uttar Pradesh': ['Lucknow', 'Kanpur', 'Ghaziabad', 'Agra', 'Varanasi'],
+  'Uttarakhand': ['Dehradun', 'Haridwar', 'Nainital', 'Almora', 'Rishikesh'],
+  'West Bengal': ['Kolkata', 'Darjeeling', 'Siliguri', 'Asansol', 'Durgapur'],
+};
+
 interface AddressFormData {
   name: string;
   phone: string;
@@ -76,7 +154,7 @@ const validateAddressForm = (form: AddressFormData): ValidationErrors => {
 
 export const Checkout: React.FC = () => {
   const { cartItems, clearCart } = useCart();
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
 
   // State management
@@ -100,6 +178,11 @@ export const Checkout: React.FC = () => {
 
   // Redirect if not authenticated or cart is empty
   useEffect(() => {
+    // Wait for auth to finish loading
+    if (authLoading) {
+      return;
+    }
+
     if (!isAuthenticated) {
       navigate('/login?redirect=checkout');
       return;
@@ -109,7 +192,7 @@ export const Checkout: React.FC = () => {
       navigate('/cart');
       return;
     }
-  }, [isAuthenticated, cartItems.length, navigate]);
+  }, [isAuthenticated, authLoading, cartItems.length, navigate]);
 
   // Load checkout data on mount
   useEffect(() => {
@@ -212,7 +295,7 @@ export const Checkout: React.FC = () => {
     }
   };
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
@@ -359,7 +442,7 @@ export const Checkout: React.FC = () => {
                         className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
                           validationErrors.city ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
                         }`}
-                        placeholder="Mumbai"
+                        placeholder="Enter your city"
                       />
                       {validationErrors.city && <p className="text-red-600 text-xs mt-1">{validationErrors.city}</p>}
                     </div>
@@ -368,18 +451,23 @@ export const Checkout: React.FC = () => {
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         State *
                       </label>
-                      <input
-                        type="text"
+                      <select
                         value={newAddress.state}
                         onChange={(e) => {
-                          setNewAddress({ ...newAddress, state: e.target.value });
+                          setNewAddress({ ...newAddress, state: e.target.value, city: '' });
                           if (validationErrors.state) setValidationErrors({ ...validationErrors, state: undefined });
                         }}
                         className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
                           validationErrors.state ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
                         }`}
-                        placeholder="Maharashtra"
-                      />
+                      >
+                        <option value="">Select a state</option>
+                        {INDIAN_STATES.map((state) => (
+                          <option key={state} value={state}>
+                            {state}
+                          </option>
+                        ))}
+                      </select>
                       {validationErrors.state && <p className="text-red-600 text-xs mt-1">{validationErrors.state}</p>}
                     </div>
 

@@ -43,7 +43,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
-    if (product.stockQuantity === 0) {
+    if (product.isOutOfStock) {
       toast.error('This product is out of stock');
       return;
     }
@@ -57,7 +57,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   };
 
   const isDiscount = variant === 'discount';
-  const isOutOfStock = product.stockQuantity === 0;
+  const isOutOfStock = product.isOutOfStock || false;
 
   return (
     <Link to={`/product/${product.id}`} className="group block">
@@ -153,7 +153,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           {/* Two Info Lines */}
           <div className="mb-3 space-y-1">
             <p className={`text-xs ${isDiscount ? 'text-white/90' : 'text-neutral-600'}`}>
-              {product.stockQuantity > 0 ? `${product.stockQuantity} In Stock` : 'Out of Stock'}
+              {isOutOfStock ? 'Out of Stock' : 'In Stock'}
             </p>
             <p className={`text-xs font-medium ${isDiscount ? 'text-yellow-200' : 'text-green-600'}`}>
               {isDiscount ? '⭐ Limited Time Deal' : '✓ Verified Authentic Product'}

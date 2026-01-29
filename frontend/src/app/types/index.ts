@@ -15,7 +15,7 @@ export interface Product {
   categoryId?: string;
   categoryName?: string; // Store category name for display
   finalPrice: number;
-  stockQuantity: number;
+  isOutOfStock: boolean;
   sizes?: string[];
   flavors?: string[];
   colors?: string[]; // For backward compatibility
@@ -30,6 +30,7 @@ export interface Product {
   images?: string[];
   category?: Category | string; // Can be Category object or string (legacy)
   stock?: number;
+  stockQuantity?: number; // For backward compatibility
   rating?: number;
   reviews?: number;
   // Form temporary fields

@@ -18,6 +18,7 @@ export interface CheckoutPayload {
     phone: string;
     address: string;
     city: string;
+    state?: string;
     pincode: string;
   };
 }
@@ -28,7 +29,7 @@ export const createOrder = async (payload: CheckoutPayload) => {
     let totalAmount = 0;
     let totalDiscount = 0;
 
-    // Verify all products exist and have sufficient stock
+    // Verify all products exist
     for (const item of payload.cartItems) {
       const product = await prisma.product.findUnique({
         where: { id: item.productId },
@@ -36,12 +37,6 @@ export const createOrder = async (payload: CheckoutPayload) => {
 
       if (!product) {
         throw new Error(`Product ${item.productId} not found`);
-      }
-
-      if (product.stockQuantity < item.quantity) {
-        throw new Error(
-          `Insufficient stock for ${product.name}. Available: ${product.stockQuantity}, Requested: ${item.quantity}`
-        );
       }
 
       // Calculate amounts
@@ -56,6 +51,18 @@ export const createOrder = async (payload: CheckoutPayload) => {
 
     // Execute all operations in a transaction for data consistency
     const result = await prisma.$transaction(async (tx) => {
+      // Create OrderAddress (historical snapshot)
+      const orderAddress = await tx.orderAddress.create({
+        data: {
+          name: payload.shippingAddress.name,
+          phone: payload.shippingAddress.phone,
+          address: payload.shippingAddress.address,
+          city: payload.shippingAddress.city,
+          state: payload.shippingAddress.state || "",
+          pincode: payload.shippingAddress.pincode,
+        },
+      });
+
       // Create order
       const order = await tx.order.create({
         data: {
@@ -63,16 +70,7 @@ export const createOrder = async (payload: CheckoutPayload) => {
           totalAmount,
           discount: totalDiscount,
           status: OrderStatus.PENDING,
-          address: {
-            create: {
-              userId: payload.userId,
-              name: payload.shippingAddress.name,
-              phone: payload.shippingAddress.phone,
-              address: payload.shippingAddress.address,
-              city: payload.shippingAddress.city,
-              pincode: payload.shippingAddress.pincode,
-            },
-          },
+          addressId: orderAddress.id,
           items: {
             create: payload.cartItems.map((item) => ({
               productId: item.productId,
@@ -83,6 +81,17 @@ export const createOrder = async (payload: CheckoutPayload) => {
             })),
           },
         },
+      });
+
+      // Update OrderAddress with the order ID
+      await tx.orderAddress.update({
+        where: { id: orderAddress.id },
+        data: { orderId: order.id }
+      });
+
+      // Fetch the complete order with relations
+      const completeOrder = await tx.order.findUnique({
+        where: { id: order.id },
         include: {
           items: {
             include: { product: true },
@@ -91,30 +100,7 @@ export const createOrder = async (payload: CheckoutPayload) => {
         },
       });
 
-      // Update product stock
-      for (const item of payload.cartItems) {
-        await tx.product.update({
-          where: { id: item.productId },
-          data: {
-            stockQuantity: {
-              decrement: item.quantity,
-            },
-          },
-        });
-      }
-
-      // Clear user's cart
-      const userCart = await tx.cart.findUnique({
-        where: { userId: payload.userId },
-      });
-
-      if (userCart) {
-        await tx.cartItem.deleteMany({
-          where: { cartId: userCart.id },
-        });
-      }
-
-      return order;
+      return completeOrder;
     });
 
     return result;
@@ -149,18 +135,12 @@ export const placeOrderFromCart = async (userId: string, addressId: string) => {
       throw new Error("Cart is empty");
     }
 
-    // Calculate totals and verify stock
+    // Calculate totals
     let totalAmount = 0;
     let totalDiscount = 0;
 
     for (const item of cart.items) {
       const product = item.product;
-
-      if (product.stockQuantity < item.quantity) {
-        throw new Error(
-          `Insufficient stock for ${product.name}. Available: ${product.stockQuantity}, Requested: ${item.quantity}`
-        );
-      }
 
       const basePrice = product.basePrice;
       const discountAmount = (basePrice * (product.discountPercent || 0)) / 100;
@@ -172,15 +152,26 @@ export const placeOrderFromCart = async (userId: string, addressId: string) => {
 
     // Execute all operations in a transaction
     const order = await prisma.$transaction(async (tx) => {
-      // Create order
+      // Create OrderAddress first (historical snapshot) without orderId
+      const orderAddress = await tx.orderAddress.create({
+        data: {
+          name: address.name,
+          phone: address.phone,
+          address: address.address,
+          city: address.city,
+          state: address.state || "",
+          pincode: address.pincode,
+        },
+      });
+
+      // Create order and connect to OrderAddress
       const newOrder = await tx.order.create({
         data: {
           userId,
           totalAmount,
-          gstAmount: 0,
           discount: totalDiscount,
           status: OrderStatus.PENDING,
-          addressId,
+          addressId: orderAddress.id,
           items: {
             create: cart.items.map((item) => {
               const product = item.product;
@@ -198,6 +189,17 @@ export const placeOrderFromCart = async (userId: string, addressId: string) => {
             })
           }
         },
+      });
+
+      // Update OrderAddress with the order ID
+      await tx.orderAddress.update({
+        where: { id: orderAddress.id },
+        data: { orderId: newOrder.id }
+      });
+
+      // Fetch the complete order with relations
+      const completeOrder = await tx.order.findUnique({
+        where: { id: newOrder.id },
         include: {
           items: {
             include: { product: true }
@@ -206,24 +208,12 @@ export const placeOrderFromCart = async (userId: string, addressId: string) => {
         }
       });
 
-      // Update product stock
-      for (const item of cart.items) {
-        await tx.product.update({
-          where: { id: item.productId },
-          data: {
-            stockQuantity: {
-              decrement: item.quantity
-            }
-          }
-        });
-      }
-
       // Clear cart
       await tx.cartItem.deleteMany({
         where: { cartId: cart.id }
       });
 
-      return newOrder;
+      return completeOrder;
     });
 
     return order;
@@ -322,18 +312,6 @@ export const cancelOrder = async (orderId: string) => {
 
     if (order.status !== OrderStatus.PENDING) {
       throw new Error(`Cannot cancel order with status ${order.status}`);
-    }
-
-    // Restore product stock
-    for (const item of order.items) {
-      await prisma.product.update({
-        where: { id: item.productId },
-        data: {
-          stockQuantity: {
-            increment: item.quantity,
-          },
-        },
-      });
     }
 
     // Update order status

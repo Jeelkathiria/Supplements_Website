@@ -26,7 +26,6 @@ export const getAllOrders = async (_req: Request, res: Response) => {
                 name: true,
                 basePrice: true,
                 discountPercent: true,
-                gstPercent: true,
                 imageUrls: true,
               }
             }
@@ -90,7 +89,6 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
                 name: true,
                 basePrice: true,
                 discountPercent: true,
-                gstPercent: true,
                 imageUrls: true,
               }
             }

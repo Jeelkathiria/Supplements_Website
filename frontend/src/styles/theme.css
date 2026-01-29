@@ -224,4 +224,84 @@
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
+
+  /* Mobile Responsive Improvements */
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Prevent zooming on input focus on iOS */
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="number"],
+  input[type="tel"],
+  textarea,
+  select {
+    font-size: 16px;
+  }
+
+  /* Smooth animations */
+  @media (prefers-reduced-motion: no-preference) {
+    html {
+      scroll-behavior: smooth;
+    }
+  }
+
+  /* Fix overflow on mobile */
+  html, body {
+    overflow-x: hidden;
+  }
+
+  /* Better button touch targets on mobile */
+  @media (max-width: 768px) {
+    button, a {
+      min-height: 44px;
+      min-width: 44px;
+    }
+
+    /* Ensure proper spacing for mobile inputs */
+    input, textarea, select {
+      padding: 12px;
+      min-height: 44px;
+    }
+
+    /* Better form spacing */
+    form {
+      width: 100%;
+    }
+
+    /* Better card spacing */
+    .container {
+      padding: 0 1rem;
+    }
+  }
+
+  /* Prevent double tap zoom on buttons */
+  input[type="button"],
+  input[type="submit"],
+  button {
+    -webkit-touch-callout: none;
+  }
+
+  /* Animation utilities */
+  @keyframes slideInFromTop {
+    from {
+      transform: translateY(-20px);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+
+  .animate-in.slide-in-from-top-2 {
+    animation: slideInFromTop 0.3s ease-out;
+  }
 }

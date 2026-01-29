@@ -74,7 +74,7 @@ export default function App() {
       <Router>
         <AuthProvider>
           <CartProvider>
-            <div className="min-h-screen flex flex-col bg-white">
+            <div className="min-h-screen flex flex-col bg-white overflow-x-hidden">
               <AppContent />
             </div>
           </CartProvider>

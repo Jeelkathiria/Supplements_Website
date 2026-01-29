@@ -69,9 +69,9 @@ export const Home: React.FC = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-neutral-50">
+    <div className="min-h-screen bg-neutral-50 w-full">
       {/* HERO */}
-      <section className="relative h-[480px] bg-gradient-to-r from-teal-800 to-teal-900 overflow-hidden">
+      <section className="relative h-[480px] md:h-[480px] sm:h-[320px] bg-gradient-to-r from-teal-800 to-teal-900 overflow-hidden w-full">
         {HERO_IMAGES.map((image, index) => (
           <div
             key={index}
@@ -91,22 +91,22 @@ export const Home: React.FC = () => {
         ))}
 
         {/* CENTER CONTENT */}
-        <div className="absolute inset-0 flex items-center justify-center text-center px-6">
+        <div className="absolute inset-0 flex items-center justify-center text-center px-4 md:px-6">
           <div className="max-w-[700px] text-white">
-            <h1 className="text-4xl md:text-5xl font-bold mb-5 leading-tight">
+            <h1 className="text-2xl sm:text-3xl md:text-5xl font-bold mb-3 md:mb-5 leading-tight">
               Build Strength.
               <br />
               Fuel Performance.
             </h1>
 
-            <p className="text-base md:text-lg text-neutral-200 mb-8">
+            <p className="text-sm sm:text-base md:text-lg text-neutral-200 mb-4 md:mb-8">
               Premium supplements designed for muscle growth,
               endurance, and faster recovery.
             </p>
 
             <Link
               to="/products"
-              className="inline-block bg-white text-teal-900 px-8 py-3 rounded-lg font-medium hover:bg-neutral-100 transition font-semibold"
+              className="inline-block bg-white text-teal-900 px-6 md:px-8 py-2 md:py-3 rounded-lg font-medium hover:bg-neutral-100 transition font-semibold text-sm md:text-base"
             >
               Shop Supplements
             </Link>
@@ -114,7 +114,7 @@ export const Home: React.FC = () => {
         </div>
 
         {/* SLIDE INDICATORS */}
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2">
+        <div className="absolute bottom-4 md:bottom-6 left-1/2 -translate-x-1/2 flex gap-2 z-10">
           {HERO_IMAGES.map((_, index) => (
             <button
               key={index}
@@ -130,18 +130,18 @@ export const Home: React.FC = () => {
       </section>
 
       {/* CATEGORIES */}
-      <section className="py-14 bg-neutral-50">
-        <div className="max-w-[1400px] mx-auto px-6 md:px-12">
-          <div className="mb-8">
-            <h2 className="text-2xl font-bold mb-2">
+      <section className="py-8 md:py-14 bg-neutral-50 w-full">
+        <div className="max-w-[1400px] mx-auto px-4 md:px-12">
+          <div className="mb-6 md:mb-8">
+            <h2 className="text-xl md:text-2xl font-bold mb-1 md:mb-2">
               Shop by Category
             </h2>
-            <p className="text-sm text-neutral-600">
+            <p className="text-xs md:text-sm text-neutral-600">
               Find supplements based on your fitness goals.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8">
             {[
               {
                 name: "Protein",
@@ -171,13 +171,13 @@ export const Home: React.FC = () => {
       </section>
 
       {/* FEATURED PRODUCTS */}
-      <section className="py-14 bg-white">
-        <div className="max-w-[1400px] mx-auto px-6 md:px-12">
-          <div className="mb-8">
-            <h2 className="text-2xl font-bold mb-2">
+      <section className="py-8 md:py-14 bg-white w-full">
+        <div className="max-w-[1400px] mx-auto px-4 md:px-12">
+          <div className="mb-6 md:mb-8">
+            <h2 className="text-xl md:text-2xl font-bold mb-1 md:mb-2">
               Featured Products
             </h2>
-            <p className="text-sm text-neutral-600">
+            <p className="text-xs md:text-sm text-neutral-600">
               Best-selling supplements trusted by customers.
             </p>
           </div>
@@ -188,10 +188,10 @@ export const Home: React.FC = () => {
             ))}
           </div>
 
-          <div className="mt-10 flex justify-center">
+          <div className="mt-8 md:mt-10 flex justify-center">
             <Link
               to="/products"
-              className="inline-flex items-center gap-2 bg-neutral-200 text-neutral-800 px-7 py-3 rounded-lg hover:bg-neutral-300 font-semibold transition"
+              className="inline-flex items-center gap-2 bg-neutral-200 text-neutral-800 px-5 md:px-7 py-2 md:py-3 rounded-lg hover:bg-neutral-300 font-semibold transition text-sm md:text-base"
             >
               View All Products
               <ChevronDown className="animate-bounce" size={20} />
@@ -201,15 +201,15 @@ export const Home: React.FC = () => {
       </section>
 
       {/* DISCOUNTS */}
-      <section className="relative py-16 bg-gradient-to-br from-teal-900 to-neutral-900">
+      <section className="relative py-10 md:py-16 bg-gradient-to-br from-teal-900 to-neutral-900 w-full">
         <div className="absolute inset-0 bg-white/5 backdrop-blur-xl" />
 
-        <div className="relative max-w-[1400px] mx-auto px-6 md:px-12 text-white">
-          <div className="mb-10">
-            <h2 className="text-2xl font-bold mb-2">
+        <div className="relative max-w-[1400px] mx-auto px-4 md:px-12 text-white">
+          <div className="mb-8 md:mb-10">
+            <h2 className="text-xl md:text-2xl font-bold mb-1 md:mb-2">
               Special Discounts
             </h2>
-            <p className="text-sm text-white/80">
+            <p className="text-xs md:text-sm text-white/80">
               Limited-time deals on premium supplements.
             </p>
           </div>
@@ -225,15 +225,15 @@ export const Home: React.FC = () => {
               ))}
             </div>
           ) : (
-            <div className="flex flex-col items-center justify-center py-16 text-center">
-              <div className="text-6xl mb-4">🎯</div>
-              <h3 className="text-2xl font-bold mb-2">No Special Discounts Available</h3>
-              <p className="text-neutral-300 mb-6">
+            <div className="flex flex-col items-center justify-center py-12 md:py-16 text-center">
+              <div className="text-5xl md:text-6xl mb-4">🎯</div>
+              <h3 className="text-lg md:text-2xl font-bold mb-2">No Special Discounts Available</h3>
+              <p className="text-sm md:text-base text-neutral-300 mb-6">
                 Check back soon for amazing deals on premium supplements!
               </p>
               <Link
                 to="/products"
-                className="inline-block bg-white text-teal-900 px-7 py-3 rounded-lg hover:bg-neutral-100 font-semibold"
+                className="inline-block bg-white text-teal-900 px-5 md:px-7 py-2 md:py-3 rounded-lg hover:bg-neutral-100 font-semibold text-sm md:text-base"
               >
                 Browse All Products
               </Link>
