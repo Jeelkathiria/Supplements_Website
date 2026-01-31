@@ -203,9 +203,7 @@ export const Admin: React.FC = () => {
     if (!formData.imageUrls || formData.imageUrls.length === 0) {
       newErrors.imageUrls = "At least one image is required";
     }
-    if (!formData.sizes || formData.sizes.length === 0) {
-      newErrors.sizes = "At least one size is required";
-    }
+    // Size is now optional - removed the validation check
     if (formData.isVegetarian === undefined || formData.isVegetarian === null) {
       newErrors.isVegetarian = "Please select product type (Vegetarian/Non-Vegetarian)";
     }

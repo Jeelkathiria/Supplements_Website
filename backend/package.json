@@ -13,7 +13,8 @@
     "express": "^5.2.1",
     "firebase-admin": "^13.6.0",
     "multer": "^2.0.2",
-    "prisma": "^6.7.0"
+    "prisma": "^6.7.0",
+    "razorpay": "^2.9.6"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",

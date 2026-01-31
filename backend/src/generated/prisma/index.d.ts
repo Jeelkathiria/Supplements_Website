@@ -101,7 +101,7 @@ export const OrderStatus: typeof $Enums.OrderStatus
  */
 export class PrismaClient<
   ClientOptions extends Prisma.PrismaClientOptions = Prisma.PrismaClientOptions,
-  U = 'log' extends keyof ClientOptions ? ClientOptions['log'] extends Array<Prisma.LogLevel | Prisma.LogDefinition> ? Prisma.GetEvents<ClientOptions['log']> : never : never,
+  const U = 'log' extends keyof ClientOptions ? ClientOptions['log'] extends Array<Prisma.LogLevel | Prisma.LogDefinition> ? Prisma.GetEvents<ClientOptions['log']> : never : never,
   ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs
 > {
   [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['other'] }
@@ -133,13 +133,6 @@ export class PrismaClient<
    * Disconnect from the database
    */
   $disconnect(): $Utils.JsPromise<void>;
-
-  /**
-   * Add a middleware
-   * @deprecated since 4.16.0. For new code, prefer client extensions instead.
-   * @see https://pris.ly/d/extensions
-   */
-  $use(cb: Prisma.Middleware): void
 
 /**
    * Executes a prepared raw query and returns the number of affected rows.
@@ -357,8 +350,8 @@ export namespace Prisma {
   export import Exact = $Public.Exact
 
   /**
-   * Prisma Client JS version: 6.7.0
-   * Query Engine version: 3cff47a7f5d65c3ea74883f1d736e41d68ce91ed
+   * Prisma Client JS version: 6.19.2
+   * Query Engine version: c2990dca591cba766e3b7ef5d9e8a84796e47ab7
    */
   export type PrismaVersion = {
     client: string
@@ -371,6 +364,7 @@ export namespace Prisma {
    */
 
 
+  export import Bytes = runtime.Bytes
   export import JsonObject = runtime.JsonObject
   export import JsonArray = runtime.JsonArray
   export import JsonValue = runtime.JsonValue
@@ -1479,16 +1473,24 @@ export namespace Prisma {
     /**
      * @example
      * ```
-     * // Defaults to stdout
+     * // Shorthand for `emit: 'stdout'`
      * log: ['query', 'info', 'warn', 'error']
      * 
-     * // Emit as events
+     * // Emit as events only
      * log: [
-     *   { emit: 'stdout', level: 'query' },
-     *   { emit: 'stdout', level: 'info' },
-     *   { emit: 'stdout', level: 'warn' }
-     *   { emit: 'stdout', level: 'error' }
+     *   { emit: 'event', level: 'query' },
+     *   { emit: 'event', level: 'info' },
+     *   { emit: 'event', level: 'warn' }
+     *   { emit: 'event', level: 'error' }
      * ]
+     * 
+     * / Emit as events and log to stdout
+     * og: [
+     *  { emit: 'stdout', level: 'query' },
+     *  { emit: 'stdout', level: 'info' },
+     *  { emit: 'stdout', level: 'warn' }
+     *  { emit: 'stdout', level: 'error' }
+     * 
      * ```
      * Read more in our [docs](https://www.prisma.io/docs/reference/tools-and-interfaces/prisma-client/logging#the-log-option).
      */
@@ -1503,6 +1505,10 @@ export namespace Prisma {
       timeout?: number
       isolationLevel?: Prisma.TransactionIsolationLevel
     }
+    /**
+     * Instance of a Driver Adapter, e.g., like one provided by `@prisma/adapter-planetscale`
+     */
+    adapter?: runtime.SqlDriverAdapterFactory | null
     /**
      * Global configuration for omitting model fields by default.
      * 
@@ -1538,10 +1544,15 @@ export namespace Prisma {
     emit: 'stdout' | 'event'
   }
 
-  export type GetLogType<T extends LogLevel | LogDefinition> = T extends LogDefinition ? T['emit'] extends 'event' ? T['level'] : never : never
-  export type GetEvents<T extends any> = T extends Array<LogLevel | LogDefinition> ?
-    GetLogType<T[0]> | GetLogType<T[1]> | GetLogType<T[2]> | GetLogType<T[3]>
-    : never
+  export type CheckIsLogLevel<T> = T extends LogLevel ? T : never;
+
+  export type GetLogType<T> = CheckIsLogLevel<
+    T extends LogDefinition ? T['level'] : T
+  >;
+
+  export type GetEvents<T extends any[]> = T extends Array<LogLevel | LogDefinition>
+    ? GetLogType<T[number]>
+    : never;
 
   export type QueryEvent = {
     timestamp: Date
@@ -1581,25 +1592,6 @@ export namespace Prisma {
     | 'runCommandRaw'
     | 'findRaw'
     | 'groupBy'
-
-  /**
-   * These options are being passed into the middleware as "params"
-   */
-  export type MiddlewareParams = {
-    model?: ModelName
-    action: PrismaAction
-    args: any
-    dataPath: string[]
-    runInTransaction: boolean
-  }
-
-  /**
-   * The `T` type makes sure, that the `return proceed` is not forgotten in the middleware implementation
-   */
-  export type Middleware<T = any> = (
-    params: MiddlewareParams,
-    next: (params: MiddlewareParams) => $Utils.JsPromise<T>,
-  ) => $Utils.JsPromise<T>
 
   // tested in getLogLevel.test.ts
   export function getLogLevel(log: Array<LogLevel | LogDefinition>): LogLevel | undefined;
@@ -6432,6 +6424,7 @@ export namespace Prisma {
     status: $Enums.OrderStatus | null
     totalAmount: number | null
     discount: number | null
+    paymentMethod: string | null
     addressId: string | null
     createdAt: Date | null
     updatedAt: Date | null
@@ -6443,6 +6436,7 @@ export namespace Prisma {
     status: $Enums.OrderStatus | null
     totalAmount: number | null
     discount: number | null
+    paymentMethod: string | null
     addressId: string | null
     createdAt: Date | null
     updatedAt: Date | null
@@ -6454,6 +6448,7 @@ export namespace Prisma {
     status: number
     totalAmount: number
     discount: number
+    paymentMethod: number
     addressId: number
     createdAt: number
     updatedAt: number
@@ -6477,6 +6472,7 @@ export namespace Prisma {
     status?: true
     totalAmount?: true
     discount?: true
+    paymentMethod?: true
     addressId?: true
     createdAt?: true
     updatedAt?: true
@@ -6488,6 +6484,7 @@ export namespace Prisma {
     status?: true
     totalAmount?: true
     discount?: true
+    paymentMethod?: true
     addressId?: true
     createdAt?: true
     updatedAt?: true
@@ -6499,6 +6496,7 @@ export namespace Prisma {
     status?: true
     totalAmount?: true
     discount?: true
+    paymentMethod?: true
     addressId?: true
     createdAt?: true
     updatedAt?: true
@@ -6597,6 +6595,7 @@ export namespace Prisma {
     status: $Enums.OrderStatus
     totalAmount: number
     discount: number
+    paymentMethod: string
     addressId: string | null
     createdAt: Date
     updatedAt: Date
@@ -6627,6 +6626,7 @@ export namespace Prisma {
     status?: boolean
     totalAmount?: boolean
     discount?: boolean
+    paymentMethod?: boolean
     addressId?: boolean
     createdAt?: boolean
     updatedAt?: boolean
@@ -6641,6 +6641,7 @@ export namespace Prisma {
     status?: boolean
     totalAmount?: boolean
     discount?: boolean
+    paymentMethod?: boolean
     addressId?: boolean
     createdAt?: boolean
     updatedAt?: boolean
@@ -6653,6 +6654,7 @@ export namespace Prisma {
     status?: boolean
     totalAmount?: boolean
     discount?: boolean
+    paymentMethod?: boolean
     addressId?: boolean
     createdAt?: boolean
     updatedAt?: boolean
@@ -6665,12 +6667,13 @@ export namespace Prisma {
     status?: boolean
     totalAmount?: boolean
     discount?: boolean
+    paymentMethod?: boolean
     addressId?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
 
-  export type OrderOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "userId" | "status" | "totalAmount" | "discount" | "addressId" | "createdAt" | "updatedAt", ExtArgs["result"]["order"]>
+  export type OrderOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "userId" | "status" | "totalAmount" | "discount" | "paymentMethod" | "addressId" | "createdAt" | "updatedAt", ExtArgs["result"]["order"]>
   export type OrderInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     items?: boolean | Order$itemsArgs<ExtArgs>
     address?: boolean | Order$addressArgs<ExtArgs>
@@ -6695,6 +6698,7 @@ export namespace Prisma {
       status: $Enums.OrderStatus
       totalAmount: number
       discount: number
+      paymentMethod: string
       addressId: string | null
       createdAt: Date
       updatedAt: Date
@@ -7128,6 +7132,7 @@ export namespace Prisma {
     readonly status: FieldRef<"Order", 'OrderStatus'>
     readonly totalAmount: FieldRef<"Order", 'Float'>
     readonly discount: FieldRef<"Order", 'Float'>
+    readonly paymentMethod: FieldRef<"Order", 'String'>
     readonly addressId: FieldRef<"Order", 'String'>
     readonly createdAt: FieldRef<"Order", 'DateTime'>
     readonly updatedAt: FieldRef<"Order", 'DateTime'>
@@ -12163,6 +12168,7 @@ export namespace Prisma {
     status: 'status',
     totalAmount: 'totalAmount',
     discount: 'discount',
+    paymentMethod: 'paymentMethod',
     addressId: 'addressId',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
@@ -12652,6 +12658,7 @@ export namespace Prisma {
     status?: EnumOrderStatusFilter<"Order"> | $Enums.OrderStatus
     totalAmount?: FloatFilter<"Order"> | number
     discount?: FloatFilter<"Order"> | number
+    paymentMethod?: StringFilter<"Order"> | string
     addressId?: StringNullableFilter<"Order"> | string | null
     createdAt?: DateTimeFilter<"Order"> | Date | string
     updatedAt?: DateTimeFilter<"Order"> | Date | string
@@ -12665,6 +12672,7 @@ export namespace Prisma {
     status?: SortOrder
     totalAmount?: SortOrder
     discount?: SortOrder
+    paymentMethod?: SortOrder
     addressId?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -12681,6 +12689,7 @@ export namespace Prisma {
     status?: EnumOrderStatusFilter<"Order"> | $Enums.OrderStatus
     totalAmount?: FloatFilter<"Order"> | number
     discount?: FloatFilter<"Order"> | number
+    paymentMethod?: StringFilter<"Order"> | string
     addressId?: StringNullableFilter<"Order"> | string | null
     createdAt?: DateTimeFilter<"Order"> | Date | string
     updatedAt?: DateTimeFilter<"Order"> | Date | string
@@ -12694,6 +12703,7 @@ export namespace Prisma {
     status?: SortOrder
     totalAmount?: SortOrder
     discount?: SortOrder
+    paymentMethod?: SortOrder
     addressId?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -12713,6 +12723,7 @@ export namespace Prisma {
     status?: EnumOrderStatusWithAggregatesFilter<"Order"> | $Enums.OrderStatus
     totalAmount?: FloatWithAggregatesFilter<"Order"> | number
     discount?: FloatWithAggregatesFilter<"Order"> | number
+    paymentMethod?: StringWithAggregatesFilter<"Order"> | string
     addressId?: StringNullableWithAggregatesFilter<"Order"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"Order"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"Order"> | Date | string
@@ -13359,6 +13370,7 @@ export namespace Prisma {
     status?: $Enums.OrderStatus
     totalAmount: number
     discount: number
+    paymentMethod?: string
     createdAt?: Date | string
     updatedAt?: Date | string
     items?: OrderItemCreateNestedManyWithoutOrderInput
@@ -13371,6 +13383,7 @@ export namespace Prisma {
     status?: $Enums.OrderStatus
     totalAmount: number
     discount: number
+    paymentMethod?: string
     addressId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -13383,6 +13396,7 @@ export namespace Prisma {
     status?: EnumOrderStatusFieldUpdateOperationsInput | $Enums.OrderStatus
     totalAmount?: FloatFieldUpdateOperationsInput | number
     discount?: FloatFieldUpdateOperationsInput | number
+    paymentMethod?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     items?: OrderItemUpdateManyWithoutOrderNestedInput
@@ -13395,6 +13409,7 @@ export namespace Prisma {
     status?: EnumOrderStatusFieldUpdateOperationsInput | $Enums.OrderStatus
     totalAmount?: FloatFieldUpdateOperationsInput | number
     discount?: FloatFieldUpdateOperationsInput | number
+    paymentMethod?: StringFieldUpdateOperationsInput | string
     addressId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -13407,6 +13422,7 @@ export namespace Prisma {
     status?: $Enums.OrderStatus
     totalAmount: number
     discount: number
+    paymentMethod?: string
     addressId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -13418,6 +13434,7 @@ export namespace Prisma {
     status?: EnumOrderStatusFieldUpdateOperationsInput | $Enums.OrderStatus
     totalAmount?: FloatFieldUpdateOperationsInput | number
     discount?: FloatFieldUpdateOperationsInput | number
+    paymentMethod?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -13428,6 +13445,7 @@ export namespace Prisma {
     status?: EnumOrderStatusFieldUpdateOperationsInput | $Enums.OrderStatus
     totalAmount?: FloatFieldUpdateOperationsInput | number
     discount?: FloatFieldUpdateOperationsInput | number
+    paymentMethod?: StringFieldUpdateOperationsInput | string
     addressId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -14158,6 +14176,7 @@ export namespace Prisma {
     status?: SortOrder
     totalAmount?: SortOrder
     discount?: SortOrder
+    paymentMethod?: SortOrder
     addressId?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -14174,6 +14193,7 @@ export namespace Prisma {
     status?: SortOrder
     totalAmount?: SortOrder
     discount?: SortOrder
+    paymentMethod?: SortOrder
     addressId?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -14185,6 +14205,7 @@ export namespace Prisma {
     status?: SortOrder
     totalAmount?: SortOrder
     discount?: SortOrder
+    paymentMethod?: SortOrder
     addressId?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -15594,6 +15615,7 @@ export namespace Prisma {
     status?: $Enums.OrderStatus
     totalAmount: number
     discount: number
+    paymentMethod?: string
     createdAt?: Date | string
     updatedAt?: Date | string
     address?: OrderAddressCreateNestedOneWithoutOrdersInput
@@ -15605,6 +15627,7 @@ export namespace Prisma {
     status?: $Enums.OrderStatus
     totalAmount: number
     discount: number
+    paymentMethod?: string
     addressId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -15681,6 +15704,7 @@ export namespace Prisma {
     status?: EnumOrderStatusFieldUpdateOperationsInput | $Enums.OrderStatus
     totalAmount?: FloatFieldUpdateOperationsInput | number
     discount?: FloatFieldUpdateOperationsInput | number
+    paymentMethod?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     address?: OrderAddressUpdateOneWithoutOrdersNestedInput
@@ -15692,6 +15716,7 @@ export namespace Prisma {
     status?: EnumOrderStatusFieldUpdateOperationsInput | $Enums.OrderStatus
     totalAmount?: FloatFieldUpdateOperationsInput | number
     discount?: FloatFieldUpdateOperationsInput | number
+    paymentMethod?: StringFieldUpdateOperationsInput | string
     addressId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -15758,6 +15783,7 @@ export namespace Prisma {
     status?: $Enums.OrderStatus
     totalAmount: number
     discount: number
+    paymentMethod?: string
     createdAt?: Date | string
     updatedAt?: Date | string
     items?: OrderItemCreateNestedManyWithoutOrderInput
@@ -15769,6 +15795,7 @@ export namespace Prisma {
     status?: $Enums.OrderStatus
     totalAmount: number
     discount: number
+    paymentMethod?: string
     createdAt?: Date | string
     updatedAt?: Date | string
     items?: OrderItemUncheckedCreateNestedManyWithoutOrderInput
@@ -15809,6 +15836,7 @@ export namespace Prisma {
     status?: EnumOrderStatusFilter<"Order"> | $Enums.OrderStatus
     totalAmount?: FloatFilter<"Order"> | number
     discount?: FloatFilter<"Order"> | number
+    paymentMethod?: StringFilter<"Order"> | string
     addressId?: StringNullableFilter<"Order"> | string | null
     createdAt?: DateTimeFilter<"Order"> | Date | string
     updatedAt?: DateTimeFilter<"Order"> | Date | string
@@ -16181,6 +16209,7 @@ export namespace Prisma {
     status?: $Enums.OrderStatus
     totalAmount: number
     discount: number
+    paymentMethod?: string
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -16191,6 +16220,7 @@ export namespace Prisma {
     status?: EnumOrderStatusFieldUpdateOperationsInput | $Enums.OrderStatus
     totalAmount?: FloatFieldUpdateOperationsInput | number
     discount?: FloatFieldUpdateOperationsInput | number
+    paymentMethod?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     items?: OrderItemUpdateManyWithoutOrderNestedInput
@@ -16202,6 +16232,7 @@ export namespace Prisma {
     status?: EnumOrderStatusFieldUpdateOperationsInput | $Enums.OrderStatus
     totalAmount?: FloatFieldUpdateOperationsInput | number
     discount?: FloatFieldUpdateOperationsInput | number
+    paymentMethod?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     items?: OrderItemUncheckedUpdateManyWithoutOrderNestedInput
@@ -16213,6 +16244,7 @@ export namespace Prisma {
     status?: EnumOrderStatusFieldUpdateOperationsInput | $Enums.OrderStatus
     totalAmount?: FloatFieldUpdateOperationsInput | number
     discount?: FloatFieldUpdateOperationsInput | number
+    paymentMethod?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }

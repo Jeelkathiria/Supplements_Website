@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { ChevronLeft, ChevronRight, ChevronDown } from "lucide-react";
+import { ChevronLeft, Dumbbell , ChevronDown, Target} from "lucide-react";
 
 import { ProductCard } from "../components/ProductCard";
 import { CategoryCard } from "../components/CategoryCard";
@@ -9,6 +9,7 @@ import { Product } from "../types";
 import heroBg from "../../images/1001380690 (1).jpg";
 import heroBg2 from "../../images/heroBg2.jpg";
 import heroBg3 from "../../images/heroBg3.webp";
+
 
 const HERO_IMAGES = [
   heroBg,
@@ -226,7 +227,9 @@ export const Home: React.FC = () => {
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center py-12 md:py-16 text-center">
-              <div className="text-5xl md:text-6xl mb-4">🎯</div>
+              <div className="mb-4 flex justify-center">
+                <Dumbbell className="h-14 w-14 text-white" />
+              </div>
               <h3 className="text-lg md:text-2xl font-bold mb-2">No Special Discounts Available</h3>
               <p className="text-sm md:text-base text-neutral-300 mb-6">
                 Check back soon for amazing deals on premium supplements!

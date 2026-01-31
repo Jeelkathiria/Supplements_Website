@@ -54,27 +54,46 @@ export const createCheckout = async (req: AuthRequest, res: Response) => {
 
 export const placeOrder = async (req: AuthRequest, res: Response) => {
   try {
+    console.log("=== PLACE ORDER REQUEST RECEIVED ===");
+    console.log("Headers:", req.headers);
+    console.log("User:", req.user);
+    
     const userId = req.user?.dbUser?.id;
+    console.log("=== PLACE ORDER REQUEST ===");
+    console.log("User ID:", userId);
+    console.log("Request body:", JSON.stringify(req.body, null, 2));
+    
     if (!userId) {
+      console.log("User not authenticated");
       return res.status(401).json({ message: "User not authenticated" });
     }
 
-    const { addressId } = req.body;
+    const { addressId, paymentMethod } = req.body;
 
     if (!addressId) {
+      console.log("Address ID missing");
       return res.status(400).json({ message: "Address ID is required" });
     }
 
-    const order = await orderService.placeOrderFromCart(userId, addressId);
+    console.log("Placing order for user:", userId, "with address:", addressId, "payment method:", paymentMethod);
 
-    res.status(201).json({
-      message: "Order placed successfully",
-      order,
-    });
+    const order = await orderService.placeOrderFromCart(userId, addressId, paymentMethod || 'cod');
+
+    console.log("Order placed successfully:", order.id);
+    console.log("=== PLACE ORDER SUCCESS ===");
+
+    res.status(201).json(order);
   } catch (error) {
-    console.error("Error placing order:", error);
+    console.error("=== PLACE ORDER ERROR ===");
+    console.error("Error type:", error instanceof Error ? "Error" : typeof error);
+    console.error("Error message:", error instanceof Error ? error.message : String(error));
+    console.error("Full error:", error);
+    if (error instanceof Error && error.stack) {
+      console.error("Stack trace:", error.stack);
+    }
+    
     const message = error instanceof Error ? error.message : "Failed to place order";
-    res.status(500).json({ message });
+    res.status(500).json({ message, error: message });
   }
 };
 
@@ -155,10 +174,7 @@ export const updateOrderStatus = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ message: "Order not found" });
     }
 
-    res.json({
-      message: "Order status updated successfully",
-      order,
-    });
+    res.json(order);
   } catch (error) {
     console.error("Error updating order status:", error);
     res.status(500).json({ message: "Failed to update order status" });
@@ -186,10 +202,7 @@ export const cancelOrder = async (req: AuthRequest, res: Response) => {
 
     const cancelledOrder = await orderService.cancelOrder(orderId);
 
-    res.json({
-      message: "Order cancelled successfully",
-      order: cancelledOrder,
-    });
+    res.json(cancelledOrder);
   } catch (error) {
     console.error("Error cancelling order:", error);
     const message = error instanceof Error ? error.message : "Failed to cancel order";

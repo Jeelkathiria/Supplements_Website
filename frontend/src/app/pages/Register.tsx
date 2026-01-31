@@ -22,8 +22,8 @@ const validateEmail = (email: string): boolean => {
 };
 
 const validatePhone = (phone: string): boolean => {
-  // Only allow +91 followed by 10 digits
-  const phoneRegex = /^\+91\d{10}$/;
+  // Only allow 10 digits
+  const phoneRegex = /^\d{10}$/;
   return phoneRegex.test(phone);
 };
 
@@ -36,6 +36,10 @@ export const Register: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
+  const [checkingEmail, setCheckingEmail] = useState(false);
+  const [checkingPhone, setCheckingPhone] = useState(false);
+  const [emailCheckTimeoutId, setEmailCheckTimeoutId] = useState<NodeJS.Timeout | null>(null);
+  const [phoneCheckTimeoutId, setPhoneCheckTimeoutId] = useState<NodeJS.Timeout | null>(null);
   const [errors, setErrors] = useState({
     name: '',
     email: '',
@@ -79,23 +83,81 @@ export const Register: React.FC = () => {
 
   const handleEmailChange = (value: string) => {
     setFormData({ ...formData, email: value });
+    
+    // Clear previous timeout
+    if (emailCheckTimeoutId) {
+      clearTimeout(emailCheckTimeoutId);
+    }
+    
     if (!value.trim()) {
       setErrors({ ...errors, email: 'Please enter your email address' });
+      setCheckingEmail(false);
     } else if (!validateEmail(value)) {
       setErrors({ ...errors, email: 'Please enter a valid email address' });
+      setCheckingEmail(false);
     } else {
-      setErrors({ ...errors, email: '' });
+      // Check if email already exists after debouncing
+      setCheckingEmail(true);
+      const timeoutId = setTimeout(async () => {
+        try {
+          const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+          const response = await fetch(`${API_BASE_URL}/user/check-email?email=${encodeURIComponent(value)}`);
+          const data = await response.json();
+          
+          if (data.exists) {
+            setErrors({ ...errors, email: 'This email is already registered. Please login instead.' });
+          } else {
+            setErrors({ ...errors, email: '' });
+          }
+        } catch (error) {
+          console.error('Error checking email:', error);
+          setErrors({ ...errors, email: '' });
+        } finally {
+          setCheckingEmail(false);
+        }
+      }, 500);
+      
+      setEmailCheckTimeoutId(timeoutId);
     }
   };
 
   const handlePhoneChange = (value: string) => {
     setFormData({ ...formData, phone: value });
+    
+    // Clear previous timeout
+    if (phoneCheckTimeoutId) {
+      clearTimeout(phoneCheckTimeoutId);
+    }
+    
     if (!value.trim()) {
       setErrors({ ...errors, phone: 'Please enter your phone number' });
+      setCheckingPhone(false);
     } else if (!validatePhone(value)) {
-      setErrors({ ...errors, phone: 'Phone must be +91 followed by 10 digits' });
+      setErrors({ ...errors, phone: 'Phone must be 10 digits' });
+      setCheckingPhone(false);
     } else {
-      setErrors({ ...errors, phone: '' });
+      // Check if phone already exists after debouncing
+      setCheckingPhone(true);
+      const timeoutId = setTimeout(async () => {
+        try {
+          const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+          const response = await fetch(`${API_BASE_URL}/user/check-phone?phone=${encodeURIComponent(value)}`);
+          const data = await response.json();
+          
+          if (data.exists) {
+            setErrors({ ...errors, phone: 'This phone number is already registered.' });
+          } else {
+            setErrors({ ...errors, phone: '' });
+          }
+        } catch (error) {
+          console.error('Error checking phone:', error);
+          setErrors({ ...errors, phone: '' });
+        } finally {
+          setCheckingPhone(false);
+        }
+      }, 500);
+      
+      setPhoneCheckTimeoutId(timeoutId);
     }
   };
 
@@ -125,11 +187,21 @@ export const Register: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Don't submit if currently checking email or phone
+    if (checkingEmail || checkingPhone) {
+      return;
+    }
+    
+    // Don't submit if there are existing errors (from duplicate checks)
+    if (Object.values(errors).some(err => err)) {
+      return;
+    }
+    
     // Validate all fields
     const newErrors = {
       name: !formData.name.trim() ? 'Please enter your full name' : '',
       email: !formData.email.trim() ? 'Please enter your email address' : !validateEmail(formData.email) ? 'Please enter a valid email address' : '',
-      phone: !formData.phone.trim() ? 'Please enter your phone number' : !validatePhone(formData.phone) ? 'Phone must be +91 followed by 10 digits' : '',
+      phone: !formData.phone.trim() ? 'Please enter your phone number' : !validatePhone(formData.phone) ? 'Phone must be 10 digits' : '',
       password: !formData.password ? 'Please enter a password' : passwordRequirements.every((req) => req.test(formData.password)) ? '' : 'Password does not meet all requirements',
       confirmPassword: !formData.confirmPassword ? 'Please confirm your password' : formData.password !== formData.confirmPassword ? 'Passwords do not match' : '',
       terms: !formData.agreeToTerms ? 'Please agree to the Terms and Privacy Policy' : '',
@@ -239,26 +311,32 @@ export const Register: React.FC = () => {
           {/* Email */}
           <div>
             <label className="block text-sm font-medium text-neutral-900 mb-2">Email Address <span className="text-xs text-neutral-500">(required)</span></label>
-            <input
-              type="text"
-              value={formData.email}
-              onChange={(e) => handleEmailChange(e.target.value)}
-              className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-teal-800 focus:border-transparent focus:outline-none transition ${errors.email ? 'border-red-500' : 'border-neutral-300'}`}
-              placeholder="you@email.com"
-            />
+            <div className="relative">
+              <input
+                type="text"
+                value={formData.email}
+                onChange={(e) => handleEmailChange(e.target.value)}
+                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-teal-800 focus:border-transparent focus:outline-none transition ${errors.email ? 'border-red-500' : 'border-neutral-300'}`}
+                placeholder="you@email.com"
+              />
+              {checkingEmail && <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-neutral-500">Checking...</span>}
+            </div>
             {errors.email && <p className="mt-1 text-xs text-red-500">{errors.email}</p>}
           </div>
 
           {/* Phone */}
           <div>
-            <label className="block text-sm font-medium text-neutral-900 mb-2">Phone Number <span className="text-xs text-neutral-500">(India only, +91 required)</span></label>
-            <input
-              type="text"
-              value={formData.phone}
-              onChange={(e) => handlePhoneChange(e.target.value)}
-              className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-teal-800 focus:border-transparent focus:outline-none transition ${errors.phone ? 'border-red-500' : 'border-neutral-300'}`}
-              placeholder="+919876543210"
-            />
+            <label className="block text-sm font-medium text-neutral-900 mb-2">Phone Number <span className="text-xs text-neutral-500">(10 digits)</span></label>
+            <div className="relative">
+              <input
+                type="text"
+                value={formData.phone}
+                onChange={(e) => handlePhoneChange(e.target.value)}
+                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-teal-800 focus:border-transparent focus:outline-none transition ${errors.phone ? 'border-red-500' : 'border-neutral-300'}`}
+                placeholder="9876543210"
+              />
+              {checkingPhone && <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-neutral-500">Checking...</span>}
+            </div>
             {errors.phone && <p className="mt-1 text-xs text-red-500">{errors.phone}</p>}
           </div>
 
@@ -356,13 +434,18 @@ export const Register: React.FC = () => {
           {/* Submit */}
           <button
             type="submit"
-            disabled={isLoading || isGoogleLoading}
+            disabled={isLoading || isGoogleLoading || checkingEmail || checkingPhone || Object.values(errors).some(err => err)}
             className="w-full h-12 bg-teal-800 hover:bg-teal-900 text-white rounded-lg font-semibold transition-colors active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isLoading ? (
               <div className="flex items-center justify-center gap-2">
                 <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                 Creating account...
+              </div>
+            ) : checkingEmail || checkingPhone ? (
+              <div className="flex items-center justify-center gap-2">
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                Verifying...
               </div>
             ) : (
               'Create Account'

@@ -7,7 +7,9 @@ import {
   getAddresses,
   setDefaultAddress,
   deleteAddress,
-  getCheckoutData
+  getCheckoutData,
+  checkEmailExists,
+  checkPhoneExists
 } from "../controllers/userController";
 
 const router = Router();
@@ -15,6 +17,8 @@ const router = Router();
 router.post("/sync", requireAuth, syncUser);
 router.patch("/profile", requireAuth, updateProfile);
 router.get("/checkout", requireAuth, getCheckoutData);
+router.get("/check-email", checkEmailExists);
+router.get("/check-phone", checkPhoneExists);
 router.post("/address", requireAuth, addAddress);
 router.get("/address", requireAuth, getAddresses);
 router.patch("/address/:id/default", requireAuth, setDefaultAddress);

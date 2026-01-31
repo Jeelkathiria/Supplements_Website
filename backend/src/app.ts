@@ -10,6 +10,7 @@ import orderRoutes from "./routes/orderRoutes";
 import adminOrders from "./routes/adminOrders";
 import userRoutes from "./routes/user";
 import imageRoutes from "./routes/imageRoutes";
+import paymentRoutes from "./routes/payment";
 
 
 const app = express();
@@ -54,5 +55,8 @@ app.use("/api/user", userRoutes);
 
 // Image uploads
 app.use("/api/images", imageRoutes);
+
+// Payments
+app.use("/api/payment", paymentRoutes);
 
 export default app;

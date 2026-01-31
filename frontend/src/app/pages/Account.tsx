@@ -150,11 +150,15 @@ const validateAddressForm = (form: AddressFormData): ValidationErrors => {
 };
 
 export const Account: React.FC = () => {
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, isAuthenticated, logout, updateUser } = useAuth();
   const { addToCart } = useCart();
   const navigate = useNavigate();
 
-  const [activeTab, setActiveTab] = useState<TabType>('profile');
+  // Initialize activeTab from localStorage, default to 'profile'
+  const [activeTab, setActiveTab] = useState<TabType>(() => {
+    const savedTab = localStorage.getItem('accountActiveTab');
+    return (savedTab as TabType) || 'profile';
+  });
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -181,6 +185,11 @@ export const Account: React.FC = () => {
     pincode: '',
   });
 
+  // Save active tab to localStorage when it changes
+  useEffect(() => {
+    localStorage.setItem('accountActiveTab', activeTab);
+  }, [activeTab]);
+
   useEffect(() => {
     if (!isAuthenticated) {
       navigate('/login');
@@ -190,13 +199,14 @@ export const Account: React.FC = () => {
     loadData();
   }, [isAuthenticated, navigate]);
 
-  // Update newAddress default phone when user phone changes
+  // Update newAddress default phone and name when user data changes
   useEffect(() => {
     setNewAddress((prev) => ({
       ...prev,
+      name: user?.name || '',
       phone: user?.phone || '',
     }));
-  }, [user?.phone]);
+  }, [user?.phone, user?.name]);
 
   // Update edited profile fields when user data changes
   useEffect(() => {
@@ -252,6 +262,12 @@ export const Account: React.FC = () => {
       let phoneToSave = editedPhone.replace(/\D/g, '');
 
       await userService.updateProfile({
+        name: editedName.trim(),
+        phone: phoneToSave,
+      });
+
+      // Update the user context immediately to reflect changes on the page
+      updateUser({
         name: editedName.trim(),
         phone: phoneToSave,
       });
@@ -553,15 +569,11 @@ export const Account: React.FC = () => {
                           <input
                             type="text"
                             value={newAddress.name}
-                            onChange={(e) => {
-                              setNewAddress({ ...newAddress, name: e.target.value });
-                              if (validationErrors.name) setValidationErrors({ ...validationErrors, name: undefined });
-                            }}
-                            className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
-                              validationErrors.name ? 'border-red-500 focus:ring-red-500' : 'border-neutral-300 focus:ring-teal-800'
-                            }`}
-                            placeholder="John Doe"
+                            disabled
+                            className="w-full px-3 py-2 border border-neutral-300 rounded-lg bg-gray-100 text-neutral-600 cursor-not-allowed"
+                            placeholder="Full name will be populated from your profile"
                           />
+                          <p className="text-xs text-neutral-500 mt-1">Uses name from your profile</p>
                           {validationErrors.name && <p className="text-red-600 text-xs mt-1">{validationErrors.name}</p>}
                         </div>
 
@@ -726,122 +738,137 @@ export const Account: React.FC = () => {
                       {orders
                         .slice((currentOrderPage - 1) * ORDERS_PER_PAGE, currentOrderPage * ORDERS_PER_PAGE)
                         .map((order) => (
-                    <div key={order.id} className="bg-white rounded-xl shadow-md border border-neutral-200 hover:shadow-lg transition-shadow duration-300 overflow-hidden">
+                    <button
+                      key={order.id}
+                      onClick={() => navigate(`/account/order/${order.id}`)}
+                      className="block w-full text-left bg-white border border-gray-200 rounded-md shadow-sm hover:shadow-md hover:border-teal-300 transition overflow-hidden"
+                    >
                       {/* Order Header */}
-                      <div className="bg-gradient-to-r from-teal-900 to-teal-800 px-4 md:px-6 py-4 text-white">
-                        <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-3">
-                          <div>
-                            <h3 className="text-lg font-bold">Order #{order.id.slice(0, 8).toUpperCase()}</h3>
-                            <p className="text-teal-100 text-sm">
-                              {new Date(order.createdAt).toLocaleDateString('en-US', { 
-                                year: 'numeric', 
-                                month: 'long', 
-                                day: 'numeric' 
-                              })}
-                            </p>
-                          </div>
-                          <div className="flex items-center gap-3">
-                            <span className={`px-4 py-1.5 rounded-full text-sm font-semibold ${
-                              order.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
-                              order.status === 'CONFIRMED' ? 'bg-blue-100 text-blue-800' :
-                              order.status === 'DELIVERED' ? 'bg-green-100 text-green-800' :
-                              'bg-gray-100 text-gray-800'
-                            }`}>
-                              {order.status}
-                            </span>
-                          </div>
+                      <div className="bg-gray-50 border-b border-gray-200 px-4 md:px-6 py-3 text-sm">
+                      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-gray-700">
+                        
+                        <div>
+                          <p className="text-xs text-gray-500 uppercase">Order Placed</p>
+                          <p>
+                            {new Date(order.createdAt).toLocaleDateString('en-IN', {
+                              day: 'numeric',
+                              month: 'short',
+                              year: 'numeric',
+                            })}
+                          </p>
                         </div>
+
+                        <div>
+                        <p className="text-xs text-gray-500 uppercase">Ship To</p>
+                        <p className="font-medium">
+                          {order.address?.name || 'N/A'}
+                        </p>
+                        <p className="text-xs text-gray-600">
+                          {order.address?.address}, {order.address?.city} {order.address?.pincode}
+                        </p>
                       </div>
 
+
+                       <div className="flex items-center justify-end col-span-2 md:col-span-1 md:col-start-5">
+                        <span
+                          className={`text-xs font-semibold px-3 py-1 rounded ${
+                            order.status === 'PENDING'
+                              ? 'bg-yellow-100 text-yellow-800'
+                              : order.status === 'CONFIRMED'
+                              ? 'bg-blue-100 text-blue-800'
+                              : order.status === 'DELIVERED'
+                              ? 'bg-green-100 text-green-800'
+                              : 'bg-gray-100 text-gray-700'
+                          }`}
+                        >
+                          {order.status}
+                        </span>
+                      </div>
+                      </div>
+                    </div>
+
                       {/* Order Items */}
-                      <div className="px-4 md:px-6 py-4 space-y-3 border-b border-neutral-200">
+                      <div className="px-4 md:px-6 py-4 space-y-3">
                         {order.items.map((item, idx) => {
                           const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
                           const baseUrl = apiBaseUrl.replace('/api', '');
                           let imageUrl = null;
-                          
+
                           if (Array.isArray(item.product?.imageUrls) && item.product.imageUrls.length > 0) {
                             const imgPath = item.product.imageUrls[0];
                             imageUrl = imgPath.startsWith('http') ? imgPath : `${baseUrl}${imgPath}`;
                           }
-                          
+
                           return (
-                            <div key={idx} className="flex gap-3 p-3 bg-neutral-50 rounded-lg hover:bg-neutral-100 transition">
+                            <div key={idx} className="flex gap-4">
                               {imageUrl && (
-                                <img 
-                                  src={imageUrl} 
-                                  alt={item.product?.name || 'Product'} 
-                                  className="w-20 h-20 object-cover rounded-md flex-shrink-0 border border-neutral-200"
-                                  onError={(e) => {
-                                    console.error('Image failed to load:', imageUrl, e);
-                                  }}
+                                <img
+                                  src={imageUrl}
+                                  alt={item.product?.name}
+                                  className="w-16 h-16 object-cover border rounded"
                                 />
                               )}
-                              <div className="flex-1 min-w-0">
-                                <p className="text-neutral-900 font-semibold text-sm md:text-base truncate">{item.product?.name || item.productName}</p>
-                                <p className="text-neutral-600 text-sm">Qty: <span className="font-medium">{item.quantity}</span> × ₹<span className="font-medium">{item.price}</span></p>
+
+                              <div className="flex-1 text-sm">
+                                <p className="font-medium text-gray-900">
+                                  {item.product?.name || item.productName}
+                                </p>
+                                <p className="text-gray-600 mt-0.5">
+                                  Qty: {item.quantity} × ₹{item.price}
+                                </p>
+
                                 {(item.flavor || item.size) && (
-                                  <p className="text-xs text-neutral-500 mt-1">
-                                    {item.flavor && <span>🌟 {item.flavor}</span>}
-                                    {item.flavor && item.size && <span> • </span>}
-                                    {item.size && <span>📏 {item.size}</span>}
+                                  <p className="text-xs text-gray-500 mt-1">
+                                    {item.flavor && `Flavor: ${item.flavor}`}
+                                    {item.flavor && item.size && ' • '}
+                                    {item.size && `Size: ${item.size}`}
                                   </p>
                                 )}
                               </div>
-                              <div className="text-right">
-                                <p className="text-teal-900 font-bold">₹{(item.quantity * item.price).toFixed(2)}</p>
+
+                              <div className="text-sm font-semibold text-gray-900">
+                                ₹{(item.quantity * item.price).toFixed(2)}
                               </div>
                             </div>
                           );
                         })}
                       </div>
 
+
                       {/* Order Summary and Actions */}
-                      <div className="px-4 md:px-6 py-4 space-y-4">
-                        <div className="space-y-2">
-                          {order.discountAmount > 0 && (
-                            <div className="flex justify-between text-sm">
-                              <span className="text-neutral-600">Discount:</span>
-                              <span className="text-green-600 font-medium">-₹{order.discountAmount.toFixed(2)}</span>
-                            </div>
-                          )}
-                          {order.gstAmount > 0 && (
-                            <div className="flex justify-between text-sm">
-                              <span className="text-neutral-600">GST (18%):</span>
-                              <span className="text-neutral-900">₹{order.gstAmount.toFixed(2)}</span>
-                            </div>
-                          )}
-                          <div className="flex justify-between border-t border-neutral-200 pt-2">
-                            <span className="text-neutral-900 font-bold">Total Amount:</span>
-                            <span className="text-xl font-bold text-teal-900">₹{order.totalAmount.toFixed(2)}</span>
+                      <div className="border-t border-gray-200 px-4 md:px-6 py-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                      <div className="text-sm space-y-1">
+                        {order.discountAmount > 0 && (
+                          <div className="flex gap-2">
+                            <span className="text-gray-600">Discount:</span>
+                            <span className="text-green-600">-₹{order.discountAmount.toFixed(2)}</span>
                           </div>
+                        )}
+                        {order.gstAmount > 0 && (
+                          <div className="flex gap-2">
+                            <span className="text-gray-600">GST:</span>
+                            <span>₹{order.gstAmount.toFixed(2)}</span>
+                          </div>
+                        )}
+                        <div className="font-semibold text-gray-900">
+                          Order Total: ₹{order.totalAmount.toFixed(2)}
                         </div>
-
-                        {/* Reorder Button */}
-                        <button
-                          onClick={() => handleReorder(order)}
-                          disabled={reorderingOrderId === order.id}
-                          className={`w-32 py-2.5 px-4 rounded-lg font-semibold flex items-center justify-center gap-2 transition duration-200 ${
-
-                            reorderingOrderId === order.id
-                              ? 'bg-gray-200 text-gray-600 cursor-not-allowed'
-                              : 'bg-teal-900 text-white hover:bg-teal-800 active:scale-95'
-                          }`}
-                        >
-                          {reorderingOrderId === order.id ? (
-                            <>
-                              <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
-                              Reordering...
-                            </>
-                          ) : (
-                            <>
-                              <RotateCcw className="w-4 h-4" />
-                              Reorder
-                            </>
-                          )}
-                        </button>
                       </div>
+
+                      <button
+                        onClick={() => handleReorder(order)}
+                        disabled={reorderingOrderId === order.id}
+                        className={`px-5 py-2 rounded text-sm font-semibold transition ${
+                          reorderingOrderId === order.id
+                            ? 'bg-gray-200 text-gray-600 cursor-not-allowed'
+                            : 'bg-yellow-400 hover:bg-yellow-500 text-black'
+                        }`}
+                      >
+                        {reorderingOrderId === order.id ? 'Reordering...' : 'Reorder'}
+                      </button>
                     </div>
+
+                    </button>
                   ))}
                     </div>
 
@@ -897,6 +924,7 @@ export const Account: React.FC = () => {
                       Continue Shopping
                     </button>
                   </div>
+                  
                 )}
               </div>
             )}

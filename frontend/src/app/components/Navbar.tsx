@@ -17,7 +17,7 @@ import { CategoryDropdown } from "./CategoryDropdown";
 
 export const Navbar: React.FC = () => {
   const { cartItems } = useCart();
-  const { isAuthenticated, logout } = useAuth();
+  const { isAuthenticated, logout, user } = useAuth();
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -37,6 +37,8 @@ export const Navbar: React.FC = () => {
     (sum, item) => sum + item.quantity,
     0,
   );
+
+  const isAdmin = user?.email === 'admin@gmail.com';
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -154,12 +156,14 @@ export const Navbar: React.FC = () => {
               >
                 Products
               </Link>
-              <Link
-                to="/admin"
-                className={navLinkClass("/admin")}
-              >
-                Admin
-              </Link>
+              {isAdmin && (
+                <Link
+                  to="/admin"
+                  className={navLinkClass("/admin")}
+                >
+                  Admin
+                </Link>
+              )}
 
               <Link to="/cart" className="relative text-white hover:text-neutral-200 transition">
                 <ShoppingCart className="w-5 h-5" />
@@ -292,16 +296,18 @@ export const Navbar: React.FC = () => {
                 }`}
               >
                 Products
-              </button>
-
-              <button
-                onClick={() => handleMenuItemClick("/admin")}
-                className={`w-full text-left px-4 py-3 rounded-lg transition ${
-                  isActive("/admin")
-                    ? "bg-teal-700 text-white font-medium"
-                    : "text-white hover:bg-teal-700"
-                }`}
-              >
+              {isAdmin && (
+                <button
+                  onClick={() => handleMenuItemClick("/admin")}
+                  className={`w-full text-left px-4 py-3 rounded-lg transition ${
+                    isActive("/admin")
+                      ? "bg-teal-700 text-white font-medium"
+                      : "text-white hover:bg-teal-700"
+                  }`}
+                >
+                  Admin
+                </button>
+              )}
                 Admin
               </button>
 

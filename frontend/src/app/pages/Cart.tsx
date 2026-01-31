@@ -102,9 +102,23 @@ export const Cart: React.FC = () => {
     );
   }
 
-  const subtotal = getCartTotal();
-  const shipping = subtotal > 499 ? 0 : 50;
-  const total = subtotal + shipping;
+  const baseSubtotal = cartItems.reduce(
+    (sum, item) => sum + (item.product.basePrice || 0) * item.quantity,
+    0
+  );
+
+  const finalSubtotal = cartItems.reduce(
+    (sum, item) => {
+      const finalPrice = calculateFinalPrice(item.product.basePrice, item.product.discountPercent || 0);
+      return sum + finalPrice * item.quantity;
+    },
+    0
+  );
+
+  const discountAmount = baseSubtotal - finalSubtotal;
+
+  // if no tax / shipping
+  const total = finalSubtotal;
 
   return (
     <div className="min-h-screen bg-neutral-50 py-20">
@@ -273,68 +287,75 @@ export const Cart: React.FC = () => {
             })}
           </div>
 
-          {/* Order Summary Sidebar */}
-          <div>
-            <div className="bg-white rounded-xl border border-neutral-200 p-6 sticky top-24 shadow-sm">
-              <h2 className="text-xl font-bold mb-6 pb-4 border-b border-neutral-200">Order Summary</h2>
+            {/* Order Summary Sidebar */}
+              <div>
+                <div className="bg-white rounded-xl border border-neutral-200 p-6 sticky top-24 shadow-sm">
+                  <h2 className="text-xl font-bold mb-6 pb-4 border-b border-neutral-200">
+                    Order Summary
+                  </h2>
 
-              <div className="space-y-4 pb-6 mb-6 border-b border-neutral-200">
-                <div className="flex justify-between">
-                  <span className="text-neutral-600">Subtotal ({cartItems.length} items)</span>
-                  <span className="font-semibold">₹{subtotal.toFixed(2)}</span>
-                </div>
+                  {/* Price Breakdown */}
+                  <div className="space-y-3 pb-6 mb-6 border-b border-neutral-200 text-sm">
+                    {/* Base Price */}
+                    <div className="flex justify-between">
+                      <span className="text-neutral-600">
+                        Base Price ({cartItems.length} items)
+                      </span>
+                      <span className="font-medium">
+                        ₹{baseSubtotal.toFixed(2)}
+                      </span>
+                    </div>
 
-                <div className="flex justify-between">
-                  <span className="text-neutral-600">Shipping</span>
-                  <span className="font-semibold">
-                    {shipping === 0 ? (
-                      <span className="text-green-600">FREE</span>
-                    ) : (
-                      `₹${shipping}`
+                    {/* Discount */}
+                    {discountAmount > 0 && (
+                      <div className="flex justify-between text-green-600">
+                        <span>Discount</span>
+                        <span>-₹{discountAmount.toFixed(2)}</span>
+                      </div>
                     )}
-                  </span>
-                </div>
 
-                {shipping > 0 && (
-                  <div className="bg-green-50 border border-green-200 rounded p-3">
-                    <p className="text-xs text-green-700 font-medium">
-                      Add ₹{(499 - subtotal).toFixed(2)} more for FREE shipping
+                    {/* Subtotal after discount */}
+                    <div className="flex justify-between font-semibold">
+                      <span className="text-neutral-800">Subtotal</span>
+                      <span>₹{finalSubtotal.toFixed(2)}</span>
+                    </div>
+                  </div>
+
+                  {/* Total */}
+                  <div className="flex justify-between font-bold text-lg mb-6 pb-6 border-b border-neutral-200">
+                    <span>Total</span>
+                    <span className="text-xl">₹{total.toFixed(2)}</span>
+                  </div>
+
+                  {/* CTA */}
+                  <button
+                    onClick={handleProceedToCheckout}
+                    className="w-full bg-neutral-900 text-white py-3 rounded-lg hover:bg-neutral-800 transition font-semibold mb-3"
+                  >
+                    {isAuthenticated ? "Proceed to Checkout" : "Login & Checkout"}
+                  </button>
+
+                  <Link
+                    to="/products"
+                    className="block text-center text-sm text-neutral-600 hover:text-neutral-900 font-medium"
+                  >
+                    Continue Shopping
+                  </Link>
+
+                  {/* Notes */}
+                  <div className="mt-6 pt-4 border-t border-neutral-200 space-y-2 text-xs text-neutral-500">
+                    <p className="flex items-start gap-2">
+                      <span className="text-lg leading-none">✓</span>
+                      <span>Order placed before 4pm will be shipped on the same day</span>
+                    </p>
+                    <p className="flex items-start gap-2">
+                      <span className="text-lg leading-none">✓</span>
+                      <span>Secure checkout</span>
                     </p>
                   </div>
-                )}
+                </div>
               </div>
 
-              <div className="flex justify-between font-bold text-lg mb-6 pb-6 border-b border-neutral-200">
-                <span>Total</span>
-                <span className="text-xl">₹{total.toFixed(2)}</span>
-              </div>
-
-              <button
-                onClick={handleProceedToCheckout}
-                className="w-full bg-neutral-900 text-white py-3 rounded-lg hover:bg-neutral-800 transition font-semibold mb-3"
-              >
-                {isAuthenticated ? 'Proceed to Checkout' : 'Login & Checkout'}
-              </button>
-
-              <Link
-                to="/products"
-                className="block text-center text-sm text-neutral-600 hover:text-neutral-900 font-medium"
-              >
-                Continue Shopping
-              </Link>
-
-              <div className="mt-6 pt-4 border-t border-neutral-200 space-y-2 text-xs text-neutral-500">
-                <p className="flex items-start gap-2">
-                  <span className="text-lg leading-none">✓</span>
-                  <span>order placed before 4pm will be shipped on the same day</span>
-                </p>
-                <p className="flex items-start gap-2">
-                  <span className="text-lg leading-none">✓</span>
-                  <span>Secure checkout</span>
-                </p>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </div>

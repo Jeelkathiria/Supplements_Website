@@ -214,6 +214,44 @@ export const deleteAddress = async (req: AuthRequest, res: Response) => {
   }
 };
 
+export const checkEmailExists = async (req: any, res: Response) => {
+  try {
+    const { email } = req.query;
+    
+    if (!email) {
+      return res.status(400).json({ message: "Email is required" });
+    }
+
+    const user = await prisma.user.findFirst({
+      where: { email: String(email) }
+    });
+
+    res.json({ exists: !!user });
+  } catch (error) {
+    console.error("Error checking email:", error);
+    res.status(500).json({ message: "Failed to check email" });
+  }
+};
+
+export const checkPhoneExists = async (req: any, res: Response) => {
+  try {
+    const { phone } = req.query;
+    
+    if (!phone) {
+      return res.status(400).json({ message: "Phone is required" });
+    }
+
+    const user = await prisma.user.findFirst({
+      where: { phone: String(phone) }
+    });
+
+    res.json({ exists: !!user });
+  } catch (error) {
+    console.error("Error checking phone:", error);
+    res.status(500).json({ message: "Failed to check phone" });
+  }
+};
+
 export const getCheckoutData = async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user?.dbUser?.id;

@@ -76,6 +76,6 @@ export const removeFromCart = async (productId: string): Promise<void> => {
 export const mergeGuestCart = async (cartItems: CartItem[]): Promise<CartResponse> => {
   return apiCall<CartResponse>('/cart/merge', {
     method: 'POST',
-    body: JSON.stringify({ items: cartItems }),
+    body: JSON.stringify({ cartItems }),
   });
 };

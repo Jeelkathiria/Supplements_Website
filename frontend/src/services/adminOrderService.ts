@@ -53,6 +53,7 @@ export interface Order {
   totalAmount: number;
   gstAmount: number;
   discount: number;
+  paymentMethod?: string;
   items: OrderItem[];
   address: OrderAddress | null;
   createdAt: string;

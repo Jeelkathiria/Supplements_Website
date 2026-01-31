@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MapPin, Loader, AlertCircle, Check, Plus } from 'lucide-react';
+import { MapPin, Loader, AlertCircle, Check, Plus, HandHeart } from 'lucide-react';
 import { useCart } from '../components/context/CartContext';
 import { useAuth } from '../components/context/AuthContext';
 import { toast } from 'sonner';
@@ -8,6 +8,7 @@ import { Breadcrumb } from '../components/Breadcrumb';
 import * as checkoutService from '../../services/checkoutService';
 import * as orderService from '../../services/orderService';
 import * as userService from '../../services/userService';
+import * as paymentService from '../../services/paymentService';
 import type { CheckoutData } from '../../services/checkoutService';
 
 // Indian States and Union Territories
@@ -154,7 +155,7 @@ const validateAddressForm = (form: AddressFormData): ValidationErrors => {
 
 export const Checkout: React.FC = () => {
   const { cartItems, clearCart } = useCart();
-  const { isAuthenticated, user, isLoading: authLoading } = useAuth();
+  const { isAuthenticated, user, isLoading: authLoading, getIdToken } = useAuth();
   const navigate = useNavigate();
 
   // State management
@@ -165,6 +166,7 @@ export const Checkout: React.FC = () => {
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
   const [showAddressForm, setShowAddressForm] = useState(false);
   const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
+  const [paymentMethod, setPaymentMethod] = useState<'cod' | 'upi'>('cod');
 
   // New address form state
   const [newAddress, setNewAddress] = useState<AddressFormData>({
@@ -198,12 +200,12 @@ export const Checkout: React.FC = () => {
   useEffect(() => {
     if (isAuthenticated && cartItems.length > 0) {
       loadCheckoutData();
-      // Set phone from user profile
-      if (user?.phone) {
-        setNewAddress(prev => ({ ...prev, phone: user.phone || '' }));
+      // Set phone and name from user profile
+      if (user?.phone || user?.name) {
+        setNewAddress(prev => ({ ...prev, phone: user?.phone || '', name: user?.name || '' }));
       }
     }
-  }, [isAuthenticated, cartItems.length, user?.phone]);
+  }, [isAuthenticated, cartItems.length, user?.phone, user?.name]);
 
   const loadCheckoutData = async () => {
     try {
@@ -277,21 +279,90 @@ export const Checkout: React.FC = () => {
       setIsProcessing(true);
       setError(null);
 
-      // Place the order
-      const createdOrder = await orderService.placeOrder(selectedAddressId);
+      // Create order first
+      const createdOrder = await orderService.placeOrder(selectedAddressId, paymentMethod);
+      
+      console.log('=== ORDER PLACEMENT DEBUG ===');
+      console.log('Created Order:', createdOrder);
+      console.log('Order ID:', createdOrder?.id);
+      console.log('Full Order Object:', JSON.stringify(createdOrder, null, 2));
 
-      // Clear cart after successful order
-      await clearCart();
+      // Handle payment based on selected method
+      if (paymentMethod === 'cod') {
+        // COD - Show success toast and add delay for animation
+        toast.success('Order placed successfully!');
+        await clearCart();
+        
+        // Add 2-second delay to show order confirmation animation
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        // Then navigate to success page
+        navigate(`/order-success/${createdOrder.id}`);
+      } else if (paymentMethod === 'upi') {
+        // Get authentication token
+        const token = await getIdToken();
+        if (!token) {
+          throw new Error('Authentication token not available');
+        }
+        
+        // Create Razorpay order
+        const totalAmount = checkoutData?.cart?.totals?.grandTotal || 0;
+        console.log('=== PAYMENT DEBUG ===');
+        console.log('Checkout Data:', checkoutData);
+        console.log('Cart Items:', checkoutData?.cart?.items);
+        console.log('Cart Totals:', checkoutData?.cart?.totals);
+        console.log('Total Amount:', totalAmount);
+        console.log('Order ID:', createdOrder.id);
+        
+        if (totalAmount <= 0) {
+          throw new Error('Invalid cart total. Please ensure items are in your cart.');
+        }
+        
+        const razorpayOrder = await paymentService.createRazorpayOrder(
+          totalAmount,
+          createdOrder.id,
+          token
+        );
 
-      // Navigate to order success page
-      toast.success('Order placed successfully!');
-      navigate(`/order-success/${createdOrder.id}`);
+        // Initiate Razorpay payment
+        const paymentResponse = await paymentService.initiateRazorpayPayment(
+          razorpayOrder.orderId,
+          totalAmount,
+          'INR',
+          user?.email || '',
+          user?.phone || '',
+          user?.name || ''
+        );
+
+        // Verify payment - pass orderId so backend can clear cart
+        await paymentService.verifyRazorpayPayment(
+          {
+            razorpay_order_id: paymentResponse.razorpay_order_id,
+            razorpay_payment_id: paymentResponse.razorpay_payment_id,
+            razorpay_signature: paymentResponse.razorpay_signature,
+            orderId: createdOrder.id,
+          },
+          token
+        );
+
+        // Payment successful - clear cart and navigate
+        await clearCart();
+        toast.success('Payment successful! Order placed.');
+        
+        // Add delay for animation
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        navigate(`/order-success/${createdOrder.id}`);
+      }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to place order';
       setError(errorMessage);
       toast.error(errorMessage);
-    } finally {
       setIsProcessing(false);
+      
+      // For UPI payment cancellation, we don't clear the cart
+      // User can retry payment or use the same cart for another order
+      console.log('Payment/Order failed:', errorMessage);
     }
   };
 
@@ -308,6 +379,42 @@ export const Checkout: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Processing Modal/Overlay */}
+      {isProcessing && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-8 text-center max-w-md mx-auto shadow-2xl animate-in fade-in duration-300">
+            {/* Animated check icon */}
+            <div className="mb-6 flex justify-center">
+              <div className="relative w-20 h-20">
+                <div className="absolute inset-0 bg-green-100 rounded-full animate-pulse"></div>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
+                    <Check className="w-8 h-8 text-green-600 animate-bounce" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Message */}
+            <h3 className="text-xl font-bold text-gray-900 mb-2">
+              {paymentMethod === 'cod' ? 'Confirming your order...' : 'Processing payment...'}
+            </h3>
+            <p className="text-gray-600 text-sm mb-6">
+              {paymentMethod === 'cod' 
+                ? 'Your order is being confirmed. Please wait.' 
+                : 'Your payment is being processed. Please wait.'}
+            </p>
+
+            {/* Loader animation */}
+            <div className="flex justify-center gap-2">
+              <Loader className="w-6 h-6 text-green-600 animate-spin" />
+            </div>
+
+            {/* Progress text */}
+            <p className="text-xs text-gray-500 mt-4">Redirecting to confirmation page...</p>
+          </div>
+        </div>
+      )}
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
@@ -378,20 +485,16 @@ export const Checkout: React.FC = () => {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="col-span-2 sm:col-span-1">
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Full Name *
+                        Full Name <span className="text-xs text-gray-500">(from profile)</span>
                       </label>
                       <input
                         type="text"
                         value={newAddress.name}
-                        onChange={(e) => {
-                          setNewAddress({ ...newAddress, name: e.target.value });
-                          if (validationErrors.name) setValidationErrors({ ...validationErrors, name: undefined });
-                        }}
-                        className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
-                          validationErrors.name ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
-                        }`}
-                        placeholder="John Doe"
+                        disabled
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed"
+                        placeholder="Full name will be populated from your profile"
                       />
+                      <p className="text-xs text-gray-500 mt-1">Uses name from your profile</p>
                       {validationErrors.name && <p className="text-red-600 text-xs mt-1">{validationErrors.name}</p>}
                     </div>
 
@@ -515,55 +618,157 @@ export const Checkout: React.FC = () => {
               )}
             </div>
 
-            {/* Order Items Summary */}
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">Order Summary</h2>
-              <div className="space-y-4">
-                {checkoutData?.cart.items.map((item) => (
-                  <div key={item.productId} className="flex gap-4 pb-4 border-b border-gray-200">
-                    <div className="flex-1">
-                      <p className="font-semibold text-gray-900">{item.product.name}</p>
-                      <p className="text-sm text-gray-600">Quantity: {item.quantity}</p>
-                      {item.flavor && <p className="text-sm text-gray-600">Flavor: {item.flavor}</p>}
-                      {item.size && <p className="text-sm text-gray-600">Size: {item.size}</p>}
-                    </div>
-                    <div className="text-right">
-                      <p className="font-semibold text-gray-900">
-                        ₹{(item.product.basePrice * item.quantity).toFixed(2)}
-                      </p>
-                      <p className="text-sm text-gray-500">{item.quantity} x ₹{item.product.basePrice}</p>
-                    </div>
+                {/* Order Items Summary – Ticket Style */}
+                <div className="bg-white rounded-lg shadow-md p-6 font-mono">
+                  <h2 className="text-lg font-bold text-gray-900 mb-4 text-center uppercase tracking-wide">
+                    Order Bill
+                  </h2>
+
+                  <div className="border-t border-b border-dashed border-gray-300 py-3 space-y-4">
+                    {checkoutData?.cart.items.map((item) => {
+                      const itemTotal = item.product.finalPrice * item.quantity;
+                      const saved =
+                        (item.product.basePrice - item.product.finalPrice) * item.quantity;
+
+                      return (
+                        <div key={item.productId} className="space-y-1 text-sm">
+                          {/* Product name */}
+                          <div className="flex justify-between font-semibold text-gray-900">
+                            <span className="truncate">{item.product.name}</span>
+                            <span>₹{itemTotal.toFixed(2)}</span>
+                          </div>
+
+                          {/* Quantity & unit price */}
+                          <div className="flex justify-between text-gray-500">
+                            <span>
+                              {item.quantity} × ₹{item.product.finalPrice.toFixed(2)}
+                            </span>
+                          </div>
+
+                          {/* Optional attributes */}
+                          {(item.flavor || item.size) && (
+                            <div className="text-xs text-gray-400">
+                              {item.flavor && <span>Flavor: {item.flavor} </span>}
+                              {item.size && <span>• Size: {item.size}</span>}
+                            </div>
+                          )}
+
+                          {/* Savings */}
+                          {item.product.discountPercent > 0 && (
+                            <div className="text-xs text-green-600">
+                              Saved ₹{saved.toFixed(2)}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
-                ))}
+
+                  {/* Total Section */}
+                  <div className="mt-4 pt-4 border-t border-dashed border-gray-300 flex justify-between font-bold text-gray-900 text-sm">
+                    <span>Total</span>
+                    <span>
+                      ₹
+                      {checkoutData?.cart?.items
+                        .reduce((sum: number, item: any) => sum + item.product.finalPrice * item.quantity, 0)
+                        .toFixed(0)}
+                    </span>
+                  </div>
+
+                  {/* Footer note */}
+                  <div className="mt-4 text-center text-xs text-gray-500 flex items-center justify-center gap-1">
+                      <HandHeart className="w-4 h-4 text-gray-400" />
+                      <span>Thank you for shopping with us!</span>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
 
-          {/* Price Summary */}
-          <div className="lg:col-span-1">
-            <div className="bg-white rounded-lg shadow-md p-6 sticky top-4">
-              <h2 className="text-xl font-bold text-gray-900 mb-6">Price Summary</h2>
+              {/* Price Summary */}
+              <div className="lg:col-span-1">
+                <div className="bg-white rounded-lg shadow-md p-6 sticky top-4">
+                  <h2 className="text-xl font-bold text-gray-900 mb-6">Price Summary</h2>
 
-              <div className="space-y-3 mb-6 pb-6 border-b border-gray-200">
-                {checkoutData && (
-                  <>
-                    <div className="flex justify-between text-gray-600">
-                      <span>Subtotal</span>
-                      <span>₹{checkoutData.cart.totals.subtotal.toFixed(2)}</span>
-                    </div>
-                    {(checkoutData.cart.totals.discount ?? 0) > 0 && (
-                      <div className="flex justify-between text-green-600">
-                        <span>Discount</span>
-                        <span>-₹{(checkoutData.cart.totals.discount ?? 0).toFixed(2)}</span>
+                  {checkoutData && (
+                    <div className="space-y-3 mb-6 pb-6 border-b border-gray-200 text-sm">
+                      
+                      {/* Base Price */}
+                      <div className="flex justify-between text-gray-600">
+                        <span>Base Price</span>
+                        <span>
+                          ₹{(
+                            checkoutData.cart.totals.subtotal +
+                            (checkoutData.cart.totals.discount ?? 0)
+                          ).toFixed(2)}
+                        </span>
                       </div>
-                    )}
-                  </>
-                )}
-              </div>
 
-              <div className="flex justify-between text-lg font-bold text-gray-900 mb-6">
-                <span>Total Amount</span>
-                <span className="text-blue-600">₹{checkoutData?.cart.totals.grandTotal.toFixed(2) ?? '0.00'}</span>
+                      {/* Discount */}
+                      {(checkoutData.cart.totals.discount ?? 0) > 0 && (
+                        <div className="flex justify-between text-green-600">
+                          <span>Discount</span>
+                          <span>
+                            -₹{(checkoutData.cart.totals.discount ?? 0).toFixed(2)}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Subtotal after discount */}
+                      <div className="flex justify-between font-semibold text-gray-900 border-t pt-2">
+                        <span>Subtotal</span>
+                        <span>
+                          ₹{checkoutData.cart.totals.subtotal.toFixed(2)}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Final Total */}
+                  <div className="flex justify-between text-lg font-bold text-gray-900">
+                    <span>Total Amount</span>
+                    <span className="text-blue-600">
+                      ₹{checkoutData?.cart.totals.grandTotal.toFixed(2) ?? '0.00'}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between font-semibold text-gray-900 border-t pt-2"></div>
+
+
+              {/* Payment Method Selection */}
+              <div className="mb-6 pb-6 border-b border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Payment Method</h3>
+                <div className="space-y-3">
+                  {/* COD */}
+                  <label className="flex items-center p-3 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50" style={{ borderColor: paymentMethod === 'cod' ? '#0f766e' : '#d1d5db' }}>
+                    <input
+                      type="radio"
+                      name="payment"
+                      value="cod"
+                      checked={paymentMethod === 'cod'}
+                      onChange={(e) => setPaymentMethod(e.target.value as 'cod' | 'upi')}
+                      className="w-4 h-4"
+                    />
+                    <span className="ml-3 flex-1">
+                      <span className="font-semibold text-gray-900">Cash on Delivery</span>
+                      <p className="text-xs text-gray-500">Pay when you receive the product</p>
+                    </span>
+                  </label>
+
+                  {/* UPI */}
+                  <label className="flex items-center p-3 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50" style={{ borderColor: paymentMethod === 'upi' ? '#0f766e' : '#d1d5db' }}>
+                    <input
+                      type="radio"
+                      name="payment"
+                      value="upi"
+                      checked={paymentMethod === 'upi'}
+                      onChange={(e) => setPaymentMethod(e.target.value as 'cod' | 'upi')}
+                      className="w-4 h-4"
+                    />
+                    <span className="ml-3 flex-1">
+                      <span className="font-semibold text-gray-900">UPI</span>
+                      <p className="text-xs text-gray-500">Google Pay, PhonePe, PayTM, etc.</p>
+                    </span>
+                  </label>
+                </div>
               </div>
 
               <form onSubmit={handlePlaceOrder}>
@@ -580,14 +785,14 @@ export const Checkout: React.FC = () => {
                   ) : (
                     <>
                       <Check className="h-5 w-5" />
-                      Place Order
+                      {paymentMethod === 'cod' ? 'Place Order' : 'Pay Now'}
                     </>
                   )}
                 </button>
               </form>
 
               <p className="text-xs text-gray-500 text-center mt-4">
-                ✓ Secure checkout with Firebase Authentication
+                ✓ Secure checkout with Razorpay
               </p>
             </div>
           </div>

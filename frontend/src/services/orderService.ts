@@ -7,6 +7,7 @@ export interface Order {
   totalAmount: number;
   gstAmount: number;
   discountAmount: number;
+  paymentMethod?: string;
   items: Array<{
     id: string;
     productId: string;
@@ -15,6 +16,7 @@ export interface Order {
     flavor?: string;
     size?: string;
     product: any;
+    productName?: string;
   }>;
   address: {
     id: string;
@@ -38,10 +40,10 @@ export interface Order {
  * Place an order from user's cart with selected address
  * Automatically clears the cart after successful order creation
  */
-export const placeOrder = async (addressId: string): Promise<Order> => {
+export const placeOrder = async (addressId: string, paymentMethod: string = 'cod'): Promise<Order> => {
   return apiCall<Order>('/orders/place', {
     method: 'POST',
-    body: JSON.stringify({ addressId }),
+    body: JSON.stringify({ addressId, paymentMethod }),
   });
 };
 

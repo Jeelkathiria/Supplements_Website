@@ -19,7 +19,11 @@ import { Register } from './pages/Register';
 import { ForgotPassword } from './pages/ForgotPassword';
 import { Dashboard } from './pages/Dashboard';
 import { Account } from './pages/Account';
+import { OrderDetail } from './pages/OrderDetail';
+import { NotFound } from './pages/NotFound';
+import { ContactUs } from './pages/ContactUs';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import { AdminRoute } from './components/AdminRoute';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { useScrollToTop } from './hooks/useScrollToTop';
 
@@ -34,7 +38,11 @@ function AppContent() {
                   <Route path="/" element={<Home />} />
                   <Route path="/products" element={<ProductListing />} />
                   <Route path="/product/:id" element={<ProductDetail />} />
-                  <Route path="/admin" element={<Admin />} />
+                  <Route path="/admin" element={
+                    <AdminRoute>
+                      <Admin />
+                    </AdminRoute>
+                  } />
                   <Route path="/cart" element={<Cart />} />
                   <Route path="/checkout" element={<Checkout />} />
                   <Route path="/order-success/:orderId" element={<OrderSuccess />} />
@@ -43,6 +51,7 @@ function AppContent() {
                   <Route path="/LoginTest" element={<LoginTest/>} />
                   <Route path="/register" element={<Register />} />
                   <Route path="/forgot-password" element={<ForgotPassword />} />
+                  <Route path="/contact" element={<ContactUs />} />
                   <Route path="/dashboard" element={
                     <ProtectedRoute>
                       <Dashboard />
@@ -53,6 +62,12 @@ function AppContent() {
                       <Account />
                     </ProtectedRoute>
                   } />
+                  <Route path="/account/order/:orderId" element={
+                    <ProtectedRoute>
+                      <OrderDetail />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="*" element={<NotFound />} />
                 </Routes>
               </main>
               <Footer />

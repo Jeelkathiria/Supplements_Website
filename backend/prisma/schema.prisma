@@ -95,8 +95,9 @@ model Order {
   userId String
   status OrderStatus @default(PENDING)
 
-  totalAmount Float
-  discount    Float
+  totalAmount   Float
+  discount      Float
+  paymentMethod String @default("cod") // "cod" or "upi"
 
   items     OrderItem[]
   addressId String?

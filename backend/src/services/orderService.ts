@@ -110,12 +110,20 @@ export const createOrder = async (payload: CheckoutPayload) => {
   }
 };
 
-export const placeOrderFromCart = async (userId: string, addressId: string) => {
+export const placeOrderFromCart = async (userId: string, addressId: string, paymentMethod: string = 'cod') => {
   try {
+    console.log("=== PLACE ORDER FROM CART ===");
+    console.log("User ID:", userId);
+    console.log("Address ID:", addressId);
+    console.log("Payment Method:", paymentMethod);
+
     // Verify address exists and belongs to user
     const address = await prisma.address.findUnique({
       where: { id: addressId }
     });
+
+    console.log("Address found:", !!address);
+    if (address) console.log("Address belongs to user:", address.userId === userId);
 
     if (!address || address.userId !== userId) {
       throw new Error("Address not found or unauthorized");
@@ -130,6 +138,9 @@ export const placeOrderFromCart = async (userId: string, addressId: string) => {
         }
       }
     });
+
+    console.log("Cart found:", !!cart);
+    if (cart) console.log("Cart items count:", cart.items.length);
 
     if (!cart || cart.items.length === 0) {
       throw new Error("Cart is empty");
@@ -150,8 +161,13 @@ export const placeOrderFromCart = async (userId: string, addressId: string) => {
       totalDiscount += discountAmount * item.quantity;
     }
 
+    console.log("Total amount:", totalAmount);
+    console.log("Total discount:", totalDiscount);
+
     // Execute all operations in a transaction
     const order = await prisma.$transaction(async (tx) => {
+      console.log("Starting transaction...");
+
       // Create OrderAddress first (historical snapshot) without orderId
       const orderAddress = await tx.orderAddress.create({
         data: {
@@ -164,6 +180,8 @@ export const placeOrderFromCart = async (userId: string, addressId: string) => {
         },
       });
 
+      console.log("OrderAddress created:", orderAddress.id);
+
       // Create order and connect to OrderAddress
       const newOrder = await tx.order.create({
         data: {
@@ -171,6 +189,7 @@ export const placeOrderFromCart = async (userId: string, addressId: string) => {
           totalAmount,
           discount: totalDiscount,
           status: OrderStatus.PENDING,
+          paymentMethod: paymentMethod,
           addressId: orderAddress.id,
           items: {
             create: cart.items.map((item) => {
@@ -191,11 +210,15 @@ export const placeOrderFromCart = async (userId: string, addressId: string) => {
         },
       });
 
+      console.log("Order created:", newOrder.id);
+
       // Update OrderAddress with the order ID
       await tx.orderAddress.update({
         where: { id: orderAddress.id },
         data: { orderId: newOrder.id }
       });
+
+      console.log("OrderAddress updated with orderId");
 
       // Fetch the complete order with relations
       const completeOrder = await tx.order.findUnique({
@@ -208,17 +231,31 @@ export const placeOrderFromCart = async (userId: string, addressId: string) => {
         }
       });
 
-      // Clear cart
-      await tx.cartItem.deleteMany({
-        where: { cartId: cart.id }
-      });
+      // Only clear cart for COD orders
+      // For UPI orders, cart will be cleared after payment verification
+      if (paymentMethod === 'cod') {
+        await tx.cartItem.deleteMany({
+          where: { cartId: cart.id }
+        });
+
+        console.log("Cart items cleared (COD order)");
+      } else {
+        console.log("Cart NOT cleared - payment verification pending (UPI order)");
+      }
 
       return completeOrder;
     });
 
+    console.log("=== PLACE ORDER FROM CART SUCCESS ===");
     return order;
   } catch (error) {
-    console.error("Error placing order from cart:", error);
+    console.error("=== PLACE ORDER FROM CART ERROR ===");
+    console.error("Error type:", error instanceof Error ? "Error" : typeof error);
+    console.error("Error message:", error instanceof Error ? error.message : String(error));
+    console.error("Full error:", error);
+    if (error instanceof Error && error.stack) {
+      console.error("Stack trace:", error.stack);
+    }
     throw error;
   }
 };
@@ -327,6 +364,32 @@ export const cancelOrder = async (orderId: string) => {
     });
   } catch (error) {
     console.error("Error cancelling order:", error);
+    throw error;
+  }
+};
+
+export const clearCartAfterPayment = async (userId: string) => {
+  try {
+    console.log("=== CLEARING CART AFTER PAYMENT ===");
+    console.log("User ID:", userId);
+
+    const cart = await prisma.cart.findUnique({
+      where: { userId },
+    });
+
+    if (!cart) {
+      console.log("No cart found for user");
+      return;
+    }
+
+    // Clear cart items
+    await prisma.cartItem.deleteMany({
+      where: { cartId: cart.id }
+    });
+
+    console.log("Cart cleared after payment verification");
+  } catch (error) {
+    console.error("Error clearing cart after payment:", error);
     throw error;
   }
 };

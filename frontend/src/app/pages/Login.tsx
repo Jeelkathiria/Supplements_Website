@@ -16,6 +16,7 @@ export const Login: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [loginError, setLoginError] = useState('');
   const [errors, setErrors] = useState({
     email: '',
     password: '',
@@ -63,6 +64,7 @@ export const Login: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoginError('');
     
     // Validate all fields
     const newErrors = {
@@ -82,6 +84,10 @@ export const Login: React.FC = () => {
     try {
       await login(formData.email, formData.password);
       
+      // Clear errors on successful login
+      setLoginError('');
+      setErrors({ email: '', password: '' });
+      
       // Wait a bit for auth state to update before redirecting
       setTimeout(() => {
         if (redirectAfterLogin) {
@@ -94,13 +100,29 @@ export const Login: React.FC = () => {
       }, 500);
     } catch (error: any) {
       setIsLoading(false);
+      
+      // Display user-friendly error messages
+      if (error.code === 'auth/user-not-found') {
+        setLoginError('No account found with this email. Please register first.');
+      } else if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password') {
+        setLoginError('Incorrect email or password. Please try again.');
+      } else if (error.message) {
+        setLoginError(error.message);
+      } else {
+        setLoginError('Login failed. Please try again.');
+      }
     }
   };
 
   const handleGoogleLogin = async () => {
     setIsGoogleLoading(true);
+    setLoginError('');
     try {
       await loginWithGoogle();
+      
+      // Clear errors on successful login
+      setLoginError('');
+      setErrors({ email: '', password: '' });
       
       // Wait a bit for auth state to update before redirecting
       setTimeout(() => {
@@ -114,6 +136,7 @@ export const Login: React.FC = () => {
       }, 500);
     } catch (error: any) {
       setIsGoogleLoading(false);
+      setLoginError('Google login failed. Please try again.');
     }
   };
 
@@ -143,6 +166,13 @@ export const Login: React.FC = () => {
                   Your cart items are saved and ready
                 </p>
               </div>
+            </div>
+          )}
+
+          {/* Login Error Message */}
+          {loginError && (
+            <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3 mb-6">
+              <p className="text-sm font-medium text-red-800">{loginError}</p>
             </div>
           )}
 
