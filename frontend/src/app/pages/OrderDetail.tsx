@@ -193,7 +193,7 @@ export const OrderDetail: React.FC = () => {
           </div>
 
           {/* Items Section */}
-          <div className="px-6 md:px-8 py-6 border-b border-neutral-200">
+          <div className="font-mono px-6 md:px-8 py-6 border-b border-neutral-200">
             <h3 className="text-lg font-bold text-neutral-900 mb-4 flex items-center gap-2">
               <span className="w-2 h-2 bg-teal-900 rounded-full"></span>
               Order Items
@@ -248,56 +248,46 @@ export const OrderDetail: React.FC = () => {
           </div>
 
           {/* Bill Summary Section */}
-          <div className="px-6 md:px-8 py-6 bg-neutral-50 border-t border-neutral-200">
-            <h3 className="text-lg font-bold text-neutral-900 mb-4 flex items-center gap-2">
-              <span className="w-2 h-2 bg-teal-900 rounded-full"></span>
-              Billing Summary
-            </h3>
+          <div className="font-mono px-6 md:px-8 py-8 border-t border-neutral-200">
+            <h3 className="text-center text-xl font-bold text-neutral-900 mb-8 tracking-wide">ORDER BILL</h3>
             
-            <div className="space-y-3 mb-6 p-4 bg-white rounded-lg border border-neutral-200">
-              {/* Subtotal */}
-              <div className="flex justify-between text-neutral-700">
-                <span>Subtotal ({order.items.length} items)</span>
-                <span className="font-semibold">
-                  ₹{(order.totalAmount + order.discountAmount - order.gstAmount).toFixed(2)}
-                </span>
-              </div>
+            <div className="max-w-2xl space-y-4">
+              {/* Order Items */}
+              {order.items.map((item, idx) => (
+                <div key={idx}>
+                  <div className="flex justify-between items-start mb-1">
+                    <p className="font-bold text-neutral-900 flex-1">
+                      {(item.product?.name || item.productName).toUpperCase()}
+                    </p>
+                    <p className="font-bold text-neutral-900 text-right">
+                      ₹{(item.quantity * item.price).toFixed(2)}
+                    </p>
+                  </div>
+                  <p className="text-sm text-neutral-600 mb-2">
+                    {item.quantity} × ₹{item.price.toFixed(2)}
+                  </p>
+                  
+                  {/* Show discount per item if applicable */}
+                  {order.discountAmount > 0 && idx === 0 && (
+                    <p className="text-sm text-green-600 font-semibold mb-3">
+                      Saved ₹{order.discountAmount.toFixed(2)}
+                    </p>
+                  )}
 
-              {/* Discount */}
-              {order.discountAmount > 0 && (
-                <div className="flex justify-between text-green-600 border-t border-neutral-200 pt-3">
-                  <span>Discount</span>
-                  <span className="font-semibold">-₹{order.discountAmount.toFixed(2)}</span>
+                  {/* Dotted separator */}
+                  {idx < order.items.length - 1 && (
+                    <div className="my-3 border-b border-dotted border-neutral-300"></div>
+                  )}
                 </div>
-              )}
+              ))}
 
-              {/* GST */}
-              {order.gstAmount > 0 && (
-                <div className="flex justify-between text-neutral-700 border-t border-neutral-200 pt-3">
-                  <span>GST (5%)</span>
-                  <span className="font-semibold">₹{order.gstAmount.toFixed(2)}</span>
-                </div>
-              )}
+              {/* Final Separator */}
+              <div className="my-4 border-b border-dotted border-neutral-300"></div>
 
-              {/* Total Amount */}
-              <div className="flex justify-between text-neutral-900 bg-teal-50 p-3 rounded border border-teal-200 text-lg font-bold">
-                <span>Total Amount</span>
-                <span>₹{order.totalAmount.toFixed(2)}</span>
-              </div>
-            </div>
-
-            {/* Customer Info */}
-            <div className="p-4 bg-white rounded-lg border border-neutral-200 text-sm">
-              <p className="text-neutral-600 mb-3 font-semibold">Customer Information</p>
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-neutral-600">Name:</span>
-                  <span className="text-neutral-900 font-medium">{order.user?.name}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-neutral-600">Email:</span>
-                  <span className="text-neutral-900 font-medium break-all">{order.user?.email}</span>
-                </div>
+              {/* Total */}
+              <div className="flex justify-between items-center pt-2">
+                <p className="font-bold text-neutral-900">Total</p>
+                <p className="font-bold text-neutral-900 text-lg">₹{order.totalAmount.toFixed(2)}</p>
               </div>
             </div>
           </div>

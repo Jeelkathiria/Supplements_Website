@@ -56,19 +56,21 @@ export const addToCart = async (
 // Update cart item quantity
 export const updateCartItem = async (
   productId: string,
-  quantity: number
+  quantity: number,
+  flavor?: string,
+  size?: string
 ): Promise<CartItemResponse> => {
   return apiCall<CartItemResponse>('/cart/update', {
     method: 'PUT',
-    body: JSON.stringify({ productId, quantity }),
+    body: JSON.stringify({ productId, quantity, flavor, size }),
   });
 };
 
 // Remove item from cart
-export const removeFromCart = async (productId: string): Promise<void> => {
+export const removeFromCart = async (productId: string, flavor?: string, size?: string): Promise<void> => {
   return apiCall<void>('/cart/remove', {
     method: 'DELETE',
-    body: JSON.stringify({ productId }),
+    body: JSON.stringify({ productId, flavor, size }),
   });
 };
 

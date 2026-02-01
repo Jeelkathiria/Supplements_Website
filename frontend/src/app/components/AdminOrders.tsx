@@ -372,7 +372,7 @@ export const AdminOrders: React.FC = () => {
               {/* Customer Info */}
               <div>
                 <h3 className="font-bold text-neutral-900 mb-3">{selectedOrderForModal.address?.name || "N/A"}</h3>
-                <div className="space-y-2 text-sm text-neutral-600">
+                <div className="space-y-2 font-semibold text-neutral-600">
                   <div className="flex items-center gap-2">
                     <Mail className="w-4 h-4 flex-shrink-0" />
                     <span>{selectedOrderForModal.user?.email || "N/A"}</span>
@@ -387,20 +387,27 @@ export const AdminOrders: React.FC = () => {
               {/* Delivery Address */}
               <div>
                 <div className="flex items-start gap-2">
-                  <MapPin className="w-4 h-4 text-blue-600 flex-shrink-0 mt-1" />
-                  <div className="text-sm">
+                  <MapPin className="w-4 h-4 text-gray-600 flex-shrink-0 mt-1" />
+                  <div className="font-semibold">
                     <p className="font-semibold text-neutral-900">{selectedOrderForModal.address?.address || "N/A"}</p>
-                    <p className="text-neutral-600">{selectedOrderForModal.address?.city || "N/A"}, {selectedOrderForModal.address?.state || ""} {selectedOrderForModal.address?.pincode || "N/A"}</p>
+                    <p>{selectedOrderForModal.address?.city || "N/A"}, {selectedOrderForModal.address?.state || ""} {selectedOrderForModal.address?.pincode || "N/A"}</p>
                   </div>
                 </div>
               </div>
 
               {/* Products */}
-              <div>
-                <h4 className="font-bold text-neutral-900 mb-3">Products ({selectedOrderForModal.items.length})</h4>
-                <div className="space-y-3">
+              <div className="font-mono">
+                <h4 className="font-bold text-neutral-900 mb-3">
+                  Products ({selectedOrderForModal.items.length})
+                </h4>
+
+                <div className="space-y-4">
                   {selectedOrderForModal.items.map((item: OrderItem) => (
-                    <div key={item.id} className="flex gap-3 pb-3 border-b border-neutral-100 last:border-0">
+                    <div
+                      key={item.id}
+                      className="flex gap-4 pb-4 border-b border-neutral-100 last:border-0"
+                    >
+                      {/* Product Image */}
                       {item.product.imageUrls[0] && (
                         <img
                           src={getFullImageUrl(item.product.imageUrls[0])}
@@ -408,15 +415,37 @@ export const AdminOrders: React.FC = () => {
                           className="w-16 h-16 rounded object-cover border border-neutral-200 flex-shrink-0"
                         />
                       )}
+
+                      {/* Product Details */}
                       <div className="flex-1">
-                        <p className="font-semibold text-neutral-900">{item.product.name}</p>
-                        <p className="text-xs text-neutral-600 mt-1">
-                          {item.flavor && <span>Flavor: {item.flavor}</span>}
-                          {item.flavor && item.size && <span> • </span>}
-                          {item.size && <span>Size: {item.size}</span>}
+                        <p className="font-semibold text-neutral-900">
+                          {item.product.name}
                         </p>
-                        <p className="text-sm text-neutral-700 mt-2">
-                          {item.quantity} × ₹{item.price.toFixed(2)} = <span className="font-bold">₹{(item.quantity * item.price).toFixed(2)}</span>
+
+                        <div className="text-xs text-neutral-600 mt-1 space-x-2">
+                          {item.flavor && (
+                            <span>
+                              <span className="font-bold">Flavor:</span> {item.flavor}
+                            </span>
+                          )}
+                          {item.size && (
+                            <span>
+                              <span className="font-bold">Size:</span> {item.size}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-sm text-neutral-700 mt-1">
+                          ₹{item.price.toFixed(2)}
+                        </p>
+                      </div>
+
+                      {/* RHS – Qty & Price */}
+                      <div className="text-right min-w-[110px]">
+                        <p className="text-sm text-neutral-700">
+                          <span className="font-bold">Qty:</span> {item.quantity}
+                        </p>
+                        <p className="font-bold text-neutral-900 mt-1">
+                          ₹{(item.quantity * item.price).toFixed(2)}
                         </p>
                       </div>
                     </div>
@@ -424,9 +453,10 @@ export const AdminOrders: React.FC = () => {
                 </div>
               </div>
 
+
               {/* Payment Method */}
               <div>
-                <div className="flex items-center gap-2 text-sm">
+                <div className="flex items-center gap-2 text-sm font-mono">
                   <CreditCard className="w-4 h-4" />
                   <span className="text-neutral-600">
                     {selectedOrderForModal.paymentMethod === 'upi' ? 'UPI Payment' : 'Cash on Delivery'}
@@ -435,18 +465,12 @@ export const AdminOrders: React.FC = () => {
               </div>
 
               {/* Bill Summary */}
-              <div className="bg-neutral-50 p-4 rounded-lg">
+              <div className="bg-neutral-50 p-4 rounded-lg font-mono">
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span className="text-neutral-600">Subtotal:</span>
                     <span className="font-semibold text-neutral-900">₹{selectedOrderForModal.totalAmount.toFixed(2)}</span>
                   </div>
-                  {selectedOrderForModal.discount > 0 && (
-                    <div className="flex justify-between">
-                      <span className="text-neutral-600">Discount:</span>
-                      <span className="font-semibold text-red-600">-₹{selectedOrderForModal.discount.toFixed(2)}</span>
-                    </div>
-                  )}
                   <div className="border-t border-neutral-200 pt-2 flex justify-between">
                     <span className="font-bold text-neutral-900">Total Amount:</span>
                     <span className="text-lg font-bold text-neutral-900">₹{selectedOrderForModal.totalAmount.toFixed(2)}</span>

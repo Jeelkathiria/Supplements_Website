@@ -28,27 +28,38 @@ export const addToCart = async (
   try {
     const cart = await getOrCreateCart(userId);
 
-    return await prisma.cartItem.upsert({
+    // First, check if an item with the same productId, flavor, and size exists
+    const existingItem = await prisma.cartItem.findFirst({
       where: {
-        cartId_productId: {
-          cartId: cart.id,
-          productId
-        }
-      },
-      update: {
-        quantity: { increment: quantity },
-        flavor: flavor || undefined,
-        size: size || undefined
-      },
-      create: {
         cartId: cart.id,
-        productId,
-        quantity,
+        productId: productId,
         flavor: flavor || null,
         size: size || null
-      },
-      include: { product: true }
+      }
     });
+
+    if (existingItem) {
+      // If item exists with same attributes, increment quantity
+      return await prisma.cartItem.update({
+        where: { id: existingItem.id },
+        data: {
+          quantity: { increment: quantity }
+        },
+        include: { product: true }
+      });
+    } else {
+      // If item doesn't exist, create a new one
+      return await prisma.cartItem.create({
+        data: {
+          cartId: cart.id,
+          productId,
+          quantity,
+          flavor: flavor || null,
+          size: size || null
+        },
+        include: { product: true }
+      });
+    }
   } catch (error) {
     console.error("Error adding to cart:", error);
     throw error;
@@ -58,18 +69,29 @@ export const addToCart = async (
 export const updateCartItem = async (
   userId: string,
   productId: string,
-  quantity: number
+  quantity: number,
+  flavor?: string,
+  size?: string
 ) => {
   try {
     const cart = await getOrCreateCart(userId);
 
-    return await prisma.cartItem.update({
+    // Find the item with matching productId, flavor, and size
+    const existingItem = await prisma.cartItem.findFirst({
       where: {
-        cartId_productId: {
-          cartId: cart.id,
-          productId
-        }
-      },
+        cartId: cart.id,
+        productId: productId,
+        flavor: flavor || null,
+        size: size || null
+      }
+    });
+
+    if (!existingItem) {
+      throw new Error('Cart item not found');
+    }
+
+    return await prisma.cartItem.update({
+      where: { id: existingItem.id },
       data: { quantity },
       include: { product: true }
     });
@@ -81,18 +103,20 @@ export const updateCartItem = async (
 
 export const removeCartItem = async (
   userId: string,
-  productId: string
+  productId: string,
+  flavor?: string,
+  size?: string
 ) => {
   try {
     const cart = await getOrCreateCart(userId);
 
     // Check if item exists before deleting
-    const existingItem = await prisma.cartItem.findUnique({
+    const existingItem = await prisma.cartItem.findFirst({
       where: {
-        cartId_productId: {
-          cartId: cart.id,
-          productId
-        }
+        cartId: cart.id,
+        productId: productId,
+        flavor: flavor || null,
+        size: size || null
       }
     });
 
@@ -103,10 +127,7 @@ export const removeCartItem = async (
 
     return await prisma.cartItem.delete({
       where: {
-        cartId_productId: {
-          cartId: cart.id,
-          productId
-        }
+        id: existingItem.id
       }
     });
   } catch (error) {
@@ -128,26 +149,36 @@ export const mergeGuestCart = async (
     const cart = await getOrCreateCart(userId);
 
     for (const item of guestCartItems) {
-      await prisma.cartItem.upsert({
+      // Check if an item with the same productId, flavor, and size exists
+      const existingItem = await prisma.cartItem.findFirst({
         where: {
-          cartId_productId: {
-            cartId: cart.id,
-            productId: item.productId
-          }
-        },
-        update: {
-          quantity: { increment: item.quantity },
-          flavor: item.flavor || undefined,
-          size: item.size || undefined
-        },
-        create: {
           cartId: cart.id,
           productId: item.productId,
-          quantity: item.quantity,
           flavor: item.flavor || null,
           size: item.size || null
         }
       });
+
+      if (existingItem) {
+        // If item exists with same attributes, increment quantity
+        await prisma.cartItem.update({
+          where: { id: existingItem.id },
+          data: {
+            quantity: { increment: item.quantity }
+          }
+        });
+      } else {
+        // If item doesn't exist, create a new one
+        await prisma.cartItem.create({
+          data: {
+            cartId: cart.id,
+            productId: item.productId,
+            quantity: item.quantity,
+            flavor: item.flavor || null,
+            size: item.size || null
+          }
+        });
+      }
     }
 
     // Return updated cart

@@ -173,6 +173,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
       // Token will be set by onAuthStateChanged
       const token = await userCredential.user.getIdToken();
       safeLocalStorage.setItem("authToken", token);
+      
+      // Wait for auth state to be updated
+      await new Promise(resolve => setTimeout(resolve, 100));
     } catch (error: any) {
       console.error("Login error:", error);
       
@@ -231,7 +234,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
           })
         });
         
-        if (!response.ok) {
+        if (response.ok) {
+          // Backend sync successful - update local user data immediately
+          const backendUser = await response.json();
+          const userData: User = {
+            email: normalizedEmail,
+            name: backendUser?.name && backendUser.name.trim() ? backendUser.name : name.trim(),
+            phone: backendUser?.phone || phone.trim(),
+            registeredAt: new Date().toISOString(),
+            loginTime: new Date().toISOString(),
+          };
+          setUser(userData);
+          safeLocalStorage.setItem("user", JSON.stringify(userData));
+        } else {
           console.error("Error syncing user during registration:", response.statusText);
         }
       } catch (error) {

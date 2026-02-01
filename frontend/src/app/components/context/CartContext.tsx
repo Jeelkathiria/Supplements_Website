@@ -267,15 +267,14 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   ) => {
     try {
       setError(null);
-
       if (quantity <= 0) {
         await removeFromCart(productId, selectedSize, selectedColor);
         return;
       }
 
       if (isAuthenticated) {
-        // Update in backend
-        await cartService.updateCartItem(productId, quantity);
+        // Update in backend with flavor and size
+        await cartService.updateCartItem(productId, quantity, selectedColor, selectedSize);
       }
 
       // Update local state

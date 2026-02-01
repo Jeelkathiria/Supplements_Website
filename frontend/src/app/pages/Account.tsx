@@ -168,6 +168,7 @@ export const Account: React.FC = () => {
   const [reorderingOrderId, setReorderingOrderId] = useState<string | null>(null);
   const [currentOrderPage, setCurrentOrderPage] = useState(1);
   const ORDERS_PER_PAGE = 5;
+  const [selectedAddressForModal, setSelectedAddressForModal] = useState<Partial<Address> | null>(null);
 
   // Profile editing state
   const [isEditingProfile, setIsEditingProfile] = useState(false);
@@ -738,138 +739,137 @@ export const Account: React.FC = () => {
                       {orders
                         .slice((currentOrderPage - 1) * ORDERS_PER_PAGE, currentOrderPage * ORDERS_PER_PAGE)
                         .map((order) => (
-                    <button
-                      key={order.id}
-                      onClick={() => navigate(`/account/order/${order.id}`)}
-                      className="block w-full text-left bg-white border border-gray-200 rounded-md shadow-sm hover:shadow-md hover:border-teal-300 transition overflow-hidden"
-                    >
-                      {/* Order Header */}
-                      <div className="bg-gray-50 border-b border-gray-200 px-4 md:px-6 py-3 text-sm">
-                      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-gray-700">
-                        
-                        <div>
-                          <p className="text-xs text-gray-500 uppercase">Order Placed</p>
-                          <p>
-                            {new Date(order.createdAt).toLocaleDateString('en-IN', {
-                              day: 'numeric',
-                              month: 'short',
-                              year: 'numeric',
-                            })}
-                          </p>
-                        </div>
-
-                        <div>
-                        <p className="text-xs text-gray-500 uppercase">Ship To</p>
-                        <p className="font-medium">
-                          {order.address?.name || 'N/A'}
-                        </p>
-                        <p className="text-xs text-gray-600">
-                          {order.address?.address}, {order.address?.city} {order.address?.pincode}
-                        </p>
-                      </div>
-
-
-                       <div className="flex items-center justify-end col-span-2 md:col-span-1 md:col-start-5">
-                        <span
-                          className={`text-xs font-semibold px-3 py-1 rounded ${
-                            order.status === 'PENDING'
-                              ? 'bg-yellow-100 text-yellow-800'
-                              : order.status === 'CONFIRMED'
-                              ? 'bg-blue-100 text-blue-800'
-                              : order.status === 'DELIVERED'
-                              ? 'bg-green-100 text-green-800'
-                              : 'bg-gray-100 text-gray-700'
-                          }`}
-                        >
-                          {order.status}
-                        </span>
-                      </div>
-                      </div>
-                    </div>
-
-                      {/* Order Items */}
-                      <div className="px-4 md:px-6 py-4 space-y-3">
-                        {order.items.map((item, idx) => {
-                          const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-                          const baseUrl = apiBaseUrl.replace('/api', '');
-                          let imageUrl = null;
-
-                          if (Array.isArray(item.product?.imageUrls) && item.product.imageUrls.length > 0) {
-                            const imgPath = item.product.imageUrls[0];
-                            imageUrl = imgPath.startsWith('http') ? imgPath : `${baseUrl}${imgPath}`;
-                          }
-
-                          return (
-                            <div key={idx} className="flex gap-4">
-                              {imageUrl && (
-                                <img
-                                  src={imageUrl}
-                                  alt={item.product?.name}
-                                  className="w-16 h-16 object-cover border rounded"
-                                />
-                              )}
-
-                              <div className="flex-1 text-sm">
-                                <p className="font-medium text-gray-900">
-                                  {item.product?.name || item.productName}
-                                </p>
-                                <p className="text-gray-600 mt-0.5">
-                                  Qty: {item.quantity} × ₹{item.price}
-                                </p>
-
-                                {(item.flavor || item.size) && (
-                                  <p className="text-xs text-gray-500 mt-1">
-                                    {item.flavor && `Flavor: ${item.flavor}`}
-                                    {item.flavor && item.size && ' • '}
-                                    {item.size && `Size: ${item.size}`}
+                          <div
+                            key={order.id}
+                            className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden hover:shadow-md transition"
+                          >
+                            {/* Order Info Strip */}
+                            <div className="bg-gradient-to-r from-gray-100 to-gray-50 px-4 md:px-6 py-4 border-b border-gray-200">
+                              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                {/* Order Placed */}
+                                <div>
+                                  <p className="text-xs text-gray-500 uppercase font-semibold">Order Placed</p>
+                                  <p className="text-sm font-semibold text-gray-900 mt-1">
+                                    {new Date(order.createdAt).toLocaleDateString('en-IN', {
+                                      day: 'numeric',
+                                      month: 'short',
+                                      year: 'numeric',
+                                    })}
                                   </p>
-                                )}
-                              </div>
+                                </div>
 
-                              <div className="text-sm font-semibold text-gray-900">
-                                ₹{(item.quantity * item.price).toFixed(2)}
+                                {/* Ship To - Clickable */}
+                                <div className="col-span-1">
+                                  <p className="text-xs text-gray-500 uppercase font-semibold">Ship To</p>
+                                  <button
+                                    onClick={() => setSelectedAddressForModal(order.address || null)}
+                                    className="text-sm font-semibold text-teal-700 hover:text-teal-900 hover:underline mt-1 text-left"
+                                  >
+                                    {order.address?.name || 'N/A'}
+                                  </button>
+                                </div>
+
+                                {/* Order Total */}
+                                <div className="hidden md:block">
+                                  <p className="text-xs text-gray-500 uppercase font-semibold">Total</p>
+                                  <p className="text-sm font-bold text-gray-900 mt-1">
+                                    ₹{order.totalAmount.toFixed(2)}
+                                  </p>
+                                </div>
+
+                                {/* Status Badge */}
+                                <div className="flex items-end justify-end md:justify-start">
+                                  <span
+                                    className={`text-xs font-semibold px-3 py-1.5 rounded-full ${
+                                      order.status === 'PENDING'
+                                        ? 'bg-yellow-100 text-yellow-800'
+                                        : order.status === 'CONFIRMED'
+                                        ? 'bg-blue-100 text-blue-800'
+                                        : order.status === 'DELIVERED'
+                                        ? 'bg-green-100 text-green-800'
+                                        : 'bg-gray-100 text-gray-700'
+                                    }`}
+                                  >
+                                    {order.status}
+                                  </span>
+                                </div>
                               </div>
                             </div>
-                          );
-                        })}
-                      </div>
 
+                            {/* Order Items */}
+                            <div className="px-4 md:px-6 py-4 space-y-3">
+                              {order.items.slice(0, 2).map((item, idx) => {
+                                const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+                                const baseUrl = apiBaseUrl.replace('/api', '');
+                                let imageUrl = null;
 
-                      {/* Order Summary and Actions */}
-                      <div className="border-t border-gray-200 px-4 md:px-6 py-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                      <div className="text-sm space-y-1">
-                        {order.discountAmount > 0 && (
-                          <div className="flex gap-2">
-                            <span className="text-gray-600">Discount:</span>
-                            <span className="text-green-600">-₹{order.discountAmount.toFixed(2)}</span>
+                                if (Array.isArray(item.product?.imageUrls) && item.product.imageUrls.length > 0) {
+                                  const imgPath = item.product.imageUrls[0];
+                                  imageUrl = imgPath.startsWith('http') ? imgPath : `${baseUrl}${imgPath}`;
+                                }
+
+                                return (
+                                  <div key={idx} className="flex gap-3">
+                                    {imageUrl && (
+                                      <img
+                                        src={imageUrl}
+                                        alt={item.product?.name}
+                                        className="w-14 h-14 object-cover border border-gray-200 rounded"
+                                      />
+                                    )}
+
+                                    <div className="flex-1 text-sm">
+                                      <p className="font-medium text-gray-900">
+                                        {item.product?.name || item.productName}
+                                      </p>
+                                      <p className="text-gray-600 text-xs mt-0.5">
+                                        Qty: {item.quantity} × ₹{item.price}
+                                      </p>
+
+                                      {(item.flavor || item.size) && (
+                                        <p className="text-xs text-gray-500 mt-1">
+                                          {item.flavor && `Flavor: ${item.flavor}`}
+                                          {item.flavor && item.size && ' • '}
+                                          {item.size && `Size: ${item.size}`}
+                                        </p>
+                                      )}
+                                    </div>
+
+                                    <div className="text-sm font-semibold text-gray-900">
+                                      ₹{(item.quantity * item.price).toFixed(2)}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                              {order.items.length > 2 && (
+                                <p className="text-xs text-gray-600 pt-2 border-t border-gray-100">
+                                  +{order.items.length - 2} more item{order.items.length - 2 > 1 ? 's' : ''}
+                                </p>
+                              )}
+                            </div>
+
+                            {/* Order Actions */}
+                            <div className="border-t border-gray-200 px-4 md:px-6 py-3 flex justify-between items-center gap-3 bg-gray-50">
+                              <button
+                                onClick={() => navigate(`/account/order/${order.id}`)}
+                                className="text-sm font-semibold text-teal-700 hover:text-teal-900 hover:underline"
+                              >
+                                View Details
+                              </button>
+                              <button
+                                onClick={() => handleReorder(order)}
+                                disabled={reorderingOrderId === order.id}
+                                className={`px-4 py-2 rounded text-sm font-semibold transition ${
+                                  reorderingOrderId === order.id
+                                    ? 'bg-gray-200 text-gray-600 cursor-not-allowed'
+                                    : 'bg-yellow-400 hover:bg-yellow-500 text-black'
+                                }`}
+                              >
+                                {reorderingOrderId === order.id ? 'Reordering...' : 'Reorder'}
+                              </button>
+                            </div>
                           </div>
-                        )}
-                        {order.gstAmount > 0 && (
-                          <div className="flex gap-2">
-                            <span className="text-gray-600">GST:</span>
-                            <span>₹{order.gstAmount.toFixed(2)}</span>
-                          </div>
-                        )}
-                        <div className="font-semibold text-gray-900">
-                          Order Total: ₹{order.totalAmount.toFixed(2)}
-                        </div>
-                      </div>
-
-                      <button
-                        onClick={() => handleReorder(order)}
-                        disabled={reorderingOrderId === order.id}
-                        className={`px-5 py-2 rounded text-sm font-semibold transition ${
-                          reorderingOrderId === order.id
-                            ? 'bg-gray-200 text-gray-600 cursor-not-allowed'
-                            : 'bg-yellow-400 hover:bg-yellow-500 text-black'
-                        }`}
-                      >
-                        {reorderingOrderId === order.id ? 'Reordering...' : 'Reorder'}
-                      </button>
-                    </div>
-
-                    </button>
-                  ))}
+                        ))}
                     </div>
 
                     {/* Pagination */}
@@ -931,6 +931,80 @@ export const Account: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Address Modal */}
+      {selectedAddressForModal && (
+        <>
+          {/* Overlay */}
+          <div 
+            className="fixed inset-0 bg-black/40 z-40"
+            onClick={() => setSelectedAddressForModal(null)}
+          />
+
+          {/* Modal */}
+          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-md mx-4">
+            <div className="bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
+              {/* Modal Header */}
+              <div className="bg-gradient-to-r from-teal-900 to-teal-800 text-white px-6 py-4 flex items-center justify-between">
+                <h2 className="text-lg font-bold">Delivery Address</h2>
+                <button
+                  onClick={() => setSelectedAddressForModal(null)}
+                  className="text-white hover:bg-teal-700 p-1 rounded transition"
+                  aria-label="Close"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Modal Content */}
+              <div className="p-6 space-y-4">
+                <div>
+                  <p className="text-xs text-gray-500 uppercase font-semibold mb-1">Name</p>
+                  <p className="text-base font-bold text-gray-900">{selectedAddressForModal.name}</p>
+                </div>
+
+                <div>
+                  <p className="text-xs text-gray-500 uppercase font-semibold mb-1">Phone</p>
+                  <p className="text-base font-bold text-gray-900">{selectedAddressForModal.phone}</p>
+                </div>
+
+                <div>
+                  <p className="text-xs text-gray-500 uppercase font-semibold mb-1">Address</p>
+                  <p className="text-base text-gray-900">{selectedAddressForModal.address}</p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-xs text-gray-500 uppercase font-semibold mb-1">City</p>
+                    <p className="text-base text-gray-900">{selectedAddressForModal.city}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 uppercase font-semibold mb-1">State</p>
+                    <p className="text-base text-gray-900">{selectedAddressForModal.state}</p>
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-xs text-gray-500 uppercase font-semibold mb-1">Pincode</p>
+                  <p className="text-base text-gray-900">{selectedAddressForModal.pincode}</p>
+                </div>
+              </div>
+
+              {/* Modal Footer */}
+              <div className="bg-gray-50 px-6 py-4 border-t border-gray-200">
+                <button
+                  onClick={() => setSelectedAddressForModal(null)}
+                  className="w-full bg-teal-900 text-white py-2 rounded-lg font-semibold hover:bg-teal-800 transition"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 };

@@ -156,6 +156,11 @@ export const Navbar: React.FC = () => {
               >
                 Products
               </Link>
+              {isAuthenticated && (
+                <Link to="/account" className={navLinkClass("/account")}>
+                  Orders
+                </Link>
+              )}
               {isAdmin && (
                 <Link
                   to="/admin"
@@ -163,6 +168,7 @@ export const Navbar: React.FC = () => {
                 >
                   Admin
                 </Link>
+                
               )}
 
               <Link to="/cart" className="relative text-white hover:text-neutral-200 transition">
@@ -296,20 +302,20 @@ export const Navbar: React.FC = () => {
                 }`}
               >
                 Products
-              {isAdmin && (
+              </button>
+
+              {isAuthenticated && (
                 <button
-                  onClick={() => handleMenuItemClick("/admin")}
+                  onClick={() => handleMenuItemClick("/account")}
                   className={`w-full text-left px-4 py-3 rounded-lg transition ${
-                    isActive("/admin")
+                    isActive("/account")
                       ? "bg-teal-700 text-white font-medium"
                       : "text-white hover:bg-teal-700"
                   }`}
                 >
-                  Admin
+                  Orders
                 </button>
               )}
-                Admin
-              </button>
 
               <div className="border-t border-teal-700 my-2 pt-2" />
 

@@ -88,7 +88,7 @@ export const Login: React.FC = () => {
       setLoginError('');
       setErrors({ email: '', password: '' });
       
-      // Wait a bit for auth state to update before redirecting
+      // Wait for auth state to be fully updated and user data to load before redirecting
       setTimeout(() => {
         if (redirectAfterLogin) {
           const redirectUrl = redirectAfterLogin;
@@ -97,7 +97,7 @@ export const Login: React.FC = () => {
         } else {
           navigate('/account');
         }
-      }, 500);
+      }, 1000);
     } catch (error: any) {
       setIsLoading(false);
       
