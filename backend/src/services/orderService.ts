@@ -1,5 +1,6 @@
 import prisma from "../lib/prisma";
 import { $Enums } from "../generated/prisma";
+import { generateOrderId } from "../lib/idGenerator";
 
 const OrderStatus = $Enums.OrderStatus;
 type OrderStatusType = $Enums.OrderStatus;
@@ -63,9 +64,11 @@ export const createOrder = async (payload: CheckoutPayload) => {
         },
       });
 
-      // Create order
+      // Create order with custom order ID (numbers and hyphens only) - ensured unique
+      const customOrderId = await generateOrderId();
       const order = await tx.order.create({
         data: {
+          id: customOrderId,
           userId: payload.userId,
           totalAmount,
           discount: totalDiscount,
@@ -182,9 +185,11 @@ export const placeOrderFromCart = async (userId: string, addressId: string, paym
 
       console.log("OrderAddress created:", orderAddress.id);
 
-      // Create order and connect to OrderAddress
+      // Create order with custom order ID (numbers and hyphens only) - ensured unique
+      const customOrderId = await generateOrderId();
       const newOrder = await tx.order.create({
         data: {
+          id: customOrderId,
           userId,
           totalAmount,
           discount: totalDiscount,

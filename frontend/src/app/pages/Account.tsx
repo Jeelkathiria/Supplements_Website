@@ -616,7 +616,7 @@ export const Account: React.FC = () => {
                           <select
                             value={newAddress.state}
                             onChange={(e) => {
-                              setNewAddress({ ...newAddress, state: e.target.value, city: '' });
+                              setNewAddress({ ...newAddress, state: e.target.value });
                               if (validationErrors.state) setValidationErrors({ ...validationErrors, state: undefined });
                             }}
                             className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
@@ -741,60 +741,141 @@ export const Account: React.FC = () => {
                         .map((order) => (
                           <div
                             key={order.id}
-                            className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden hover:shadow-md transition"
+                            className="bg-white border border-gray-200 rounded-lg shadow-sm  hover:shadow-md transition"
                           >
-                            {/* Order Info Strip */}
-                            <div className="bg-gradient-to-r from-gray-100 to-gray-50 px-4 md:px-6 py-4 border-b border-gray-200">
-                              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                          {/* Order Header Strip */}
+                          <div className="bg-gray-100 border-b border-gray-200 px-4 md:px-6 py-3">
+                            <div className="flex justify-between items-start">
+
+                              {/* LEFT SIDE */}
+                              <div className="grid grid-cols-3 gap-8">
+
                                 {/* Order Placed */}
                                 <div>
-                                  <p className="text-xs text-gray-500 uppercase font-semibold">Order Placed</p>
-                                  <p className="text-sm font-semibold text-gray-900 mt-1">
+                                  <p className="text-xs text-gray-500 uppercase font-semibold">
+                                    Order Placed
+                                  </p>
+                                  <p className="text-sm font-semibold text-gray-600 mt-1">
                                     {new Date(order.createdAt).toLocaleDateString('en-IN', {
                                       day: 'numeric',
-                                      month: 'short',
+                                      month: 'long',
                                       year: 'numeric',
                                     })}
                                   </p>
                                 </div>
 
-                                {/* Ship To - Clickable */}
-                                <div className="col-span-1">
-                                  <p className="text-xs text-gray-500 uppercase font-semibold">Ship To</p>
-                                  <button
-                                    onClick={() => setSelectedAddressForModal(order.address || null)}
-                                    className="text-sm font-semibold text-teal-700 hover:text-teal-900 hover:underline mt-1 text-left"
-                                  >
-                                    {order.address?.name || 'N/A'}
-                                  </button>
-                                </div>
-
-                                {/* Order Total */}
-                                <div className="hidden md:block">
-                                  <p className="text-xs text-gray-500 uppercase font-semibold">Total</p>
-                                  <p className="text-sm font-bold text-gray-900 mt-1">
+                                {/* Total */}
+                                <div>
+                                  <p className="text-xs text-gray-500 uppercase font-semibold">
+                                    Total
+                                  </p>
+                                  <p className="text-sm font-semibold text-gray-600 mt-1">
                                     ₹{order.totalAmount.toFixed(2)}
                                   </p>
                                 </div>
 
-                                {/* Status Badge */}
-                                <div className="flex items-end justify-end md:justify-start">
-                                  <span
-                                    className={`text-xs font-semibold px-3 py-1.5 rounded-full ${
-                                      order.status === 'PENDING'
-                                        ? 'bg-yellow-100 text-yellow-800'
-                                        : order.status === 'CONFIRMED'
-                                        ? 'bg-blue-100 text-blue-800'
-                                        : order.status === 'DELIVERED'
-                                        ? 'bg-green-100 text-green-800'
-                                        : 'bg-gray-100 text-gray-700'
-                                    }`}
-                                  >
-                                    {order.status}
-                                  </span>
+                                {/* Ship To (hover stays same) */}
+                                <div className="relative group inline-block">
+                                  <p className="text-xs text-gray-500 uppercase font-semibold">
+                                    Ship To
+                                  </p>
+
+                                  <div className="flex items-center gap-1 text-sm font-semibold text-teal-700 cursor-pointer group-hover:underline">
+                                    <span>{order.address?.name}</span>
+
+                                    <svg
+                                      className="w-4 h-4 transition-transform duration-200 group-hover:rotate-180"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      viewBox="0 0 24 24"
+                                    >
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                    </svg>
+                                  </div>
+
+                                  {/* Hover Card */}
+                                  {order.address && (
+                                    <div
+                                      className="absolute left-0 top-full mt-2 z-[9999]
+                                                invisible opacity-0 group-hover:visible group-hover:opacity-100
+                                                transition-opacity duration-150"
+                                    >
+                                      <div className="relative w-50 bg-white border border-gray-300 rounded-lg p-4 text-sm">
+
+                                        {/* Arrow */}
+                                        <div className="absolute -top-2 left-6 w-4 h-4 bg-white border-l border-t border-gray-200 rotate-45"></div>
+
+                                        <p className="font-bold text-gray-900">
+                                          {order.address.name}
+                                        </p>
+
+                                        <p className="mt-1 text-gray-700">
+                                          {order.address.address}
+                                        </p>
+
+                                        <p className="mt-1 text-gray-700">
+                                          {order.address.city}, {order.address.state}
+                                        </p>
+
+                                        <p className="text-gray-700">
+                                          {order.address.pincode}
+                                        </p>
+
+                                        <p className="text-gray-700">
+                                          India
+                                        </p>
+
+                                        {/* Phone */}
+                                        {order.address.phone && (
+                                          <div className="mt-2 flex items-center gap-2 text-gray-900 font-semibold">
+                                            <svg
+                                              className="w-4 h-4 text-gray-700"
+                                              fill="none"
+                                              stroke="currentColor"
+                                              viewBox="0 0 24 24"
+                                            >
+                                              <path
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                                strokeWidth={2}
+                                                d="M3 5a2 2 0 012-2h3l2 5-2 1a11 11 0 005 5l1-2 5 2v3a2 2 0 01-2 2A16 16 0 013 5z"
+                                              />
+                                            </svg>
+
+                                            <span>{order.address.phone}</span>
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  )}
                                 </div>
+
                               </div>
+
+                              {/* RIGHT SIDE */}
+                              <div className="text-right space-y-1">
+                                <p className="text-sm text-gray-500">
+                                  Order # {order.id}
+                                </p>
+
+                                <span
+                                  className={`inline-block text-xs font-semibold px-3 py-1 rounded-full ${
+                                    order.status === 'PENDING'
+                                      ? 'bg-yellow-100 text-yellow-800'
+                                      : order.status === 'CONFIRMED'
+                                      ? 'bg-blue-100 text-blue-800'
+                                      : order.status === 'DELIVERED'
+                                      ? 'bg-green-100 text-green-800'
+                                      : 'bg-gray-100 text-gray-700'
+                                  }`}
+                                >
+                                  {order.status}
+                                </span>
+                              </div>
+
                             </div>
+                          </div>
+
 
                             {/* Order Items */}
                             <div className="px-4 md:px-6 py-4 space-y-3">
@@ -932,79 +1013,7 @@ export const Account: React.FC = () => {
         </div>
       </div>
 
-      {/* Address Modal */}
-      {selectedAddressForModal && (
-        <>
-          {/* Overlay */}
-          <div 
-            className="fixed inset-0 bg-black/40 z-40"
-            onClick={() => setSelectedAddressForModal(null)}
-          />
-
-          {/* Modal */}
-          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-md mx-4">
-            <div className="bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
-              {/* Modal Header */}
-              <div className="bg-gradient-to-r from-teal-900 to-teal-800 text-white px-6 py-4 flex items-center justify-between">
-                <h2 className="text-lg font-bold">Delivery Address</h2>
-                <button
-                  onClick={() => setSelectedAddressForModal(null)}
-                  className="text-white hover:bg-teal-700 p-1 rounded transition"
-                  aria-label="Close"
-                >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-
-              {/* Modal Content */}
-              <div className="p-6 space-y-4">
-                <div>
-                  <p className="text-xs text-gray-500 uppercase font-semibold mb-1">Name</p>
-                  <p className="text-base font-bold text-gray-900">{selectedAddressForModal.name}</p>
-                </div>
-
-                <div>
-                  <p className="text-xs text-gray-500 uppercase font-semibold mb-1">Phone</p>
-                  <p className="text-base font-bold text-gray-900">{selectedAddressForModal.phone}</p>
-                </div>
-
-                <div>
-                  <p className="text-xs text-gray-500 uppercase font-semibold mb-1">Address</p>
-                  <p className="text-base text-gray-900">{selectedAddressForModal.address}</p>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-xs text-gray-500 uppercase font-semibold mb-1">City</p>
-                    <p className="text-base text-gray-900">{selectedAddressForModal.city}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500 uppercase font-semibold mb-1">State</p>
-                    <p className="text-base text-gray-900">{selectedAddressForModal.state}</p>
-                  </div>
-                </div>
-
-                <div>
-                  <p className="text-xs text-gray-500 uppercase font-semibold mb-1">Pincode</p>
-                  <p className="text-base text-gray-900">{selectedAddressForModal.pincode}</p>
-                </div>
-              </div>
-
-              {/* Modal Footer */}
-              <div className="bg-gray-50 px-6 py-4 border-t border-gray-200">
-                <button
-                  onClick={() => setSelectedAddressForModal(null)}
-                  className="w-full bg-teal-900 text-white py-2 rounded-lg font-semibold hover:bg-teal-800 transition"
-                >
-                  Close
-                </button>
-              </div>
-            </div>
-          </div>
-        </>
-      )}
+      
     </div>
   );
 };

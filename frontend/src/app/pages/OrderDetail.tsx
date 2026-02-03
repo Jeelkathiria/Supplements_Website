@@ -131,7 +131,7 @@ export const OrderDetail: React.FC = () => {
             </button>
             <div>
               <h1 className="text-2xl md:text-3xl font-bold text-neutral-900">Order Details</h1>
-              <p className="text-sm text-neutral-600">Order #{order.id.slice(-8).toUpperCase()}</p>
+              <p className="text-sm text-neutral-600">Order #{order.id.toUpperCase()}</p>
             </div>
           </div>
           
@@ -170,8 +170,8 @@ export const OrderDetail: React.FC = () => {
               </div>
               
               <div>
-                <p className="text-xs font-semibold text-teal-100 uppercase mb-1">Order ID</p>
-                <p className="font-mono text-sm break-all">{order.id}</p>
+                <p className="text-xs font-semibold text-teal-100 uppercase mb-1">Order ID </p>
+                <p className="font-mono text-sm break-all">#{order.id}</p>
               </div>
             </div>
           </div>
@@ -180,7 +180,7 @@ export const OrderDetail: React.FC = () => {
           <div className="px-6 md:px-8 py-6 border-b border-neutral-200 bg-neutral-50">
             <h3 className="text-lg font-bold text-neutral-900 mb-4 flex items-center gap-2">
               <span className="w-2 h-2 bg-teal-900 rounded-full"></span>
-              Delivery Address
+              Ship to
             </h3>
             <div className="bg-white p-4 rounded-lg border border-neutral-200">
               <p className="font-bold text-neutral-900 text-lg mb-1">{order.address?.name}</p>

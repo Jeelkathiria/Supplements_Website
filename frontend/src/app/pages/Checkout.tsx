@@ -167,6 +167,7 @@ export const Checkout: React.FC = () => {
   const [showAddressForm, setShowAddressForm] = useState(false);
   const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
   const [paymentMethod, setPaymentMethod] = useState<'cod' | 'upi'>('cod');
+  const [isRedirecting, setIsRedirecting] = useState(false);
 
   // New address form state
   const [newAddress, setNewAddress] = useState<AddressFormData>({
@@ -293,6 +294,9 @@ export const Checkout: React.FC = () => {
         toast.success('Order placed successfully!');
         await clearCart();
         
+        // Show loading animation while preparing to redirect
+        setIsRedirecting(true);
+        
         // Add 2-second delay to show order confirmation animation
         await new Promise(resolve => setTimeout(resolve, 2000));
         
@@ -349,6 +353,9 @@ export const Checkout: React.FC = () => {
         await clearCart();
         toast.success('Payment successful! Order placed.');
         
+        // Show loading animation while preparing to redirect
+        setIsRedirecting(true);
+        
         // Add delay for animation
         await new Promise(resolve => setTimeout(resolve, 1000));
         
@@ -372,6 +379,28 @@ export const Checkout: React.FC = () => {
         <div className="text-center">
           <Loader className="h-12 w-12 text-blue-600 animate-spin mx-auto mb-4" />
           <p className="text-gray-600">Loading checkout...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show loading animation when redirecting after payment
+  if (isRedirecting) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-gray-50 to-gray-100 fixed inset-0 z-50">
+        <div className="text-center space-y-4">
+          <div className="flex justify-center">
+            <div className="animate-bounce">
+              <Check className="h-16 w-16 text-green-500" />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <p className="text-lg font-semibold text-gray-900">Order placed successfully!</p>
+            <p className="text-sm text-gray-600">Redirecting to your order details...</p>
+          </div>
+          <div className="flex justify-center gap-2">
+            <Loader className="h-5 w-5 text-green-600 animate-spin" />
+          </div>
         </div>
       </div>
     );
@@ -557,7 +586,7 @@ export const Checkout: React.FC = () => {
                       <select
                         value={newAddress.state}
                         onChange={(e) => {
-                          setNewAddress({ ...newAddress, state: e.target.value, city: '' });
+                          setNewAddress({ ...newAddress, state: e.target.value });
                           if (validationErrors.state) setValidationErrors({ ...validationErrors, state: undefined });
                         }}
                         className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${

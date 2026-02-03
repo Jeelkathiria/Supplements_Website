@@ -330,7 +330,7 @@ export const Cart: React.FC = () => {
                   {/* CTA */}
                   <button
                     onClick={handleProceedToCheckout}
-                    className="w-full bg-neutral-900 text-white py-3 rounded-lg hover:bg-neutral-800 transition font-semibold mb-3"
+                    className="w-full bg-teal-800 text-white py-3 rounded-lg hover:bg-teal-900 transition font-semibold mb-3"
                   >
                     {isAuthenticated ? "Proceed to Checkout" : "Login & Checkout"}
                   </button>
