@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { ChevronDown, AlertCircle, Search, X, Phone, MapPin, CreditCard, User } from "lucide-react";
+import { ChevronDown, AlertCircle, Search, X, Phone, MapPin, CreditCard, User, CheckCircle, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import {
   getAllOrders,
@@ -7,6 +7,7 @@ import {
   Order,
   OrderItem,
 } from "../../services/adminOrderService";
+import { OrderCancellationService } from "../../services/orderCancellationService";
 import { useAuth } from "./context/AuthContext";
 
 // Helper function to get full image URL
@@ -36,7 +37,11 @@ const STATUS_HEADER_BG: Record<string, string> = {
   CANCELLED: "bg-red-50",
 };
 
-export const AdminOrders: React.FC = () => {
+interface AdminOrdersProps {
+  filterStatus?: "all" | "pending" | "delivered" | "shipped" | "cancelled";
+}
+
+export const AdminOrders: React.FC<AdminOrdersProps> = ({ filterStatus = "all" }) => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedOrderForModal, setSelectedOrderForModal] = useState<Order | null>(null);
@@ -44,6 +49,8 @@ export const AdminOrders: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
+  const [cancellationRequests, setCancellationRequests] = useState<Record<string, any>>({});
+  const [loadingCancellationRequests, setLoadingCancellationRequests] = useState(false);
   const CARDS_PER_PAGE = 12; // 3 cards × 4 rows
   const { firebaseUser } = useAuth();
 
@@ -51,6 +58,7 @@ export const AdminOrders: React.FC = () => {
     // Only load orders once the user is authenticated
     if (firebaseUser) {
       loadOrders();
+      loadCancellationRequests();
     } else if (!isLoading) {
       // If we've finished loading but no user, set isLoading to false
       setIsLoading(false);
@@ -67,6 +75,23 @@ export const AdminOrders: React.FC = () => {
       toast.error("Failed to load orders");
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const loadCancellationRequests = async () => {
+    try {
+      setLoadingCancellationRequests(true);
+      const requests = await OrderCancellationService.getAllRequests();
+      const requestsByOrderId: Record<string, any> = {};
+      requests.forEach(req => {
+        requestsByOrderId[req.orderId] = req;
+      });
+      setCancellationRequests(requestsByOrderId);
+    } catch (error) {
+      console.error("Error loading cancellation requests:", error);
+      // Don't show error toast here as it's optional
+    } finally {
+      setLoadingCancellationRequests(false);
     }
   };
 
@@ -90,6 +115,49 @@ export const AdminOrders: React.FC = () => {
     }
   };
 
+  const handleApproveCancellation = async (requestId: string, orderId: string) => {
+    try {
+      await OrderCancellationService.approveCancellation(requestId);
+      
+      // Update cancellation requests
+      setCancellationRequests(prev => {
+        const updated = { ...prev };
+        if (updated[orderId]) {
+          updated[orderId].status = 'APPROVED';
+        }
+        return updated;
+      });
+
+      // Reload orders to get updated status
+      await loadOrders();
+      
+      toast.success("Cancellation approved! Order has been cancelled.");
+    } catch (error) {
+      console.error("Error approving cancellation:", error);
+      toast.error("Failed to approve cancellation");
+    }
+  };
+
+  const handleRejectCancellation = async (requestId: string, orderId: string) => {
+    try {
+      await OrderCancellationService.rejectCancellation(requestId);
+      
+      // Update cancellation requests
+      setCancellationRequests(prev => {
+        const updated = { ...prev };
+        if (updated[orderId]) {
+          updated[orderId].status = 'REJECTED';
+        }
+        return updated;
+      });
+      
+      toast.success("Cancellation request rejected.");
+    } catch (error) {
+      console.error("Error rejecting cancellation:", error);
+      toast.error("Failed to reject cancellation");
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -107,15 +175,31 @@ export const AdminOrders: React.FC = () => {
     );
   }
 
-  // Filter orders based on search query
+  // Filter orders based on search query and status filter
   const filteredOrders = orders.filter((order) => {
     const searchLower = searchQuery.toLowerCase();
-    return (
+    
+    // Apply search filter
+    const matchesSearch =
       order.id.toLowerCase().includes(searchLower) ||
       order.address?.name.toLowerCase().includes(searchLower) ||
       order.address?.phone.includes(searchQuery) ||
-      order.totalAmount.toString().includes(searchQuery)
-    );
+      order.totalAmount.toString().includes(searchQuery);
+    
+    // Apply status filter
+    let matchesStatus = true;
+    if (filterStatus !== "all") {
+      const statusMap: Record<string, string[]> = {
+        pending: ["PENDING", "PAID"],
+        shipped: ["SHIPPED"],
+        delivered: ["DELIVERED"],
+        cancelled: ["CANCELLED"],
+      };
+      const allowedStatuses = statusMap[filterStatus] || [];
+      matchesStatus = allowedStatuses.includes(order.status);
+    }
+    
+    return matchesSearch && matchesStatus;
   });
 
   return (
@@ -169,7 +253,18 @@ export const AdminOrders: React.FC = () => {
                       <div className={`px-4 py-3 border-b border-neutral-200 ${STATUS_HEADER_BG[order.status] || 'bg-neutral-50'}`}>
                         <div className="flex items-start justify-between mb-2">
                           <div className="flex-1">
-                            <h3 className="font-bold text-base text-neutral-900">Order #{order.id.toUpperCase()}</h3>
+                            <div className="flex items-center gap-2 mb-1">
+                              <h3 className="font-bold text-base text-neutral-900">Order #{order.id.toUpperCase()}</h3>
+                              {cancellationRequests[order.id] && (
+                                <span className={`inline-block px-2 py-0.5 rounded text-xs font-bold ${
+                                  cancellationRequests[order.id].status === 'PENDING' ? 'bg-orange-200 text-orange-900' :
+                                  cancellationRequests[order.id].status === 'APPROVED' ? 'bg-red-200 text-red-900' :
+                                  'bg-gray-200 text-gray-900'
+                                }`}>
+                                  Cancel Req: {cancellationRequests[order.id].status}
+                                </span>
+                              )}
+                            </div>
                             <p className="text-xs text-neutral-600">
                               {new Date(order.createdAt).toLocaleDateString('en-IN', { 
                                 month: 'short', 
@@ -313,6 +408,57 @@ export const AdminOrders: React.FC = () => {
                             <div className="space-y-1 text-xs text-neutral-700 ml-6">
                               <p><span className="font-semibold">Method:</span> {order.paymentMethod === 'upi' ? 'UPI' : 'Cash on Delivery'}</p>
                             </div>
+                          </div>
+
+                          {/* Cancellation Request (if exists) */}
+                          {cancellationRequests[order.id] && (
+                            <div>
+                              <h5 className="font-bold text-sm text-neutral-900 mb-2 flex items-center gap-2">
+                                <AlertCircle size={16} className="text-orange-600" /> Cancellation Request
+                              </h5>
+                              <div className="space-y-2 text-xs text-neutral-700 ml-6">
+                                <div>
+                                  <p className="font-semibold mb-1">Status:</p>
+                                  <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${
+                                    cancellationRequests[order.id].status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
+                                    cancellationRequests[order.id].status === 'APPROVED' ? 'bg-green-100 text-green-800' :
+                                    'bg-red-100 text-red-800'
+                                  }`}>
+                                    {cancellationRequests[order.id].status}
+                                  </span>
+                                </div>
+                                <div>
+                                  <p className="font-semibold">Reason:</p>
+                                  <p className="text-neutral-600 mt-1 p-2 bg-neutral-50 rounded text-xs leading-relaxed">
+                                    {cancellationRequests[order.id].reason}
+                                  </p>
+                                </div>
+                                <p><span className="font-semibold">Requested:</span> {new Date(cancellationRequests[order.id].createdAt).toLocaleDateString('en-IN')}</p>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Cancellation Request Action Buttons - Expanded View Only */}
+                      {isExpanded && cancellationRequests[order.id] && cancellationRequests[order.id].status === 'PENDING' && (
+                        <div className="px-4 py-2.5 flex items-center justify-between gap-2 border-t border-neutral-200 bg-orange-50">
+                          <p className="text-xs text-orange-700 font-semibold">Pending cancellation approval</p>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => handleRejectCancellation(cancellationRequests[order.id].id, order.id)}
+                              className="flex items-center gap-1 px-3 py-1.5 bg-red-600 text-white text-xs font-medium rounded hover:bg-red-700 transition"
+                            >
+                              <XCircle size={14} />
+                              Reject
+                            </button>
+                            <button
+                              onClick={() => handleApproveCancellation(cancellationRequests[order.id].id, order.id)}
+                              className="flex items-center gap-1 px-3 py-1.5 bg-green-600 text-white text-xs font-medium rounded hover:bg-green-700 transition"
+                            >
+                              <CheckCircle size={14} />
+                              Approve & Cancel
+                            </button>
                           </div>
                         </div>
                       )}

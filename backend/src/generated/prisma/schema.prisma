@@ -103,6 +103,8 @@ model Order {
   addressId String?
   address   OrderAddress? @relation(fields: [addressId], references: [id])
 
+  cancellationRequest OrderCancellationRequest?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -171,6 +173,31 @@ enum OrderStatus {
   SHIPPED
   DELIVERED
   CANCELLED
+}
+
+enum CancellationRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+/**
+ * ================= Order Cancellation Request =================
+ */
+model OrderCancellationRequest {
+  id      String                    @id @default(uuid())
+  orderId String                    @unique
+  userId  String
+  reason  String // Minimum 20 words required
+  status  CancellationRequestStatus @default(PENDING)
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([status])
 }
 
 /**

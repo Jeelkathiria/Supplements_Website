@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Download, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Download, AlertCircle, FileText } from 'lucide-react';
 import * as orderService from '../../services/orderService';
+import { OrderCancellationService } from '../../services/orderCancellationService';
 import type { Order } from '../../services/orderService';
 
 export const OrderDetail: React.FC = () => {
@@ -10,9 +11,9 @@ export const OrderDetail: React.FC = () => {
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [cancellationRequest, setCancellationRequest] = useState<any>(null);
 
   useEffect(() => {
-    // Set active tab to 'orders' when viewing order details
     localStorage.setItem('accountActiveTab', 'orders');
   }, []);
 
@@ -25,17 +26,24 @@ export const OrderDetail: React.FC = () => {
           setError('Order ID not found');
           return;
         }
-        
-        // Fetch all orders and find the one matching orderId
+
         const orders = await orderService.getUserOrders();
         const foundOrder = orders.find(o => o.id === orderId);
-        
+
         if (!foundOrder) {
           setError('Order not found');
           return;
         }
-        
+
         setOrder(foundOrder);
+
+        try {
+          const request =
+            await OrderCancellationService.getCancellationRequestByOrderId(orderId);
+          setCancellationRequest(request);
+        } catch {
+          setCancellationRequest(null);
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load order details');
       } finally {
@@ -46,41 +54,31 @@ export const OrderDetail: React.FC = () => {
     loadOrder();
   }, [orderId]);
 
-  const handlePrint = () => {
-    window.print();
-  };
+  const handlePrint = () => window.print();
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-neutral-50 flex items-center justify-center py-12 px-4">
-        <div className="text-center">
-          <div className="w-8 h-8 border-4 border-teal-900 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-neutral-700">Loading order details...</p>
-        </div>
+      <div className="min-h-screen flex items-center justify-center text-sm text-neutral-600">
+        Loading order details...
       </div>
     );
   }
 
   if (error || !order) {
     return (
-      <div className="min-h-screen bg-neutral-50 py-12 px-4">
-        <div className="max-w-3xl mx-auto">
-          <button
-            onClick={() => navigate('/account')}
-            className="flex items-center gap-2 text-teal-900 hover:text-teal-800 mb-8 font-medium"
-          >
-            <ArrowLeft className="w-5 h-5" />
-            Back to Account
-          </button>
-          
-          <div className="bg-white rounded-lg shadow-sm p-8 border border-neutral-200">
-            <div className="flex items-start gap-3 text-red-600">
-              <AlertCircle className="w-6 h-6 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="font-bold mb-1">Error Loading Order</p>
-                <p className="text-sm">{error || 'Order not found'}</p>
-              </div>
-            </div>
+      <div className="min-h-screen p-6 max-w-3xl mx-auto">
+        <button
+          onClick={() => navigate('/account')}
+          className="flex items-center gap-2 text-sm text-blue-600 mb-6"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back to Orders
+        </button>
+
+        <div className="bg-white p-6 border rounded">
+          <div className="flex gap-2 text-red-600 text-sm">
+            <AlertCircle className="w-4 h-4 mt-0.5" />
+            {error}
           </div>
         </div>
       </div>
@@ -98,202 +96,173 @@ export const OrderDetail: React.FC = () => {
     return null;
   };
 
-  const orderDate = new Date(order.createdAt).toLocaleDateString('en-IN', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  });
-
-  const orderTime = new Date(order.createdAt).toLocaleTimeString('en-IN', {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: true,
-  });
-
   const statusColor: { [key: string]: string } = {
-    PENDING: 'bg-yellow-100 text-yellow-800',
-    CONFIRMED: 'bg-blue-100 text-blue-800',
-    DELIVERED: 'bg-green-100 text-green-800',
-    CANCELLED: 'bg-red-100 text-red-800',
+    PENDING: 'text-orange-600',
+    CONFIRMED: 'text-blue-600',
+    DELIVERED: 'text-green-600',
+    CANCELLED: 'text-red-600',
   };
 
   return (
-    <div className="min-h-screen bg-neutral-50 py-8 md:py-12 px-4">
+    <div className="min-h-screen bg-neutral-50 p-4 text-sm">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-4">
+        <div className="flex justify-between items-center mb-4">
+          <div>
             <button
               onClick={() => navigate('/account')}
-              className="flex items-center justify-center w-10 h-10 rounded-lg hover:bg-neutral-200 transition"
+              className="flex items-center gap-1 text-blue-600 mb-1"
             >
-              <ArrowLeft className="w-5 h-5 text-neutral-600" />
+              <ArrowLeft className="w-4 h-4" />
+              Back to Orders
             </button>
-            <div>
-              <h1 className="text-2xl md:text-3xl font-bold text-neutral-900">Order Details</h1>
-              <p className="text-sm text-neutral-600">Order #{order.id.toUpperCase()}</p>
-            </div>
+            <h1 className="text-lg font-semibold">Order #{order.id}</h1>
           </div>
-          
+
           <button
             onClick={handlePrint}
-            className="flex items-center gap-2 px-4 py-2 bg-teal-900 text-white rounded-lg hover:bg-teal-800 transition font-medium print:hidden"
+            className="flex items-center gap-1 text-xs text-blue-600 print:hidden"
           >
             <Download className="w-4 h-4" />
             Print
           </button>
         </div>
 
-        {/* Ticket/Bill Container */}
-        <div className="bg-white rounded-lg shadow-md border border-neutral-200 overflow-hidden">
-          {/* Order Header Section */}
-          <div className="bg-gradient-to-r from-teal-900 to-teal-800 text-white px-6 md:px-8 py-6">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-              <div>
-                <p className="text-xs font-semibold text-teal-100 uppercase mb-1">Order Date</p>
-                <p className="font-bold text-lg">{orderDate}</p>
-                <p className="text-xs text-teal-100">{orderTime}</p>
-              </div>
-              
-              <div>
-                <p className="text-xs font-semibold text-teal-100 uppercase mb-1">Order Status</p>
-                <span className={`inline-block px-3 py-1 rounded-full text-sm font-bold ${statusColor[order.status] || 'bg-gray-100 text-gray-800'}`}>
-                  {order.status}
-                </span>
-              </div>
-              
-              <div>
-                <p className="text-xs font-semibold text-teal-100 uppercase mb-1">Payment Method</p>
-                <p className="font-bold text-lg capitalize">
-                  {order?.paymentMethod ? order.paymentMethod.replace('_', ' ') : 'COD'}
-                </p>
-              </div>
-              
-              <div>
-                <p className="text-xs font-semibold text-teal-100 uppercase mb-1">Order ID </p>
-                <p className="font-mono text-sm break-all">#{order.id}</p>
-              </div>
+        {/* Order Summary */}
+        <div className="bg-white border rounded p-4 mb-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div>
+              <p className="text-neutral-500">Order Date</p>
+              <p>{new Date(order.createdAt).toLocaleString('en-IN')}</p>
             </div>
-          </div>
-
-          {/* Delivery Address Section */}
-          <div className="px-6 md:px-8 py-6 border-b border-neutral-200 bg-neutral-50">
-            <h3 className="text-lg font-bold text-neutral-900 mb-4 flex items-center gap-2">
-              <span className="w-2 h-2 bg-teal-900 rounded-full"></span>
-              Ship to
-            </h3>
-            <div className="bg-white p-4 rounded-lg border border-neutral-200">
-              <p className="font-bold text-neutral-900 text-lg mb-1">{order.address?.name}</p>
-              <p className="text-neutral-700 text-sm mb-1">{order.address?.phone}</p>
-              <p className="text-neutral-700 text-sm leading-relaxed">
-                {order.address?.address}<br />
-                {order.address?.city}, {order.address?.state} {order.address?.pincode}
+            <div>
+              <p className="text-neutral-500">Status</p>
+              <p className={`font-medium ${statusColor[order.status]}`}>
+                {order.status}
               </p>
             </div>
-          </div>
-
-          {/* Items Section */}
-          <div className="font-mono px-6 md:px-8 py-6 border-b border-neutral-200">
-            <h3 className="text-lg font-bold text-neutral-900 mb-4 flex items-center gap-2">
-              <span className="w-2 h-2 bg-teal-900 rounded-full"></span>
-              Order Items
-            </h3>
-            
-            <div className="space-y-4">
-              {order.items.map((item, idx) => {
-                const imageUrl = getImageUrl(item.product?.imageUrls);
-                return (
-                  <div key={idx} className="flex gap-4 pb-4 border-b border-neutral-200 last:border-0 last:pb-0">
-                    {imageUrl && (
-                      <div className="flex-shrink-0">
-                        <img
-                          src={imageUrl}
-                          alt={item.product?.name}
-                          className="w-20 h-20 md:w-24 md:h-24 object-cover rounded-lg border border-neutral-200"
-                        />
-                      </div>
-                    )}
-                    
-                    <div className="flex-1 min-w-0">
-                      <p className="font-bold text-neutral-900 mb-1">
-                        {item.product?.name || item.productName}
-                      </p>
-                      
-                      <div className="grid grid-cols-2 gap-2 text-sm mb-2">
-                        <div className="bg-neutral-50 p-2 rounded">
-                          <p className="text-xs text-neutral-600 font-semibold">Price per Unit</p>
-                          <p className="font-bold text-neutral-900">₹{item.price.toFixed(2)}</p>
-                        </div>
-                        <div className="bg-neutral-50 p-2 rounded">
-                          <p className="text-xs text-neutral-600 font-semibold">Quantity</p>
-                          <p className="font-bold text-neutral-900">{item.quantity}</p>
-                        </div>
-                      </div>
-
-                      {(item.flavor || item.size) && (
-                        <div className="text-xs text-neutral-600 mb-2 space-y-0.5">
-                          {item.flavor && <p><span className="font-semibold">Flavor:</span> {item.flavor}</p>}
-                          {item.size && <p><span className="font-semibold">Size:</span> {item.size}</p>}
-                        </div>
-                      )}
-                      
-                      <p className="text-sm font-bold text-teal-900 bg-teal-50 inline-block px-2 py-1 rounded">
-                        Subtotal: ₹{(item.quantity * item.price).toFixed(2)}
-                      </p>
-                    </div>
-                  </div>
-                );
-              })}
+            <div>
+              <p className="text-neutral-500">Payment</p>
+              <p className="capitalize">
+                {order.paymentMethod?.replace('_', ' ') || 'COD'}
+              </p>
+            </div>
+            <div>
+              <p className="text-neutral-500">Total</p>
+              <p className="font-semibold">₹{order.totalAmount.toFixed(2)}</p>
             </div>
           </div>
+        </div>
 
-          {/* Bill Summary Section */}
-          <div className="font-mono px-6 md:px-8 py-8 border-t border-neutral-200">
-            <h3 className="text-center text-xl font-bold text-neutral-900 mb-8 tracking-wide">ORDER BILL</h3>
-            
-            <div className="max-w-2xl space-y-4">
-              {/* Order Items */}
-              {order.items.map((item, idx) => (
-                <div key={idx}>
-                  <div className="flex justify-between items-start mb-1">
-                    <p className="font-bold text-neutral-900 flex-1">
-                      {(item.product?.name || item.productName).toUpperCase()}
-                    </p>
-                    <p className="font-bold text-neutral-900 text-right">
-                      ₹{(item.quantity * item.price).toFixed(2)}
-                    </p>
-                  </div>
-                  <p className="text-sm text-neutral-600 mb-2">
+        {/* Items */}
+        <div className="bg-white border rounded p-4 mb-4 font-mono">
+          <p className="font-semibold mb-3">Items</p>
+
+          {order.items.map((item, idx) => {
+            const imageUrl = getImageUrl(item.product?.imageUrls);
+            return (
+              <div
+                key={idx}
+                className="flex gap-3 py-3 border-b last:border-0"
+              >
+                {imageUrl && (
+                  <img
+                    src={imageUrl}
+                    className="w-16 h-16 object-cover border rounded"
+                  />
+                )}
+
+                <div className="flex-1">
+                  <p className="font-medium">
+                    {item.product?.name || item.productName}
+                  </p>
+                  <p className="text-neutral-500 text-xs">
                     {item.quantity} × ₹{item.price.toFixed(2)}
                   </p>
-                  
-                  {/* Show discount per item if applicable */}
-                  {order.discountAmount > 0 && idx === 0 && (
-                    <p className="text-sm text-green-600 font-semibold mb-3">
-                      Saved ₹{order.discountAmount.toFixed(2)}
+
+                  {(item.flavor || item.size) && (
+                    <p className="text-xs text-neutral-400 mt-0.5">
+                      {item.flavor && `Flavor: ${item.flavor}`}{" "}
+                      {item.size && `| Size: ${item.size}`}
                     </p>
                   )}
-
-                  {/* Dotted separator */}
-                  {idx < order.items.length - 1 && (
-                    <div className="my-3 border-b border-dotted border-neutral-300"></div>
-                  )}
                 </div>
-              ))}
 
-              {/* Final Separator */}
-              <div className="my-4 border-b border-dotted border-neutral-300"></div>
+                <p className="font-medium">
+                  ₹{(item.quantity * item.price).toFixed(2)}
+                </p>
+              </div>
+            );
+          })}
+        </div>
 
-              {/* Total */}
-              <div className="flex justify-between items-center pt-2">
-                <p className="font-bold text-neutral-900">Total</p>
-                <p className="font-bold text-neutral-900 text-lg">₹{order.totalAmount.toFixed(2)}</p>
+          {/* Order Summary */}
+          <div className="bg-white border rounded p-4 text-sm mb-6">
+            <p className="font-semibold mb-3">Order Summary</p>
+
+            {/* Totals */}
+            <div className="space-y-2">
+              <div className="flex justify-between">
+                <span>Subtotal</span>
+                <span>
+                  ₹{order.items
+                    .reduce((sum, i) => sum + i.price * i.quantity, 0)
+                    .toFixed(2)}
+                </span>
+              </div>
+
+              {order.discountAmount > 0 && (
+                <div className="flex justify-between text-green-600">
+                  <span>Discount</span>
+                  <span>- ₹{order.discountAmount.toFixed(2)}</span>
+                </div>
+              )}
+
+              <div className="border-t pt-2 flex justify-between font-semibold">
+                <span>Total</span>
+                <span>₹{order.totalAmount.toFixed(2)}</span>
               </div>
             </div>
+
+            {/* Cancellation Action */}
+            {!cancellationRequest && order.status !== 'CANCELLED' && (
+              <>
+                <div className="mt-3 border-t" />
+                <button
+                  onClick={() => navigate(`/request-cancellation/${orderId}`)}
+                  className="mt-2 text-xs text-neutral-500 hover:text-neutral-700 hover:underline flex items-center gap-1 print:hidden"
+                >
+                  Request order cancellation →
+                </button>
+              </>
+            )}
+
+            {/* Cancellation Status */}
+            {cancellationRequest && (
+              <>
+                <div className="mt-3 border-t" />
+                <div className="mt-3 bg-yellow-50 border rounded p-3 text-xs">
+                  <p className="font-medium text-yellow-900">
+                    Cancellation request submitted
+                  </p>
+                  <p className="text-yellow-700 mt-0.5">
+                    Status: <span className="font-semibold">{cancellationRequest.status}</span>
+                  </p>
+
+                  <button
+                    onClick={() => navigate(`/cancellation-ticket/${orderId}`)}
+                    className="flex items-center gap-1 text-blue-600 mt-2 hover:underline"
+                  >
+                    <FileText className="w-3 h-3" />
+                    View ticket
+                  </button>
+                </div>
+              </>
+            )}
           </div>
 
           {/* Footer */}
-          <div className="px-6 md:px-8 py-4 bg-neutral-100 border-t border-neutral-200 text-center text-xs text-neutral-600">
+          <div className="px-6 md:px-8 py-4 bg-neutral-100 border-t border-neutral-200 text-center text-xs text-neutral-600 max-w-4xl mx-auto">
             <p>
               Thank you for your order! For any queries, please{" "}
               <a
@@ -304,37 +273,10 @@ export const OrderDetail: React.FC = () => {
               </a>
               .
             </p>
-          </div>
         </div>
 
-        {/* Back Button */}
-        <div className="mt-6 print:hidden">
-          <button
-            onClick={() => navigate('/account')}
-            className="w-full px-4 py-3 bg-neutral-200 text-neutral-800 rounded-lg hover:bg-neutral-300 transition font-medium"
-          >
-            Back to My Orders
-          </button>
-        </div>
-      </div>
-
-      {/* Print Styles */}
-      <style>{`
-        @media print {
-          body {
-            background: white;
-          }
-          .bg-neutral-50 {
-            background: white;
-          }
-          button {
-            display: none;
-          }
-          .max-w-4xl {
-            max-width: 100%;
-          }
-        }
-      `}</style>
+      </div>    
     </div>
+    
   );
 };

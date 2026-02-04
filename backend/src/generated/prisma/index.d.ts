@@ -59,6 +59,12 @@ export type OrderAddress = $Result.DefaultSelection<Prisma.$OrderAddressPayload>
  */
 export type Address = $Result.DefaultSelection<Prisma.$AddressPayload>
 /**
+ * Model OrderCancellationRequest
+ * *
+ *  * ================= Order Cancellation Request =================
+ */
+export type OrderCancellationRequest = $Result.DefaultSelection<Prisma.$OrderCancellationRequestPayload>
+/**
  * Model User
  * *
  *  * ================= User =================
@@ -79,11 +85,24 @@ export namespace $Enums {
 
 export type OrderStatus = (typeof OrderStatus)[keyof typeof OrderStatus]
 
+
+export const CancellationRequestStatus: {
+  PENDING: 'PENDING',
+  APPROVED: 'APPROVED',
+  REJECTED: 'REJECTED'
+};
+
+export type CancellationRequestStatus = (typeof CancellationRequestStatus)[keyof typeof CancellationRequestStatus]
+
 }
 
 export type OrderStatus = $Enums.OrderStatus
 
 export const OrderStatus: typeof $Enums.OrderStatus
+
+export type CancellationRequestStatus = $Enums.CancellationRequestStatus
+
+export const CancellationRequestStatus: typeof $Enums.CancellationRequestStatus
 
 /**
  * ##  Prisma Client ʲˢ
@@ -282,6 +301,16 @@ export class PrismaClient<
     * ```
     */
   get address(): Prisma.AddressDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.orderCancellationRequest`: Exposes CRUD operations for the **OrderCancellationRequest** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more OrderCancellationRequests
+    * const orderCancellationRequests = await prisma.orderCancellationRequest.findMany()
+    * ```
+    */
+  get orderCancellationRequest(): Prisma.OrderCancellationRequestDelegate<ExtArgs, ClientOptions>;
 
   /**
    * `prisma.user`: Exposes CRUD operations for the **User** model.
@@ -741,6 +770,7 @@ export namespace Prisma {
     OrderItem: 'OrderItem',
     OrderAddress: 'OrderAddress',
     Address: 'Address',
+    OrderCancellationRequest: 'OrderCancellationRequest',
     User: 'User'
   };
 
@@ -760,7 +790,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "category" | "product" | "cart" | "cartItem" | "order" | "orderItem" | "orderAddress" | "address" | "user"
+      modelProps: "category" | "product" | "cart" | "cartItem" | "order" | "orderItem" | "orderAddress" | "address" | "orderCancellationRequest" | "user"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -1356,6 +1386,80 @@ export namespace Prisma {
           }
         }
       }
+      OrderCancellationRequest: {
+        payload: Prisma.$OrderCancellationRequestPayload<ExtArgs>
+        fields: Prisma.OrderCancellationRequestFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.OrderCancellationRequestFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$OrderCancellationRequestPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.OrderCancellationRequestFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$OrderCancellationRequestPayload>
+          }
+          findFirst: {
+            args: Prisma.OrderCancellationRequestFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$OrderCancellationRequestPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.OrderCancellationRequestFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$OrderCancellationRequestPayload>
+          }
+          findMany: {
+            args: Prisma.OrderCancellationRequestFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$OrderCancellationRequestPayload>[]
+          }
+          create: {
+            args: Prisma.OrderCancellationRequestCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$OrderCancellationRequestPayload>
+          }
+          createMany: {
+            args: Prisma.OrderCancellationRequestCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.OrderCancellationRequestCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$OrderCancellationRequestPayload>[]
+          }
+          delete: {
+            args: Prisma.OrderCancellationRequestDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$OrderCancellationRequestPayload>
+          }
+          update: {
+            args: Prisma.OrderCancellationRequestUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$OrderCancellationRequestPayload>
+          }
+          deleteMany: {
+            args: Prisma.OrderCancellationRequestDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.OrderCancellationRequestUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.OrderCancellationRequestUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$OrderCancellationRequestPayload>[]
+          }
+          upsert: {
+            args: Prisma.OrderCancellationRequestUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$OrderCancellationRequestPayload>
+          }
+          aggregate: {
+            args: Prisma.OrderCancellationRequestAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateOrderCancellationRequest>
+          }
+          groupBy: {
+            args: Prisma.OrderCancellationRequestGroupByArgs<ExtArgs>
+            result: $Utils.Optional<OrderCancellationRequestGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.OrderCancellationRequestCountArgs<ExtArgs>
+            result: $Utils.Optional<OrderCancellationRequestCountAggregateOutputType> | number
+          }
+        }
+      }
       User: {
         payload: Prisma.$UserPayload<ExtArgs>
         fields: Prisma.UserFieldRefs
@@ -1534,6 +1638,7 @@ export namespace Prisma {
     orderItem?: OrderItemOmit
     orderAddress?: OrderAddressOmit
     address?: AddressOmit
+    orderCancellationRequest?: OrderCancellationRequestOmit
     user?: UserOmit
   }
 
@@ -6632,6 +6737,7 @@ export namespace Prisma {
     updatedAt?: boolean
     items?: boolean | Order$itemsArgs<ExtArgs>
     address?: boolean | Order$addressArgs<ExtArgs>
+    cancellationRequest?: boolean | Order$cancellationRequestArgs<ExtArgs>
     _count?: boolean | OrderCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["order"]>
 
@@ -6677,6 +6783,7 @@ export namespace Prisma {
   export type OrderInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     items?: boolean | Order$itemsArgs<ExtArgs>
     address?: boolean | Order$addressArgs<ExtArgs>
+    cancellationRequest?: boolean | Order$cancellationRequestArgs<ExtArgs>
     _count?: boolean | OrderCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type OrderIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -6691,6 +6798,7 @@ export namespace Prisma {
     objects: {
       items: Prisma.$OrderItemPayload<ExtArgs>[]
       address: Prisma.$OrderAddressPayload<ExtArgs> | null
+      cancellationRequest: Prisma.$OrderCancellationRequestPayload<ExtArgs> | null
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -7098,6 +7206,7 @@ export namespace Prisma {
     readonly [Symbol.toStringTag]: "PrismaPromise"
     items<T extends Order$itemsArgs<ExtArgs> = {}>(args?: Subset<T, Order$itemsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$OrderItemPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     address<T extends Order$addressArgs<ExtArgs> = {}>(args?: Subset<T, Order$addressArgs<ExtArgs>>): Prisma__OrderAddressClient<$Result.GetResult<Prisma.$OrderAddressPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+    cancellationRequest<T extends Order$cancellationRequestArgs<ExtArgs> = {}>(args?: Subset<T, Order$cancellationRequestArgs<ExtArgs>>): Prisma__OrderCancellationRequestClient<$Result.GetResult<Prisma.$OrderCancellationRequestPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -7572,6 +7681,25 @@ export namespace Prisma {
      */
     include?: OrderAddressInclude<ExtArgs> | null
     where?: OrderAddressWhereInput
+  }
+
+  /**
+   * Order.cancellationRequest
+   */
+  export type Order$cancellationRequestArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the OrderCancellationRequest
+     */
+    select?: OrderCancellationRequestSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the OrderCancellationRequest
+     */
+    omit?: OrderCancellationRequestOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: OrderCancellationRequestInclude<ExtArgs> | null
+    where?: OrderCancellationRequestWhereInput
   }
 
   /**
@@ -10995,6 +11123,1090 @@ export namespace Prisma {
 
 
   /**
+   * Model OrderCancellationRequest
+   */
+
+  export type AggregateOrderCancellationRequest = {
+    _count: OrderCancellationRequestCountAggregateOutputType | null
+    _min: OrderCancellationRequestMinAggregateOutputType | null
+    _max: OrderCancellationRequestMaxAggregateOutputType | null
+  }
+
+  export type OrderCancellationRequestMinAggregateOutputType = {
+    id: string | null
+    orderId: string | null
+    userId: string | null
+    reason: string | null
+    status: $Enums.CancellationRequestStatus | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type OrderCancellationRequestMaxAggregateOutputType = {
+    id: string | null
+    orderId: string | null
+    userId: string | null
+    reason: string | null
+    status: $Enums.CancellationRequestStatus | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type OrderCancellationRequestCountAggregateOutputType = {
+    id: number
+    orderId: number
+    userId: number
+    reason: number
+    status: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type OrderCancellationRequestMinAggregateInputType = {
+    id?: true
+    orderId?: true
+    userId?: true
+    reason?: true
+    status?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type OrderCancellationRequestMaxAggregateInputType = {
+    id?: true
+    orderId?: true
+    userId?: true
+    reason?: true
+    status?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type OrderCancellationRequestCountAggregateInputType = {
+    id?: true
+    orderId?: true
+    userId?: true
+    reason?: true
+    status?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type OrderCancellationRequestAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which OrderCancellationRequest to aggregate.
+     */
+    where?: OrderCancellationRequestWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of OrderCancellationRequests to fetch.
+     */
+    orderBy?: OrderCancellationRequestOrderByWithRelationInput | OrderCancellationRequestOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: OrderCancellationRequestWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` OrderCancellationRequests from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` OrderCancellationRequests.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned OrderCancellationRequests
+    **/
+    _count?: true | OrderCancellationRequestCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: OrderCancellationRequestMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: OrderCancellationRequestMaxAggregateInputType
+  }
+
+  export type GetOrderCancellationRequestAggregateType<T extends OrderCancellationRequestAggregateArgs> = {
+        [P in keyof T & keyof AggregateOrderCancellationRequest]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateOrderCancellationRequest[P]>
+      : GetScalarType<T[P], AggregateOrderCancellationRequest[P]>
+  }
+
+
+
+
+  export type OrderCancellationRequestGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: OrderCancellationRequestWhereInput
+    orderBy?: OrderCancellationRequestOrderByWithAggregationInput | OrderCancellationRequestOrderByWithAggregationInput[]
+    by: OrderCancellationRequestScalarFieldEnum[] | OrderCancellationRequestScalarFieldEnum
+    having?: OrderCancellationRequestScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: OrderCancellationRequestCountAggregateInputType | true
+    _min?: OrderCancellationRequestMinAggregateInputType
+    _max?: OrderCancellationRequestMaxAggregateInputType
+  }
+
+  export type OrderCancellationRequestGroupByOutputType = {
+    id: string
+    orderId: string
+    userId: string
+    reason: string
+    status: $Enums.CancellationRequestStatus
+    createdAt: Date
+    updatedAt: Date
+    _count: OrderCancellationRequestCountAggregateOutputType | null
+    _min: OrderCancellationRequestMinAggregateOutputType | null
+    _max: OrderCancellationRequestMaxAggregateOutputType | null
+  }
+
+  type GetOrderCancellationRequestGroupByPayload<T extends OrderCancellationRequestGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<OrderCancellationRequestGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof OrderCancellationRequestGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], OrderCancellationRequestGroupByOutputType[P]>
+            : GetScalarType<T[P], OrderCancellationRequestGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type OrderCancellationRequestSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    orderId?: boolean
+    userId?: boolean
+    reason?: boolean
+    status?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    order?: boolean | OrderDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["orderCancellationRequest"]>
+
+  export type OrderCancellationRequestSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    orderId?: boolean
+    userId?: boolean
+    reason?: boolean
+    status?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    order?: boolean | OrderDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["orderCancellationRequest"]>
+
+  export type OrderCancellationRequestSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    orderId?: boolean
+    userId?: boolean
+    reason?: boolean
+    status?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    order?: boolean | OrderDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["orderCancellationRequest"]>
+
+  export type OrderCancellationRequestSelectScalar = {
+    id?: boolean
+    orderId?: boolean
+    userId?: boolean
+    reason?: boolean
+    status?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type OrderCancellationRequestOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "orderId" | "userId" | "reason" | "status" | "createdAt" | "updatedAt", ExtArgs["result"]["orderCancellationRequest"]>
+  export type OrderCancellationRequestInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    order?: boolean | OrderDefaultArgs<ExtArgs>
+  }
+  export type OrderCancellationRequestIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    order?: boolean | OrderDefaultArgs<ExtArgs>
+  }
+  export type OrderCancellationRequestIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    order?: boolean | OrderDefaultArgs<ExtArgs>
+  }
+
+  export type $OrderCancellationRequestPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "OrderCancellationRequest"
+    objects: {
+      order: Prisma.$OrderPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      orderId: string
+      userId: string
+      reason: string
+      status: $Enums.CancellationRequestStatus
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["orderCancellationRequest"]>
+    composites: {}
+  }
+
+  type OrderCancellationRequestGetPayload<S extends boolean | null | undefined | OrderCancellationRequestDefaultArgs> = $Result.GetResult<Prisma.$OrderCancellationRequestPayload, S>
+
+  type OrderCancellationRequestCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<OrderCancellationRequestFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: OrderCancellationRequestCountAggregateInputType | true
+    }
+
+  export interface OrderCancellationRequestDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['OrderCancellationRequest'], meta: { name: 'OrderCancellationRequest' } }
+    /**
+     * Find zero or one OrderCancellationRequest that matches the filter.
+     * @param {OrderCancellationRequestFindUniqueArgs} args - Arguments to find a OrderCancellationRequest
+     * @example
+     * // Get one OrderCancellationRequest
+     * const orderCancellationRequest = await prisma.orderCancellationRequest.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends OrderCancellationRequestFindUniqueArgs>(args: SelectSubset<T, OrderCancellationRequestFindUniqueArgs<ExtArgs>>): Prisma__OrderCancellationRequestClient<$Result.GetResult<Prisma.$OrderCancellationRequestPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one OrderCancellationRequest that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {OrderCancellationRequestFindUniqueOrThrowArgs} args - Arguments to find a OrderCancellationRequest
+     * @example
+     * // Get one OrderCancellationRequest
+     * const orderCancellationRequest = await prisma.orderCancellationRequest.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends OrderCancellationRequestFindUniqueOrThrowArgs>(args: SelectSubset<T, OrderCancellationRequestFindUniqueOrThrowArgs<ExtArgs>>): Prisma__OrderCancellationRequestClient<$Result.GetResult<Prisma.$OrderCancellationRequestPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first OrderCancellationRequest that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {OrderCancellationRequestFindFirstArgs} args - Arguments to find a OrderCancellationRequest
+     * @example
+     * // Get one OrderCancellationRequest
+     * const orderCancellationRequest = await prisma.orderCancellationRequest.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends OrderCancellationRequestFindFirstArgs>(args?: SelectSubset<T, OrderCancellationRequestFindFirstArgs<ExtArgs>>): Prisma__OrderCancellationRequestClient<$Result.GetResult<Prisma.$OrderCancellationRequestPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first OrderCancellationRequest that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {OrderCancellationRequestFindFirstOrThrowArgs} args - Arguments to find a OrderCancellationRequest
+     * @example
+     * // Get one OrderCancellationRequest
+     * const orderCancellationRequest = await prisma.orderCancellationRequest.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends OrderCancellationRequestFindFirstOrThrowArgs>(args?: SelectSubset<T, OrderCancellationRequestFindFirstOrThrowArgs<ExtArgs>>): Prisma__OrderCancellationRequestClient<$Result.GetResult<Prisma.$OrderCancellationRequestPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more OrderCancellationRequests that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {OrderCancellationRequestFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all OrderCancellationRequests
+     * const orderCancellationRequests = await prisma.orderCancellationRequest.findMany()
+     * 
+     * // Get first 10 OrderCancellationRequests
+     * const orderCancellationRequests = await prisma.orderCancellationRequest.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const orderCancellationRequestWithIdOnly = await prisma.orderCancellationRequest.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends OrderCancellationRequestFindManyArgs>(args?: SelectSubset<T, OrderCancellationRequestFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$OrderCancellationRequestPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a OrderCancellationRequest.
+     * @param {OrderCancellationRequestCreateArgs} args - Arguments to create a OrderCancellationRequest.
+     * @example
+     * // Create one OrderCancellationRequest
+     * const OrderCancellationRequest = await prisma.orderCancellationRequest.create({
+     *   data: {
+     *     // ... data to create a OrderCancellationRequest
+     *   }
+     * })
+     * 
+     */
+    create<T extends OrderCancellationRequestCreateArgs>(args: SelectSubset<T, OrderCancellationRequestCreateArgs<ExtArgs>>): Prisma__OrderCancellationRequestClient<$Result.GetResult<Prisma.$OrderCancellationRequestPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many OrderCancellationRequests.
+     * @param {OrderCancellationRequestCreateManyArgs} args - Arguments to create many OrderCancellationRequests.
+     * @example
+     * // Create many OrderCancellationRequests
+     * const orderCancellationRequest = await prisma.orderCancellationRequest.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends OrderCancellationRequestCreateManyArgs>(args?: SelectSubset<T, OrderCancellationRequestCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many OrderCancellationRequests and returns the data saved in the database.
+     * @param {OrderCancellationRequestCreateManyAndReturnArgs} args - Arguments to create many OrderCancellationRequests.
+     * @example
+     * // Create many OrderCancellationRequests
+     * const orderCancellationRequest = await prisma.orderCancellationRequest.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many OrderCancellationRequests and only return the `id`
+     * const orderCancellationRequestWithIdOnly = await prisma.orderCancellationRequest.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends OrderCancellationRequestCreateManyAndReturnArgs>(args?: SelectSubset<T, OrderCancellationRequestCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$OrderCancellationRequestPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a OrderCancellationRequest.
+     * @param {OrderCancellationRequestDeleteArgs} args - Arguments to delete one OrderCancellationRequest.
+     * @example
+     * // Delete one OrderCancellationRequest
+     * const OrderCancellationRequest = await prisma.orderCancellationRequest.delete({
+     *   where: {
+     *     // ... filter to delete one OrderCancellationRequest
+     *   }
+     * })
+     * 
+     */
+    delete<T extends OrderCancellationRequestDeleteArgs>(args: SelectSubset<T, OrderCancellationRequestDeleteArgs<ExtArgs>>): Prisma__OrderCancellationRequestClient<$Result.GetResult<Prisma.$OrderCancellationRequestPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one OrderCancellationRequest.
+     * @param {OrderCancellationRequestUpdateArgs} args - Arguments to update one OrderCancellationRequest.
+     * @example
+     * // Update one OrderCancellationRequest
+     * const orderCancellationRequest = await prisma.orderCancellationRequest.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends OrderCancellationRequestUpdateArgs>(args: SelectSubset<T, OrderCancellationRequestUpdateArgs<ExtArgs>>): Prisma__OrderCancellationRequestClient<$Result.GetResult<Prisma.$OrderCancellationRequestPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more OrderCancellationRequests.
+     * @param {OrderCancellationRequestDeleteManyArgs} args - Arguments to filter OrderCancellationRequests to delete.
+     * @example
+     * // Delete a few OrderCancellationRequests
+     * const { count } = await prisma.orderCancellationRequest.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends OrderCancellationRequestDeleteManyArgs>(args?: SelectSubset<T, OrderCancellationRequestDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more OrderCancellationRequests.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {OrderCancellationRequestUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many OrderCancellationRequests
+     * const orderCancellationRequest = await prisma.orderCancellationRequest.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends OrderCancellationRequestUpdateManyArgs>(args: SelectSubset<T, OrderCancellationRequestUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more OrderCancellationRequests and returns the data updated in the database.
+     * @param {OrderCancellationRequestUpdateManyAndReturnArgs} args - Arguments to update many OrderCancellationRequests.
+     * @example
+     * // Update many OrderCancellationRequests
+     * const orderCancellationRequest = await prisma.orderCancellationRequest.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more OrderCancellationRequests and only return the `id`
+     * const orderCancellationRequestWithIdOnly = await prisma.orderCancellationRequest.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends OrderCancellationRequestUpdateManyAndReturnArgs>(args: SelectSubset<T, OrderCancellationRequestUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$OrderCancellationRequestPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one OrderCancellationRequest.
+     * @param {OrderCancellationRequestUpsertArgs} args - Arguments to update or create a OrderCancellationRequest.
+     * @example
+     * // Update or create a OrderCancellationRequest
+     * const orderCancellationRequest = await prisma.orderCancellationRequest.upsert({
+     *   create: {
+     *     // ... data to create a OrderCancellationRequest
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the OrderCancellationRequest we want to update
+     *   }
+     * })
+     */
+    upsert<T extends OrderCancellationRequestUpsertArgs>(args: SelectSubset<T, OrderCancellationRequestUpsertArgs<ExtArgs>>): Prisma__OrderCancellationRequestClient<$Result.GetResult<Prisma.$OrderCancellationRequestPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of OrderCancellationRequests.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {OrderCancellationRequestCountArgs} args - Arguments to filter OrderCancellationRequests to count.
+     * @example
+     * // Count the number of OrderCancellationRequests
+     * const count = await prisma.orderCancellationRequest.count({
+     *   where: {
+     *     // ... the filter for the OrderCancellationRequests we want to count
+     *   }
+     * })
+    **/
+    count<T extends OrderCancellationRequestCountArgs>(
+      args?: Subset<T, OrderCancellationRequestCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], OrderCancellationRequestCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a OrderCancellationRequest.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {OrderCancellationRequestAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends OrderCancellationRequestAggregateArgs>(args: Subset<T, OrderCancellationRequestAggregateArgs>): Prisma.PrismaPromise<GetOrderCancellationRequestAggregateType<T>>
+
+    /**
+     * Group by OrderCancellationRequest.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {OrderCancellationRequestGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends OrderCancellationRequestGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: OrderCancellationRequestGroupByArgs['orderBy'] }
+        : { orderBy?: OrderCancellationRequestGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, OrderCancellationRequestGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetOrderCancellationRequestGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the OrderCancellationRequest model
+   */
+  readonly fields: OrderCancellationRequestFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for OrderCancellationRequest.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__OrderCancellationRequestClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    order<T extends OrderDefaultArgs<ExtArgs> = {}>(args?: Subset<T, OrderDefaultArgs<ExtArgs>>): Prisma__OrderClient<$Result.GetResult<Prisma.$OrderPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the OrderCancellationRequest model
+   */
+  interface OrderCancellationRequestFieldRefs {
+    readonly id: FieldRef<"OrderCancellationRequest", 'String'>
+    readonly orderId: FieldRef<"OrderCancellationRequest", 'String'>
+    readonly userId: FieldRef<"OrderCancellationRequest", 'String'>
+    readonly reason: FieldRef<"OrderCancellationRequest", 'String'>
+    readonly status: FieldRef<"OrderCancellationRequest", 'CancellationRequestStatus'>
+    readonly createdAt: FieldRef<"OrderCancellationRequest", 'DateTime'>
+    readonly updatedAt: FieldRef<"OrderCancellationRequest", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * OrderCancellationRequest findUnique
+   */
+  export type OrderCancellationRequestFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the OrderCancellationRequest
+     */
+    select?: OrderCancellationRequestSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the OrderCancellationRequest
+     */
+    omit?: OrderCancellationRequestOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: OrderCancellationRequestInclude<ExtArgs> | null
+    /**
+     * Filter, which OrderCancellationRequest to fetch.
+     */
+    where: OrderCancellationRequestWhereUniqueInput
+  }
+
+  /**
+   * OrderCancellationRequest findUniqueOrThrow
+   */
+  export type OrderCancellationRequestFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the OrderCancellationRequest
+     */
+    select?: OrderCancellationRequestSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the OrderCancellationRequest
+     */
+    omit?: OrderCancellationRequestOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: OrderCancellationRequestInclude<ExtArgs> | null
+    /**
+     * Filter, which OrderCancellationRequest to fetch.
+     */
+    where: OrderCancellationRequestWhereUniqueInput
+  }
+
+  /**
+   * OrderCancellationRequest findFirst
+   */
+  export type OrderCancellationRequestFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the OrderCancellationRequest
+     */
+    select?: OrderCancellationRequestSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the OrderCancellationRequest
+     */
+    omit?: OrderCancellationRequestOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: OrderCancellationRequestInclude<ExtArgs> | null
+    /**
+     * Filter, which OrderCancellationRequest to fetch.
+     */
+    where?: OrderCancellationRequestWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of OrderCancellationRequests to fetch.
+     */
+    orderBy?: OrderCancellationRequestOrderByWithRelationInput | OrderCancellationRequestOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for OrderCancellationRequests.
+     */
+    cursor?: OrderCancellationRequestWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` OrderCancellationRequests from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` OrderCancellationRequests.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of OrderCancellationRequests.
+     */
+    distinct?: OrderCancellationRequestScalarFieldEnum | OrderCancellationRequestScalarFieldEnum[]
+  }
+
+  /**
+   * OrderCancellationRequest findFirstOrThrow
+   */
+  export type OrderCancellationRequestFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the OrderCancellationRequest
+     */
+    select?: OrderCancellationRequestSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the OrderCancellationRequest
+     */
+    omit?: OrderCancellationRequestOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: OrderCancellationRequestInclude<ExtArgs> | null
+    /**
+     * Filter, which OrderCancellationRequest to fetch.
+     */
+    where?: OrderCancellationRequestWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of OrderCancellationRequests to fetch.
+     */
+    orderBy?: OrderCancellationRequestOrderByWithRelationInput | OrderCancellationRequestOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for OrderCancellationRequests.
+     */
+    cursor?: OrderCancellationRequestWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` OrderCancellationRequests from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` OrderCancellationRequests.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of OrderCancellationRequests.
+     */
+    distinct?: OrderCancellationRequestScalarFieldEnum | OrderCancellationRequestScalarFieldEnum[]
+  }
+
+  /**
+   * OrderCancellationRequest findMany
+   */
+  export type OrderCancellationRequestFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the OrderCancellationRequest
+     */
+    select?: OrderCancellationRequestSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the OrderCancellationRequest
+     */
+    omit?: OrderCancellationRequestOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: OrderCancellationRequestInclude<ExtArgs> | null
+    /**
+     * Filter, which OrderCancellationRequests to fetch.
+     */
+    where?: OrderCancellationRequestWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of OrderCancellationRequests to fetch.
+     */
+    orderBy?: OrderCancellationRequestOrderByWithRelationInput | OrderCancellationRequestOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing OrderCancellationRequests.
+     */
+    cursor?: OrderCancellationRequestWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` OrderCancellationRequests from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` OrderCancellationRequests.
+     */
+    skip?: number
+    distinct?: OrderCancellationRequestScalarFieldEnum | OrderCancellationRequestScalarFieldEnum[]
+  }
+
+  /**
+   * OrderCancellationRequest create
+   */
+  export type OrderCancellationRequestCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the OrderCancellationRequest
+     */
+    select?: OrderCancellationRequestSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the OrderCancellationRequest
+     */
+    omit?: OrderCancellationRequestOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: OrderCancellationRequestInclude<ExtArgs> | null
+    /**
+     * The data needed to create a OrderCancellationRequest.
+     */
+    data: XOR<OrderCancellationRequestCreateInput, OrderCancellationRequestUncheckedCreateInput>
+  }
+
+  /**
+   * OrderCancellationRequest createMany
+   */
+  export type OrderCancellationRequestCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many OrderCancellationRequests.
+     */
+    data: OrderCancellationRequestCreateManyInput | OrderCancellationRequestCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * OrderCancellationRequest createManyAndReturn
+   */
+  export type OrderCancellationRequestCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the OrderCancellationRequest
+     */
+    select?: OrderCancellationRequestSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the OrderCancellationRequest
+     */
+    omit?: OrderCancellationRequestOmit<ExtArgs> | null
+    /**
+     * The data used to create many OrderCancellationRequests.
+     */
+    data: OrderCancellationRequestCreateManyInput | OrderCancellationRequestCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: OrderCancellationRequestIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * OrderCancellationRequest update
+   */
+  export type OrderCancellationRequestUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the OrderCancellationRequest
+     */
+    select?: OrderCancellationRequestSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the OrderCancellationRequest
+     */
+    omit?: OrderCancellationRequestOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: OrderCancellationRequestInclude<ExtArgs> | null
+    /**
+     * The data needed to update a OrderCancellationRequest.
+     */
+    data: XOR<OrderCancellationRequestUpdateInput, OrderCancellationRequestUncheckedUpdateInput>
+    /**
+     * Choose, which OrderCancellationRequest to update.
+     */
+    where: OrderCancellationRequestWhereUniqueInput
+  }
+
+  /**
+   * OrderCancellationRequest updateMany
+   */
+  export type OrderCancellationRequestUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update OrderCancellationRequests.
+     */
+    data: XOR<OrderCancellationRequestUpdateManyMutationInput, OrderCancellationRequestUncheckedUpdateManyInput>
+    /**
+     * Filter which OrderCancellationRequests to update
+     */
+    where?: OrderCancellationRequestWhereInput
+    /**
+     * Limit how many OrderCancellationRequests to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * OrderCancellationRequest updateManyAndReturn
+   */
+  export type OrderCancellationRequestUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the OrderCancellationRequest
+     */
+    select?: OrderCancellationRequestSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the OrderCancellationRequest
+     */
+    omit?: OrderCancellationRequestOmit<ExtArgs> | null
+    /**
+     * The data used to update OrderCancellationRequests.
+     */
+    data: XOR<OrderCancellationRequestUpdateManyMutationInput, OrderCancellationRequestUncheckedUpdateManyInput>
+    /**
+     * Filter which OrderCancellationRequests to update
+     */
+    where?: OrderCancellationRequestWhereInput
+    /**
+     * Limit how many OrderCancellationRequests to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: OrderCancellationRequestIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * OrderCancellationRequest upsert
+   */
+  export type OrderCancellationRequestUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the OrderCancellationRequest
+     */
+    select?: OrderCancellationRequestSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the OrderCancellationRequest
+     */
+    omit?: OrderCancellationRequestOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: OrderCancellationRequestInclude<ExtArgs> | null
+    /**
+     * The filter to search for the OrderCancellationRequest to update in case it exists.
+     */
+    where: OrderCancellationRequestWhereUniqueInput
+    /**
+     * In case the OrderCancellationRequest found by the `where` argument doesn't exist, create a new OrderCancellationRequest with this data.
+     */
+    create: XOR<OrderCancellationRequestCreateInput, OrderCancellationRequestUncheckedCreateInput>
+    /**
+     * In case the OrderCancellationRequest was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<OrderCancellationRequestUpdateInput, OrderCancellationRequestUncheckedUpdateInput>
+  }
+
+  /**
+   * OrderCancellationRequest delete
+   */
+  export type OrderCancellationRequestDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the OrderCancellationRequest
+     */
+    select?: OrderCancellationRequestSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the OrderCancellationRequest
+     */
+    omit?: OrderCancellationRequestOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: OrderCancellationRequestInclude<ExtArgs> | null
+    /**
+     * Filter which OrderCancellationRequest to delete.
+     */
+    where: OrderCancellationRequestWhereUniqueInput
+  }
+
+  /**
+   * OrderCancellationRequest deleteMany
+   */
+  export type OrderCancellationRequestDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which OrderCancellationRequests to delete
+     */
+    where?: OrderCancellationRequestWhereInput
+    /**
+     * Limit how many OrderCancellationRequests to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * OrderCancellationRequest without action
+   */
+  export type OrderCancellationRequestDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the OrderCancellationRequest
+     */
+    select?: OrderCancellationRequestSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the OrderCancellationRequest
+     */
+    omit?: OrderCancellationRequestOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: OrderCancellationRequestInclude<ExtArgs> | null
+  }
+
+
+  /**
    * Model User
    */
 
@@ -12223,6 +13435,19 @@ export namespace Prisma {
   export type AddressScalarFieldEnum = (typeof AddressScalarFieldEnum)[keyof typeof AddressScalarFieldEnum]
 
 
+  export const OrderCancellationRequestScalarFieldEnum: {
+    id: 'id',
+    orderId: 'orderId',
+    userId: 'userId',
+    reason: 'reason',
+    status: 'status',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type OrderCancellationRequestScalarFieldEnum = (typeof OrderCancellationRequestScalarFieldEnum)[keyof typeof OrderCancellationRequestScalarFieldEnum]
+
+
   export const UserScalarFieldEnum: {
     id: 'id',
     firebaseUid: 'firebaseUid',
@@ -12339,6 +13564,20 @@ export namespace Prisma {
    * Reference to a field of type 'OrderStatus[]'
    */
   export type ListEnumOrderStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'OrderStatus[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'CancellationRequestStatus'
+   */
+  export type EnumCancellationRequestStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'CancellationRequestStatus'>
+    
+
+
+  /**
+   * Reference to a field of type 'CancellationRequestStatus[]'
+   */
+  export type ListEnumCancellationRequestStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'CancellationRequestStatus[]'>
     
   /**
    * Deep Input Types
@@ -12664,6 +13903,7 @@ export namespace Prisma {
     updatedAt?: DateTimeFilter<"Order"> | Date | string
     items?: OrderItemListRelationFilter
     address?: XOR<OrderAddressNullableScalarRelationFilter, OrderAddressWhereInput> | null
+    cancellationRequest?: XOR<OrderCancellationRequestNullableScalarRelationFilter, OrderCancellationRequestWhereInput> | null
   }
 
   export type OrderOrderByWithRelationInput = {
@@ -12678,6 +13918,7 @@ export namespace Prisma {
     updatedAt?: SortOrder
     items?: OrderItemOrderByRelationAggregateInput
     address?: OrderAddressOrderByWithRelationInput
+    cancellationRequest?: OrderCancellationRequestOrderByWithRelationInput
   }
 
   export type OrderWhereUniqueInput = Prisma.AtLeast<{
@@ -12695,6 +13936,7 @@ export namespace Prisma {
     updatedAt?: DateTimeFilter<"Order"> | Date | string
     items?: OrderItemListRelationFilter
     address?: XOR<OrderAddressNullableScalarRelationFilter, OrderAddressWhereInput> | null
+    cancellationRequest?: XOR<OrderCancellationRequestNullableScalarRelationFilter, OrderCancellationRequestWhereInput> | null
   }, "id">
 
   export type OrderOrderByWithAggregationInput = {
@@ -12962,6 +14204,71 @@ export namespace Prisma {
     isDefault?: BoolWithAggregatesFilter<"Address"> | boolean
     createdAt?: DateTimeWithAggregatesFilter<"Address"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"Address"> | Date | string
+  }
+
+  export type OrderCancellationRequestWhereInput = {
+    AND?: OrderCancellationRequestWhereInput | OrderCancellationRequestWhereInput[]
+    OR?: OrderCancellationRequestWhereInput[]
+    NOT?: OrderCancellationRequestWhereInput | OrderCancellationRequestWhereInput[]
+    id?: StringFilter<"OrderCancellationRequest"> | string
+    orderId?: StringFilter<"OrderCancellationRequest"> | string
+    userId?: StringFilter<"OrderCancellationRequest"> | string
+    reason?: StringFilter<"OrderCancellationRequest"> | string
+    status?: EnumCancellationRequestStatusFilter<"OrderCancellationRequest"> | $Enums.CancellationRequestStatus
+    createdAt?: DateTimeFilter<"OrderCancellationRequest"> | Date | string
+    updatedAt?: DateTimeFilter<"OrderCancellationRequest"> | Date | string
+    order?: XOR<OrderScalarRelationFilter, OrderWhereInput>
+  }
+
+  export type OrderCancellationRequestOrderByWithRelationInput = {
+    id?: SortOrder
+    orderId?: SortOrder
+    userId?: SortOrder
+    reason?: SortOrder
+    status?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    order?: OrderOrderByWithRelationInput
+  }
+
+  export type OrderCancellationRequestWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    orderId?: string
+    AND?: OrderCancellationRequestWhereInput | OrderCancellationRequestWhereInput[]
+    OR?: OrderCancellationRequestWhereInput[]
+    NOT?: OrderCancellationRequestWhereInput | OrderCancellationRequestWhereInput[]
+    userId?: StringFilter<"OrderCancellationRequest"> | string
+    reason?: StringFilter<"OrderCancellationRequest"> | string
+    status?: EnumCancellationRequestStatusFilter<"OrderCancellationRequest"> | $Enums.CancellationRequestStatus
+    createdAt?: DateTimeFilter<"OrderCancellationRequest"> | Date | string
+    updatedAt?: DateTimeFilter<"OrderCancellationRequest"> | Date | string
+    order?: XOR<OrderScalarRelationFilter, OrderWhereInput>
+  }, "id" | "orderId">
+
+  export type OrderCancellationRequestOrderByWithAggregationInput = {
+    id?: SortOrder
+    orderId?: SortOrder
+    userId?: SortOrder
+    reason?: SortOrder
+    status?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: OrderCancellationRequestCountOrderByAggregateInput
+    _max?: OrderCancellationRequestMaxOrderByAggregateInput
+    _min?: OrderCancellationRequestMinOrderByAggregateInput
+  }
+
+  export type OrderCancellationRequestScalarWhereWithAggregatesInput = {
+    AND?: OrderCancellationRequestScalarWhereWithAggregatesInput | OrderCancellationRequestScalarWhereWithAggregatesInput[]
+    OR?: OrderCancellationRequestScalarWhereWithAggregatesInput[]
+    NOT?: OrderCancellationRequestScalarWhereWithAggregatesInput | OrderCancellationRequestScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"OrderCancellationRequest"> | string
+    orderId?: StringWithAggregatesFilter<"OrderCancellationRequest"> | string
+    userId?: StringWithAggregatesFilter<"OrderCancellationRequest"> | string
+    reason?: StringWithAggregatesFilter<"OrderCancellationRequest"> | string
+    status?: EnumCancellationRequestStatusWithAggregatesFilter<"OrderCancellationRequest"> | $Enums.CancellationRequestStatus
+    createdAt?: DateTimeWithAggregatesFilter<"OrderCancellationRequest"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"OrderCancellationRequest"> | Date | string
   }
 
   export type UserWhereInput = {
@@ -13375,6 +14682,7 @@ export namespace Prisma {
     updatedAt?: Date | string
     items?: OrderItemCreateNestedManyWithoutOrderInput
     address?: OrderAddressCreateNestedOneWithoutOrdersInput
+    cancellationRequest?: OrderCancellationRequestCreateNestedOneWithoutOrderInput
   }
 
   export type OrderUncheckedCreateInput = {
@@ -13388,6 +14696,7 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     items?: OrderItemUncheckedCreateNestedManyWithoutOrderInput
+    cancellationRequest?: OrderCancellationRequestUncheckedCreateNestedOneWithoutOrderInput
   }
 
   export type OrderUpdateInput = {
@@ -13401,6 +14710,7 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     items?: OrderItemUpdateManyWithoutOrderNestedInput
     address?: OrderAddressUpdateOneWithoutOrdersNestedInput
+    cancellationRequest?: OrderCancellationRequestUpdateOneWithoutOrderNestedInput
   }
 
   export type OrderUncheckedUpdateInput = {
@@ -13414,6 +14724,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     items?: OrderItemUncheckedUpdateManyWithoutOrderNestedInput
+    cancellationRequest?: OrderCancellationRequestUncheckedUpdateOneWithoutOrderNestedInput
   }
 
   export type OrderCreateManyInput = {
@@ -13707,6 +15018,75 @@ export namespace Prisma {
     state?: StringFieldUpdateOperationsInput | string
     pincode?: StringFieldUpdateOperationsInput | string
     isDefault?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type OrderCancellationRequestCreateInput = {
+    id?: string
+    userId: string
+    reason: string
+    status?: $Enums.CancellationRequestStatus
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    order: OrderCreateNestedOneWithoutCancellationRequestInput
+  }
+
+  export type OrderCancellationRequestUncheckedCreateInput = {
+    id?: string
+    orderId: string
+    userId: string
+    reason: string
+    status?: $Enums.CancellationRequestStatus
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type OrderCancellationRequestUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    reason?: StringFieldUpdateOperationsInput | string
+    status?: EnumCancellationRequestStatusFieldUpdateOperationsInput | $Enums.CancellationRequestStatus
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    order?: OrderUpdateOneRequiredWithoutCancellationRequestNestedInput
+  }
+
+  export type OrderCancellationRequestUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    orderId?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    reason?: StringFieldUpdateOperationsInput | string
+    status?: EnumCancellationRequestStatusFieldUpdateOperationsInput | $Enums.CancellationRequestStatus
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type OrderCancellationRequestCreateManyInput = {
+    id?: string
+    orderId: string
+    userId: string
+    reason: string
+    status?: $Enums.CancellationRequestStatus
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type OrderCancellationRequestUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    reason?: StringFieldUpdateOperationsInput | string
+    status?: EnumCancellationRequestStatusFieldUpdateOperationsInput | $Enums.CancellationRequestStatus
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type OrderCancellationRequestUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    orderId?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    reason?: StringFieldUpdateOperationsInput | string
+    status?: EnumCancellationRequestStatusFieldUpdateOperationsInput | $Enums.CancellationRequestStatus
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -14172,6 +15552,11 @@ export namespace Prisma {
     isNot?: OrderAddressWhereInput | null
   }
 
+  export type OrderCancellationRequestNullableScalarRelationFilter = {
+    is?: OrderCancellationRequestWhereInput | null
+    isNot?: OrderCancellationRequestWhereInput | null
+  }
+
   export type OrderCountOrderByAggregateInput = {
     id?: SortOrder
     userId?: SortOrder
@@ -14367,6 +15752,53 @@ export namespace Prisma {
     isDefault?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+  }
+
+  export type EnumCancellationRequestStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.CancellationRequestStatus | EnumCancellationRequestStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.CancellationRequestStatus[] | ListEnumCancellationRequestStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.CancellationRequestStatus[] | ListEnumCancellationRequestStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumCancellationRequestStatusFilter<$PrismaModel> | $Enums.CancellationRequestStatus
+  }
+
+  export type OrderCancellationRequestCountOrderByAggregateInput = {
+    id?: SortOrder
+    orderId?: SortOrder
+    userId?: SortOrder
+    reason?: SortOrder
+    status?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type OrderCancellationRequestMaxOrderByAggregateInput = {
+    id?: SortOrder
+    orderId?: SortOrder
+    userId?: SortOrder
+    reason?: SortOrder
+    status?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type OrderCancellationRequestMinOrderByAggregateInput = {
+    id?: SortOrder
+    orderId?: SortOrder
+    userId?: SortOrder
+    reason?: SortOrder
+    status?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type EnumCancellationRequestStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.CancellationRequestStatus | EnumCancellationRequestStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.CancellationRequestStatus[] | ListEnumCancellationRequestStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.CancellationRequestStatus[] | ListEnumCancellationRequestStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumCancellationRequestStatusWithAggregatesFilter<$PrismaModel> | $Enums.CancellationRequestStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumCancellationRequestStatusFilter<$PrismaModel>
+    _max?: NestedEnumCancellationRequestStatusFilter<$PrismaModel>
   }
 
   export type AddressListRelationFilter = {
@@ -14693,11 +16125,23 @@ export namespace Prisma {
     connect?: OrderAddressWhereUniqueInput
   }
 
+  export type OrderCancellationRequestCreateNestedOneWithoutOrderInput = {
+    create?: XOR<OrderCancellationRequestCreateWithoutOrderInput, OrderCancellationRequestUncheckedCreateWithoutOrderInput>
+    connectOrCreate?: OrderCancellationRequestCreateOrConnectWithoutOrderInput
+    connect?: OrderCancellationRequestWhereUniqueInput
+  }
+
   export type OrderItemUncheckedCreateNestedManyWithoutOrderInput = {
     create?: XOR<OrderItemCreateWithoutOrderInput, OrderItemUncheckedCreateWithoutOrderInput> | OrderItemCreateWithoutOrderInput[] | OrderItemUncheckedCreateWithoutOrderInput[]
     connectOrCreate?: OrderItemCreateOrConnectWithoutOrderInput | OrderItemCreateOrConnectWithoutOrderInput[]
     createMany?: OrderItemCreateManyOrderInputEnvelope
     connect?: OrderItemWhereUniqueInput | OrderItemWhereUniqueInput[]
+  }
+
+  export type OrderCancellationRequestUncheckedCreateNestedOneWithoutOrderInput = {
+    create?: XOR<OrderCancellationRequestCreateWithoutOrderInput, OrderCancellationRequestUncheckedCreateWithoutOrderInput>
+    connectOrCreate?: OrderCancellationRequestCreateOrConnectWithoutOrderInput
+    connect?: OrderCancellationRequestWhereUniqueInput
   }
 
   export type EnumOrderStatusFieldUpdateOperationsInput = {
@@ -14728,6 +16172,16 @@ export namespace Prisma {
     update?: XOR<XOR<OrderAddressUpdateToOneWithWhereWithoutOrdersInput, OrderAddressUpdateWithoutOrdersInput>, OrderAddressUncheckedUpdateWithoutOrdersInput>
   }
 
+  export type OrderCancellationRequestUpdateOneWithoutOrderNestedInput = {
+    create?: XOR<OrderCancellationRequestCreateWithoutOrderInput, OrderCancellationRequestUncheckedCreateWithoutOrderInput>
+    connectOrCreate?: OrderCancellationRequestCreateOrConnectWithoutOrderInput
+    upsert?: OrderCancellationRequestUpsertWithoutOrderInput
+    disconnect?: OrderCancellationRequestWhereInput | boolean
+    delete?: OrderCancellationRequestWhereInput | boolean
+    connect?: OrderCancellationRequestWhereUniqueInput
+    update?: XOR<XOR<OrderCancellationRequestUpdateToOneWithWhereWithoutOrderInput, OrderCancellationRequestUpdateWithoutOrderInput>, OrderCancellationRequestUncheckedUpdateWithoutOrderInput>
+  }
+
   export type OrderItemUncheckedUpdateManyWithoutOrderNestedInput = {
     create?: XOR<OrderItemCreateWithoutOrderInput, OrderItemUncheckedCreateWithoutOrderInput> | OrderItemCreateWithoutOrderInput[] | OrderItemUncheckedCreateWithoutOrderInput[]
     connectOrCreate?: OrderItemCreateOrConnectWithoutOrderInput | OrderItemCreateOrConnectWithoutOrderInput[]
@@ -14740,6 +16194,16 @@ export namespace Prisma {
     update?: OrderItemUpdateWithWhereUniqueWithoutOrderInput | OrderItemUpdateWithWhereUniqueWithoutOrderInput[]
     updateMany?: OrderItemUpdateManyWithWhereWithoutOrderInput | OrderItemUpdateManyWithWhereWithoutOrderInput[]
     deleteMany?: OrderItemScalarWhereInput | OrderItemScalarWhereInput[]
+  }
+
+  export type OrderCancellationRequestUncheckedUpdateOneWithoutOrderNestedInput = {
+    create?: XOR<OrderCancellationRequestCreateWithoutOrderInput, OrderCancellationRequestUncheckedCreateWithoutOrderInput>
+    connectOrCreate?: OrderCancellationRequestCreateOrConnectWithoutOrderInput
+    upsert?: OrderCancellationRequestUpsertWithoutOrderInput
+    disconnect?: OrderCancellationRequestWhereInput | boolean
+    delete?: OrderCancellationRequestWhereInput | boolean
+    connect?: OrderCancellationRequestWhereUniqueInput
+    update?: XOR<XOR<OrderCancellationRequestUpdateToOneWithWhereWithoutOrderInput, OrderCancellationRequestUpdateWithoutOrderInput>, OrderCancellationRequestUncheckedUpdateWithoutOrderInput>
   }
 
   export type OrderCreateNestedOneWithoutItemsInput = {
@@ -14824,6 +16288,24 @@ export namespace Prisma {
     upsert?: UserUpsertWithoutAddressesInput
     connect?: UserWhereUniqueInput
     update?: XOR<XOR<UserUpdateToOneWithWhereWithoutAddressesInput, UserUpdateWithoutAddressesInput>, UserUncheckedUpdateWithoutAddressesInput>
+  }
+
+  export type OrderCreateNestedOneWithoutCancellationRequestInput = {
+    create?: XOR<OrderCreateWithoutCancellationRequestInput, OrderUncheckedCreateWithoutCancellationRequestInput>
+    connectOrCreate?: OrderCreateOrConnectWithoutCancellationRequestInput
+    connect?: OrderWhereUniqueInput
+  }
+
+  export type EnumCancellationRequestStatusFieldUpdateOperationsInput = {
+    set?: $Enums.CancellationRequestStatus
+  }
+
+  export type OrderUpdateOneRequiredWithoutCancellationRequestNestedInput = {
+    create?: XOR<OrderCreateWithoutCancellationRequestInput, OrderUncheckedCreateWithoutCancellationRequestInput>
+    connectOrCreate?: OrderCreateOrConnectWithoutCancellationRequestInput
+    upsert?: OrderUpsertWithoutCancellationRequestInput
+    connect?: OrderWhereUniqueInput
+    update?: XOR<XOR<OrderUpdateToOneWithWhereWithoutCancellationRequestInput, OrderUpdateWithoutCancellationRequestInput>, OrderUncheckedUpdateWithoutCancellationRequestInput>
   }
 
   export type AddressCreateNestedManyWithoutUserInput = {
@@ -15048,6 +16530,23 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumOrderStatusFilter<$PrismaModel>
     _max?: NestedEnumOrderStatusFilter<$PrismaModel>
+  }
+
+  export type NestedEnumCancellationRequestStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.CancellationRequestStatus | EnumCancellationRequestStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.CancellationRequestStatus[] | ListEnumCancellationRequestStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.CancellationRequestStatus[] | ListEnumCancellationRequestStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumCancellationRequestStatusFilter<$PrismaModel> | $Enums.CancellationRequestStatus
+  }
+
+  export type NestedEnumCancellationRequestStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.CancellationRequestStatus | EnumCancellationRequestStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.CancellationRequestStatus[] | ListEnumCancellationRequestStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.CancellationRequestStatus[] | ListEnumCancellationRequestStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumCancellationRequestStatusWithAggregatesFilter<$PrismaModel> | $Enums.CancellationRequestStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumCancellationRequestStatusFilter<$PrismaModel>
+    _max?: NestedEnumCancellationRequestStatusFilter<$PrismaModel>
   }
 
   export type ProductCreateWithoutCategoryInput = {
@@ -15558,6 +17057,29 @@ export namespace Prisma {
     create: XOR<OrderAddressCreateWithoutOrdersInput, OrderAddressUncheckedCreateWithoutOrdersInput>
   }
 
+  export type OrderCancellationRequestCreateWithoutOrderInput = {
+    id?: string
+    userId: string
+    reason: string
+    status?: $Enums.CancellationRequestStatus
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type OrderCancellationRequestUncheckedCreateWithoutOrderInput = {
+    id?: string
+    userId: string
+    reason: string
+    status?: $Enums.CancellationRequestStatus
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type OrderCancellationRequestCreateOrConnectWithoutOrderInput = {
+    where: OrderCancellationRequestWhereUniqueInput
+    create: XOR<OrderCancellationRequestCreateWithoutOrderInput, OrderCancellationRequestUncheckedCreateWithoutOrderInput>
+  }
+
   export type OrderItemUpsertWithWhereUniqueWithoutOrderInput = {
     where: OrderItemWhereUniqueInput
     update: XOR<OrderItemUpdateWithoutOrderInput, OrderItemUncheckedUpdateWithoutOrderInput>
@@ -15611,6 +17133,35 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type OrderCancellationRequestUpsertWithoutOrderInput = {
+    update: XOR<OrderCancellationRequestUpdateWithoutOrderInput, OrderCancellationRequestUncheckedUpdateWithoutOrderInput>
+    create: XOR<OrderCancellationRequestCreateWithoutOrderInput, OrderCancellationRequestUncheckedCreateWithoutOrderInput>
+    where?: OrderCancellationRequestWhereInput
+  }
+
+  export type OrderCancellationRequestUpdateToOneWithWhereWithoutOrderInput = {
+    where?: OrderCancellationRequestWhereInput
+    data: XOR<OrderCancellationRequestUpdateWithoutOrderInput, OrderCancellationRequestUncheckedUpdateWithoutOrderInput>
+  }
+
+  export type OrderCancellationRequestUpdateWithoutOrderInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    reason?: StringFieldUpdateOperationsInput | string
+    status?: EnumCancellationRequestStatusFieldUpdateOperationsInput | $Enums.CancellationRequestStatus
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type OrderCancellationRequestUncheckedUpdateWithoutOrderInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    reason?: StringFieldUpdateOperationsInput | string
+    status?: EnumCancellationRequestStatusFieldUpdateOperationsInput | $Enums.CancellationRequestStatus
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type OrderCreateWithoutItemsInput = {
     id?: string
     userId: string
@@ -15621,6 +17172,7 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     address?: OrderAddressCreateNestedOneWithoutOrdersInput
+    cancellationRequest?: OrderCancellationRequestCreateNestedOneWithoutOrderInput
   }
 
   export type OrderUncheckedCreateWithoutItemsInput = {
@@ -15633,6 +17185,7 @@ export namespace Prisma {
     addressId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    cancellationRequest?: OrderCancellationRequestUncheckedCreateNestedOneWithoutOrderInput
   }
 
   export type OrderCreateOrConnectWithoutItemsInput = {
@@ -15710,6 +17263,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     address?: OrderAddressUpdateOneWithoutOrdersNestedInput
+    cancellationRequest?: OrderCancellationRequestUpdateOneWithoutOrderNestedInput
   }
 
   export type OrderUncheckedUpdateWithoutItemsInput = {
@@ -15722,6 +17276,7 @@ export namespace Prisma {
     addressId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    cancellationRequest?: OrderCancellationRequestUncheckedUpdateOneWithoutOrderNestedInput
   }
 
   export type ProductUpsertWithoutOrderItemsInput = {
@@ -15789,6 +17344,7 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     items?: OrderItemCreateNestedManyWithoutOrderInput
+    cancellationRequest?: OrderCancellationRequestCreateNestedOneWithoutOrderInput
   }
 
   export type OrderUncheckedCreateWithoutAddressInput = {
@@ -15801,6 +17357,7 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     items?: OrderItemUncheckedCreateNestedManyWithoutOrderInput
+    cancellationRequest?: OrderCancellationRequestUncheckedCreateNestedOneWithoutOrderInput
   }
 
   export type OrderCreateOrConnectWithoutAddressInput = {
@@ -15898,6 +17455,74 @@ export namespace Prisma {
     phone?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type OrderCreateWithoutCancellationRequestInput = {
+    id?: string
+    userId: string
+    status?: $Enums.OrderStatus
+    totalAmount: number
+    discount: number
+    paymentMethod?: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    items?: OrderItemCreateNestedManyWithoutOrderInput
+    address?: OrderAddressCreateNestedOneWithoutOrdersInput
+  }
+
+  export type OrderUncheckedCreateWithoutCancellationRequestInput = {
+    id?: string
+    userId: string
+    status?: $Enums.OrderStatus
+    totalAmount: number
+    discount: number
+    paymentMethod?: string
+    addressId?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    items?: OrderItemUncheckedCreateNestedManyWithoutOrderInput
+  }
+
+  export type OrderCreateOrConnectWithoutCancellationRequestInput = {
+    where: OrderWhereUniqueInput
+    create: XOR<OrderCreateWithoutCancellationRequestInput, OrderUncheckedCreateWithoutCancellationRequestInput>
+  }
+
+  export type OrderUpsertWithoutCancellationRequestInput = {
+    update: XOR<OrderUpdateWithoutCancellationRequestInput, OrderUncheckedUpdateWithoutCancellationRequestInput>
+    create: XOR<OrderCreateWithoutCancellationRequestInput, OrderUncheckedCreateWithoutCancellationRequestInput>
+    where?: OrderWhereInput
+  }
+
+  export type OrderUpdateToOneWithWhereWithoutCancellationRequestInput = {
+    where?: OrderWhereInput
+    data: XOR<OrderUpdateWithoutCancellationRequestInput, OrderUncheckedUpdateWithoutCancellationRequestInput>
+  }
+
+  export type OrderUpdateWithoutCancellationRequestInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    status?: EnumOrderStatusFieldUpdateOperationsInput | $Enums.OrderStatus
+    totalAmount?: FloatFieldUpdateOperationsInput | number
+    discount?: FloatFieldUpdateOperationsInput | number
+    paymentMethod?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    items?: OrderItemUpdateManyWithoutOrderNestedInput
+    address?: OrderAddressUpdateOneWithoutOrdersNestedInput
+  }
+
+  export type OrderUncheckedUpdateWithoutCancellationRequestInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    status?: EnumOrderStatusFieldUpdateOperationsInput | $Enums.OrderStatus
+    totalAmount?: FloatFieldUpdateOperationsInput | number
+    discount?: FloatFieldUpdateOperationsInput | number
+    paymentMethod?: StringFieldUpdateOperationsInput | string
+    addressId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    items?: OrderItemUncheckedUpdateManyWithoutOrderNestedInput
   }
 
   export type AddressCreateWithoutUserInput = {
@@ -16226,6 +17851,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     items?: OrderItemUpdateManyWithoutOrderNestedInput
+    cancellationRequest?: OrderCancellationRequestUpdateOneWithoutOrderNestedInput
   }
 
   export type OrderUncheckedUpdateWithoutAddressInput = {
@@ -16238,6 +17864,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     items?: OrderItemUncheckedUpdateManyWithoutOrderNestedInput
+    cancellationRequest?: OrderCancellationRequestUncheckedUpdateOneWithoutOrderNestedInput
   }
 
   export type OrderUncheckedUpdateManyWithoutAddressInput = {

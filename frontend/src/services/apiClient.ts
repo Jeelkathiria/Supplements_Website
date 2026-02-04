@@ -31,9 +31,12 @@ export const apiFetch = async (
 ): Promise<Response> => {
   const { requireAuth = true, ...fetchOptions } = options;
 
+  // Extract headers from fetchOptions if they exist
+  const existingHeaders = typeof fetchOptions.headers === 'object' && fetchOptions.headers ? fetchOptions.headers : {};
+
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    ...(typeof fetchOptions.headers === 'object' && fetchOptions.headers ? fetchOptions.headers : {}),
+    ...existingHeaders,
   };
 
   if (requireAuth) {

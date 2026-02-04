@@ -216,6 +216,16 @@ exports.Prisma.AddressScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.OrderCancellationRequestScalarFieldEnum = {
+  id: 'id',
+  orderId: 'orderId',
+  userId: 'userId',
+  reason: 'reason',
+  status: 'status',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.UserScalarFieldEnum = {
   id: 'id',
   firebaseUid: 'firebaseUid',
@@ -248,6 +258,12 @@ exports.OrderStatus = exports.$Enums.OrderStatus = {
   CANCELLED: 'CANCELLED'
 };
 
+exports.CancellationRequestStatus = exports.$Enums.CancellationRequestStatus = {
+  PENDING: 'PENDING',
+  APPROVED: 'APPROVED',
+  REJECTED: 'REJECTED'
+};
+
 exports.Prisma.ModelName = {
   Category: 'Category',
   Product: 'Product',
@@ -257,6 +273,7 @@ exports.Prisma.ModelName = {
   OrderItem: 'OrderItem',
   OrderAddress: 'OrderAddress',
   Address: 'Address',
+  OrderCancellationRequest: 'OrderCancellationRequest',
   User: 'User'
 };
 

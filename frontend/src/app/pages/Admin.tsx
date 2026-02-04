@@ -14,6 +14,7 @@ import {
   uploadImages,
 } from "../../services/productService";
 import { AdminOrders } from "../components/AdminOrders";
+import { AdminLayout } from "../components/AdminLayout";
 
 // Helper function to get full image URL
 const getFullImageUrl = (imageUrl: string) => {
@@ -43,6 +44,7 @@ const EMPTY_FORM: Partial<Product> = {
 
 export const Admin: React.FC = () => {
   const [activeTab, setActiveTab] = useState<"products" | "orders">("products");
+  const [activeOrderStatus, setActiveOrderStatus] = useState<"all" | "pending" | "delivered" | "shipped" | "cancelled">("all");
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -403,34 +405,13 @@ export const Admin: React.FC = () => {
 
   /* ---------------- RENDER ---------------- */
   return (
-    <div className="p-6">
-      {/* TABS */}
-      <div className="mb-8 border-b border-neutral-200">
-        <div className="flex gap-8">
-          <button
-            onClick={() => setActiveTab("products")}
-            className={`pb-4 font-semibold transition-colors ${
-              activeTab === "products"
-                ? "border-b-2 border-neutral-900 text-neutral-900"
-                : "text-neutral-600 hover:text-neutral-900"
-            }`}
-          >
-            Product Management
-          </button>
-          <button
-            onClick={() => setActiveTab("orders")}
-            className={`pb-4 font-semibold transition-colors ${
-              activeTab === "orders"
-                ? "border-b-2 border-neutral-900 text-neutral-900"
-                : "text-neutral-600 hover:text-neutral-900"
-            }`}
-          >
-            Order Management
-          </button>
-        </div>
-      </div>
-
-      {/* PRODUCTS TAB */}
+    <AdminLayout
+      activeSection={activeTab}
+      onSectionChange={setActiveTab}
+      activeOrderStatus={activeOrderStatus}
+      onOrderStatusChange={setActiveOrderStatus}
+    >
+      {/* PRODUCTS SECTION */}
       {activeTab === "products" && (
         <>
       {/* HEADER */}
@@ -1077,9 +1058,9 @@ export const Admin: React.FC = () => {
       {/* ORDERS TAB */}
       {activeTab === "orders" && (
         <div>
-          <AdminOrders />
+          <AdminOrders filterStatus={activeOrderStatus} />
         </div>
       )}
-    </div>
+    </AdminLayout>
   );
 };

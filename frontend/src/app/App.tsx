@@ -20,6 +20,8 @@ import { ForgotPassword } from './pages/ForgotPassword';
 import { Dashboard } from './pages/Dashboard';
 import { Account } from './pages/Account';
 import { OrderDetail } from './pages/OrderDetail';
+import { CancellationTicket } from './pages/CancellationTicket';
+import { RequestCancellation } from './pages/RequestCancellation';
 import { NotFound } from './pages/NotFound';
 import { ContactUs } from './pages/ContactUs';
 import { ProtectedRoute } from './components/ProtectedRoute';
@@ -65,6 +67,21 @@ function AppContent() {
                   <Route path="/account/order/:orderId" element={
                     <ProtectedRoute>
                       <OrderDetail />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/order/:orderId" element={
+                    <ProtectedRoute>
+                      <OrderDetail />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/cancellation-ticket/:orderId" element={
+                    <ProtectedRoute>
+                      <CancellationTicket />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/request-cancellation/:orderId" element={
+                    <ProtectedRoute>
+                      <RequestCancellation />
                     </ProtectedRoute>
                   } />
                   <Route path="*" element={<NotFound />} />

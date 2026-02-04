@@ -11,6 +11,7 @@ import adminOrders from "./routes/adminOrders";
 import userRoutes from "./routes/user";
 import imageRoutes from "./routes/imageRoutes";
 import paymentRoutes from "./routes/payment";
+import orderCancellationRoutes from "./routes/orderCancellationRoutes";
 
 
 const app = express();
@@ -49,6 +50,9 @@ app.use("/api/orders", orderRoutes);
 
 //admin Orders view
 app.use("/api/admin", adminOrders);
+
+//Order Cancellation Requests
+app.use("/api/order-cancellation-requests", orderCancellationRoutes);
 
 //User
 app.use("/api/user", userRoutes);
