@@ -21,7 +21,7 @@ import { Dashboard } from './pages/Dashboard';
 import { Account } from './pages/Account';
 import { OrderDetail } from './pages/OrderDetail';
 import { CancellationTicket } from './pages/CancellationTicket';
-import { RequestCancellation } from './pages/RequestCancellation';
+import { RequestCancellation } from './pages/RequesTCancellation';
 import { NotFound } from './pages/NotFound';
 import { ContactUs } from './pages/ContactUs';
 import { ProtectedRoute } from './components/ProtectedRoute';
