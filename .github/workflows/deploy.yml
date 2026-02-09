@@ -1,0 +1,105 @@
+name: Deployment Guide
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ v* ]
+
+jobs:
+  prepare-deployment:
+    runs-on: ubuntu-latest
+    name: Prepare for Deployment
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Show deployment checklist
+      run: |
+        cat << 'EOF'
+        
+        ╔════════════════════════════════════════════════════════════════╗
+        ║                   DEPLOYMENT CHECKLIST                        ║
+        ╚════════════════════════════════════════════════════════════════╝
+        
+        Before deploying to production:
+        
+        ✓ Code Review
+          [ ] All PRs approved and merged
+          [ ] No console.log in production code
+          [ ] No hardcoded secrets
+        
+        ✓ Testing
+          [ ] Backend TypeScript compiles
+          [ ] Frontend builds successfully
+          [ ] All dependencies audited
+        
+        ✓ Environment Variables
+          [ ] DATABASE_URL configured
+          [ ] BREVO_API_KEY configured and activated
+          [ ] SENDER_EMAIL verified in Brevo
+          [ ] RAZORPAY keys configured
+          [ ] FRONTEND_URL set correctly
+        
+        ✓ Database
+          [ ] Prisma migrations up to date
+          [ ] Database backups created
+          [ ] Schema changes tested
+        
+        ✓ Monitoring
+          [ ] Error tracking configured
+          [ ] Email monitoring set up
+          [ ] API health checks in place
+        
+        ═══════════════════════════════════════════════════════════════
+        
+        To enable automated deployment:
+        
+        1. Set up secrets in GitHub:
+           - Go to Settings → Secrets and variables → Actions
+           - Add: DATABASE_URL, BREVO_API_KEY, etc.
+        
+        2. Configure deployment target:
+           - Edit this workflow with your hosting provider
+           - Options: Vercel, Netlify, AWS, DigitalOcean, etc.
+        
+        3. Enable auto-deployment:
+           - Uncomment deployment steps below
+        
+        ═══════════════════════════════════════════════════════════════
+        EOF
+
+    - name: Version info
+      run: |
+        echo "Version: $(git describe --tags --always 2>/dev/null || echo 'no-tag')"
+        echo "Commit: $(git rev-parse --short HEAD)"
+        echo "Branch: $(git rev-parse --abbrev-ref HEAD)"
+
+  # EXAMPLE: Vercel Deployment (uncomment and configure to use)
+  # deploy-frontend:
+  #   runs-on: ubuntu-latest
+  #   needs: [prepare-deployment]
+  #   if: github.ref == 'refs/heads/main'
+  #   steps:
+  #     - uses: actions/checkout@v3
+  #     - uses: vercel/action@main
+  #       with:
+  #         vercel-token: ${{ secrets.VERCEL_TOKEN }}
+  #         vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+  #         vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+  #         working-directory: ./frontend
+
+  # EXAMPLE: Docker Deployment (uncomment and configure to use)
+  # deploy-backend:
+  #   runs-on: ubuntu-latest
+  #   needs: [prepare-deployment]
+  #   if: github.ref == 'refs/heads/main'
+  #   steps:
+  #     - uses: actions/checkout@v3
+  #     - name: Build and push Docker image
+  #       run: |
+  #         docker build -t myapp:latest backend/
+  #         docker tag myapp:latest myregistry/myapp:latest
+  #         docker push myregistry/myapp:latest
+  #       env:
+  #         DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+  #         DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}

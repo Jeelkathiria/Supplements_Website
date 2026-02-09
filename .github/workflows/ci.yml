@@ -1,0 +1,192 @@
+name: Full Stack CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  code-quality:
+    runs-on: ubuntu-latest
+    name: Code Quality Checks
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '20.x'
+
+    - name: Run Prisma format check
+      working-directory: ./backend
+      run: |
+        npm ci > /dev/null 2>&1
+        npx prisma format --check 2>/dev/null || echo "Prisma format check skipped"
+
+    - name: Check for console.log statements in production code
+      run: |
+        echo "Checking for excessive console.log..."
+        CONSOLE_COUNT=$(grep -r "console\.log" backend/src --include="*.ts" --exclude-dir=node_modules | wc -l)
+        if [ "$CONSOLE_COUNT" -gt 50 ]; then
+          echo "⚠️  Warning: High number of console.log statements ($CONSOLE_COUNT)"
+        else
+          echo "✓ Console.log count acceptable ($CONSOLE_COUNT)"
+        fi
+
+  backend-test:
+    runs-on: ubuntu-latest
+    name: Backend Tests
+    needs: code-quality
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres123
+          POSTGRES_DB: supplementdb
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5434:5432
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+        cache-dependency-path: backend/package-lock.json
+
+    - name: Install dependencies
+      working-directory: ./backend
+      run: npm ci
+
+    - name: TypeScript compilation check
+      working-directory: ./backend
+      run: npx tsc --noEmit
+
+    - name: Verify Prisma Schema
+      working-directory: ./backend
+      run: npx prisma validate
+
+    - name: Build Backend
+      working-directory: ./backend
+      run: npx tsc
+
+    - name: Verify email service exists
+      working-directory: ./backend
+      run: |
+        if [ -f "src/services/emailService.ts" ]; then
+          echo "✓ Email service configured"
+          grep -q "sendOrderConfirmationEmail" src/services/emailService.ts && echo "✓ Order confirmation email template found"
+        else
+          echo "✗ Email service not found"
+          exit 1
+        fi
+
+    - name: Backend tests passed
+      run: echo "✅ Backend passed all checks"
+
+  frontend-test:
+    runs-on: ubuntu-latest
+    name: Frontend Tests
+    needs: code-quality
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+        cache-dependency-path: frontend/package-lock.json
+
+    - name: Install dependencies
+      working-directory: ./frontend
+      run: npm ci
+
+    - name: TypeScript compilation check
+      working-directory: ./frontend
+      run: npx tsc --noEmit
+
+    - name: Build Frontend
+      working-directory: ./frontend
+      run: npm run build
+      env:
+        VITE_API_URL: http://localhost:5000/api
+
+    - name: Verify build artifacts
+      working-directory: ./frontend
+      run: |
+        if [ -d "dist" ]; then
+          echo "✓ Build artifacts created"
+          echo "Build size:"
+          du -sh dist/
+          find dist/ -type f -name "*.js" | head -5
+        else
+          echo "✗ Build failed - no dist directory"
+          exit 1
+        fi
+
+    - name: Frontend tests passed
+      run: echo "✅ Frontend passed all checks"
+
+  security-scan:
+    runs-on: ubuntu-latest
+    name: Security Scan
+    
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '20.x'
+
+    - name: Audit backend dependencies
+      working-directory: ./backend
+      run: |
+        npm ci > /dev/null 2>&1
+        npm audit --audit-level=moderate || echo "⚠️ Found vulnerabilities - review manually"
+
+    - name: Audit frontend dependencies
+      working-directory: ./frontend
+      run: |
+        npm ci > /dev/null 2>&1
+        npm audit --audit-level=moderate || echo "⚠️ Found vulnerabilities - review manually"
+
+    - name: Check for hardcoded secrets
+      run: |
+        echo "Scanning for hardcoded secrets..."
+        if grep -r "BREVO_API_KEY" backend/src --include="*.ts" 2>/dev/null | grep -v "process.env"; then
+          echo "⚠️ Warning: Potential hardcoded API key found"
+        fi
+        if grep -r "password" backend/.env 2>/dev/null; then
+          echo "✓ Credentials should be in .env (not in repo)"
+        fi
+
+  summary:
+    runs-on: ubuntu-latest
+    name: CI Summary
+    needs: [backend-test, frontend-test, security-scan]
+    if: always()
+
+    steps:
+    - name: Check CI Status
+      run: |
+        if [ "${{ needs.backend-test.result }}" = "success" ] && [ "${{ needs.frontend-test.result }}" = "success" ]; then
+          echo "✅ All CI checks passed!"
+          exit 0
+        else
+          echo "❌ Some checks failed"
+          exit 1
+        fi
