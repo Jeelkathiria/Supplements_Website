@@ -8,3 +8,8 @@ build/
 
 # Uploads
 uploads/
+
+# Environment variables (NEVER commit secrets)
+.env
+.env.local
+.env.*.local
