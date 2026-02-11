@@ -9,3 +9,7 @@ build/
 # Env
 .env
 firebase.ts
+
+.env
+frontend/.env
+

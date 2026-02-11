@@ -35,9 +35,14 @@ export const apiFetch = async (
   const existingHeaders = typeof fetchOptions.headers === 'object' && fetchOptions.headers ? fetchOptions.headers : {};
 
   const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
     ...existingHeaders,
   };
+
+  // Only set Content-Type if body is not FormData
+  // FormData requires no Content-Type header so browser can set it with boundary
+  if (!(fetchOptions.body instanceof FormData)) {
+    headers['Content-Type'] = 'application/json';
+  }
 
   if (requireAuth) {
     const token = await getAuthToken();

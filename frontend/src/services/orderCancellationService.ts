@@ -6,6 +6,8 @@ export interface OrderCancellationRequest {
   userId: string;
   reason: string;
   status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  videoUrl?: string;
+  videoUploadedAt?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -142,4 +144,36 @@ export class OrderCancellationService {
     const data = await response.json();
     return data.data;
   }
+
+  // Upload video for cancellation request (for delivered orders with defects)
+  static async uploadVideo(
+    requestId: string,
+    videoFile: File
+  ): Promise<OrderCancellationRequest> {
+    const formData = new FormData();
+    formData.append('video', videoFile);
+
+    const response = await apiFetch(
+      `/order-cancellation-requests/${requestId}/upload-video`,
+      {
+        method: 'POST',
+        body: formData,
+      }
+    );
+
+    if (!response.ok) {
+      let errorMessage = 'Failed to upload video';
+      try {
+        const error = await response.json();
+        errorMessage = error.error || error.message || errorMessage;
+      } catch (e) {
+        errorMessage = `Error ${response.status}: ${response.statusText}`;
+      }
+      throw new Error(errorMessage);
+    }
+
+    const data = await response.json();
+    return data.data;
+  }
 }
+

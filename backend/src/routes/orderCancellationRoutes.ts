@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { OrderCancellationController } from "../controllers/orderCancellationController";
 import { requireAuth } from "../middlewares/requireAuth";
+import { videoUpload } from "../middlewares/videoUpload";
 
 const router = Router();
 
@@ -14,6 +15,9 @@ router.get("/admin/all", requireAuth, OrderCancellationController.getAllRequests
 // User routes
 // Get cancellation request for specific order
 router.get("/order/:orderId", requireAuth, OrderCancellationController.getRequestByOrderId);
+
+// Upload video for cancellation request (for delivered orders)
+router.post("/:requestId/upload-video", requireAuth, videoUpload.single("video"), OrderCancellationController.uploadVideo);
 
 // Create cancellation request
 router.post("/", requireAuth, OrderCancellationController.createRequest);

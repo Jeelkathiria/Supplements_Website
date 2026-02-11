@@ -33,30 +33,89 @@ jobs:
       working-directory: ./frontend
       run: npm ci
 
-    - name: Check TypeScript compilation
+    - name: TypeScript type check
       working-directory: ./frontend
       run: npx tsc --noEmit
-
-    - name: Lint with ESLint
-      working-directory: ./frontend
-      run: |
-        npx eslint src/ --ext .ts,.tsx 2>/dev/null || echo "ESLint not configured (optional)"
 
     - name: Build frontend
       working-directory: ./frontend
       run: npm run build
       env:
         VITE_API_URL: http://localhost:5000/api
+        VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY || 'placeholder-for-ci' }}
+        VITE_FIREBASE_AUTH_DOMAIN: ${{ secrets.VITE_FIREBASE_AUTH_DOMAIN || 'placeholder-for-ci' }}
+        VITE_FIREBASE_PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID || 'placeholder-for-ci' }}
+        VITE_FIREBASE_STORAGE_BUCKET: ${{ secrets.VITE_FIREBASE_STORAGE_BUCKET || 'placeholder-for-ci' }}
+        VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID || 'placeholder-for-ci' }}
+        VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID || 'placeholder-for-ci' }}
 
-    - name: Check build output
+    - name: Verify build output
       working-directory: ./frontend
       run: |
         if [ -d "dist" ]; then
           echo "✓ Build directory created"
-          ls -lah dist/ | head -10
+          BUILD_SIZE=$(du -sb dist/ | awk '{print $1}')
+          BUILD_SIZE_MB=$((BUILD_SIZE / 1024 / 1024))
+          echo "Build size: ${BUILD_SIZE_MB}MB"
+          
+          # Check bundle size
+          MAX_SIZE_MB=50
+          if [ $BUILD_SIZE_MB -lt $MAX_SIZE_MB ]; then
+            echo "✓ Build size is within limits (${BUILD_SIZE_MB}MB < ${MAX_SIZE_MB}MB)"
+          else
+            echo "⚠️ Build size exceeds recommended limit (${BUILD_SIZE_MB}MB > ${MAX_SIZE_MB}MB)"
+          fi
+          
+          # Show file breakdown
+          echo ""
+          echo "Build artifact breakdown:"
+          du -sh dist/* 2>/dev/null | head -10
         else
-          echo "⚠ Build directory not found"
+          echo "✗ Build failed - no dist directory"
+          exit 1
+        fi
+
+    - name: Verify critical files
+      working-directory: ./frontend
+      run: |
+        echo "Verifying critical frontend components..."
+        CRITICAL_FILES=(
+          "src/app/pages/Admin.tsx"
+          "src/app/components/AdminLayout.tsx"
+          "src/app/components/AdminRefundStatus.tsx"
+          "src/services/apiClient.ts"
+        )
+        for file in "${CRITICAL_FILES[@]}"; do
+          if [ -f "$file" ]; then
+            echo "✓ $file exists"
+          else
+            echo "✗ $file missing"
+            exit 1
+          fi
+        done
+
+    - name: Check for common React issues
+      working-directory: ./frontend
+      continue-on-error: true
+      run: |
+        echo "Checking for common React issues..."
+        # Check for missing useCallback/useMemo in lists
+        MISSING_KEYS=$(grep -r "map(" src/app/components --include="*.tsx" | grep -v "key=" | wc -l)
+        if [ $MISSING_KEYS -gt 0 ]; then
+          echo "⚠️ Found $MISSING_KEYS potential missing key props"
+        fi
+        echo "✓ Code pattern checks completed"
+
+    - name: Lint with ESLint
+      working-directory: ./frontend
+      continue-on-error: true
+      run: |
+        if [ -f ".eslintrc.json" ] || [ -f ".eslintrc.js" ]; then
+          npx eslint src/ --ext .ts,.tsx 2>/dev/null || echo "ESLint warnings found"
+        else
+          echo "ESLint not configured (optional)"
         fi
 
     - name: Build successful
       run: echo "✅ Frontend build passed for Node ${{ matrix.node-version }}"
+

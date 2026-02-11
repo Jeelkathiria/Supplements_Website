@@ -4,15 +4,18 @@ import {
   ShoppingCart,
   ChevronLeft,
   ChevronRight,
+  Video,
+  RotateCcw,
 } from "lucide-react";
 
-type OrderStatus = "all" | "pending" | "shipped" | "delivered" | "cancelled"; 
+type OrderStatus = "all" | "pending" | "shipped" | "delivered" | "cancelled";
+type AdminSection = "products" | "orders" | "cancellations" | "refunds";
 
 interface AdminLayoutProps {
   children: React.ReactNode;
-  activeSection: "products" | "orders";
+  activeSection: AdminSection;
   activeOrderStatus?: OrderStatus;
-  onSectionChange: (section: "products" | "orders") => void;
+  onSectionChange: (section: AdminSection) => void;
   onOrderStatusChange?: (status: OrderStatus) => void;
 }
 
@@ -71,14 +74,6 @@ export function AdminLayout({
 
         {/* NAV */}
         <nav className="flex-1 px-3 space-y-1">
-          {/* Products */}
-          <NavItem
-            icon={<Package size={18} />}
-            label="Products"
-            collapsed={collapsed}
-            active={activeSection === "products"}
-            onClick={() => onSectionChange("products")}
-          />
 
           {/* Orders */}
           <NavItem
@@ -110,6 +105,33 @@ export function AdminLayout({
               ))}
             </div>
           )}
+
+          {/* Cancellations */}
+          <NavItem
+            icon={<Video size={18} />}
+            label="Cancellations"
+            collapsed={collapsed}
+            active={activeSection === "cancellations"}
+            onClick={() => onSectionChange("cancellations")}
+          />
+
+          {/* Refunds */}
+          <NavItem
+            icon={<RotateCcw size={18} />}
+            label="Refund Status"
+            collapsed={collapsed}
+            active={activeSection === "refunds"}
+            onClick={() => onSectionChange("refunds")}
+          />
+
+          {/* Products */}
+          <NavItem
+            icon={<Package size={18} />}
+            label="Products"
+            collapsed={collapsed}
+            active={activeSection === "products"}
+            onClick={() => onSectionChange("products")}
+          />
         </nav>
       </aside>
 

@@ -79,6 +79,10 @@ export const placeOrder = async (req: AuthRequest, res: Response) => {
 
     const order = await orderService.placeOrderFromCart(userId, addressId, paymentMethod || 'cod');
 
+    if (!order) {
+      return res.status(400).json({ error: "Failed to create order" });
+    }
+
     console.log("Order placed successfully:", order.id);
     console.log("=== PLACE ORDER SUCCESS ===");
 
@@ -119,7 +123,8 @@ export const getOrderById = async (req: AuthRequest, res: Response) => {
       return res.status(401).json({ message: "User not authenticated" });
     }
 
-    const { orderId } = req.params;
+    const paramOrderId = req.params.orderId;
+    const orderId = Array.isArray(paramOrderId) ? paramOrderId[0] : paramOrderId;
     const order = await orderService.getOrderById(orderId);
 
     if (!order) {
@@ -161,7 +166,8 @@ export const getAllOrders = async (req: AuthRequest, res: Response) => {
 
 export const updateOrderStatus = async (req: AuthRequest, res: Response) => {
   try {
-    const { orderId } = req.params;
+    const paramOrderId = req.params.orderId;
+    const orderId = Array.isArray(paramOrderId) ? paramOrderId[0] : paramOrderId;
     const { status } = req.body;
 
     if (!status || !Object.values(OrderStatus).includes(status as OrderStatusType)) {
@@ -188,7 +194,8 @@ export const cancelOrder = async (req: AuthRequest, res: Response) => {
       return res.status(401).json({ message: "User not authenticated" });
     }
 
-    const { orderId } = req.params;
+    const paramOrderId = req.params.orderId;
+    const orderId = Array.isArray(paramOrderId) ? paramOrderId[0] : paramOrderId;
 
     // Verify order belongs to user
     const order = await orderService.getOrderById(orderId);

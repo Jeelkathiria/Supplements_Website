@@ -33,6 +33,8 @@ export interface Order {
     name: string;
   };
   createdAt: string;
+  shippedAt?: string | null;
+  deliveredAt?: string | null;
   updatedAt: string;
 }
 

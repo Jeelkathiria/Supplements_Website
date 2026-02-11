@@ -148,7 +148,8 @@ export const getAddresses = async (req: AuthRequest, res: Response) => {
 export const setDefaultAddress = async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user?.dbUser?.id;
-    const { id } = req.params;
+    const paramId = req.params.id;
+    const id = Array.isArray(paramId) ? paramId[0] : paramId;
 
     if (!userId) {
       return res.status(401).json({ message: "User not authenticated" });
@@ -187,7 +188,8 @@ export const setDefaultAddress = async (req: AuthRequest, res: Response) => {
 export const deleteAddress = async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user?.dbUser?.id;
-    const { id } = req.params;
+    const paramId = req.params.id;
+    const id = Array.isArray(paramId) ? paramId[0] : paramId;
 
     if (!userId) {
       return res.status(401).json({ message: "User not authenticated" });

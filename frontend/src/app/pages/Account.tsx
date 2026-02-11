@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { LogOut, User, MapPin, Package, AlertCircle, Trash2, Plus, RotateCcw, Check } from 'lucide-react';
 import { useAuth } from '../components/context/AuthContext';
 import { useCart } from '../components/context/CartContext';
+import { OrderTrackingProgress } from '../components/OrderTrackingProgress';
 import { toast } from 'sonner';
 import * as userService from '../../services/userService';
 import * as orderService from '../../services/orderService';
@@ -876,6 +877,12 @@ export const Account: React.FC = () => {
                             </div>
                           </div>
 
+                          {/* Order Tracking Progress */}
+                          {order.status !== 'DELIVERED' && order.status !== 'CANCELLED' && (
+                            <div className="px-4 md:px-6 py-3 bg-yellow-50 border-t border-yellow-200">
+                              <OrderTrackingProgress status={order.status} />
+                            </div>
+                          )}
 
                             {/* Order Items */}
                             <div className="px-4 md:px-6 py-4 space-y-3">

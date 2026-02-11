@@ -14,6 +14,8 @@ import {
   uploadImages,
 } from "../../services/productService";
 import { AdminOrders } from "../components/AdminOrders";
+import { AdminCancellationRequests } from "../components/AdminCancellationRequests";
+import { AdminRefundStatus } from "../components/AdminRefundStatus";
 import { AdminLayout } from "../components/AdminLayout";
 
 // Helper function to get full image URL
@@ -43,7 +45,18 @@ const EMPTY_FORM: Partial<Product> = {
 };
 
 export const Admin: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<"products" | "orders">("products");
+  // Initialize activeTab from localStorage, default to "orders"
+  const [activeTab, setActiveTabState] = useState<"products" | "orders" | "cancellations" | "refunds">(() => {
+    const savedTab = localStorage.getItem("adminActiveTab");
+    return (savedTab as "products" | "orders" | "cancellations" | "refunds") || "orders";
+  });
+
+  // Wrapper function to update both state and localStorage
+  const setActiveTab = (tab: "products" | "orders" | "cancellations" | "refunds") => {
+    setActiveTabState(tab);
+    localStorage.setItem("adminActiveTab", tab);
+  };
+
   const [activeOrderStatus, setActiveOrderStatus] = useState<"all" | "pending" | "delivered" | "shipped" | "cancelled">("all");
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -1059,6 +1072,20 @@ export const Admin: React.FC = () => {
       {activeTab === "orders" && (
         <div>
           <AdminOrders filterStatus={activeOrderStatus} />
+        </div>
+      )}
+
+      {/* CANCELLATIONS TAB */}
+      {activeTab === "cancellations" && (
+        <div>
+          <AdminCancellationRequests />
+        </div>
+      )}
+
+      {/* REFUNDS TAB */}
+      {activeTab === "refunds" && (
+        <div>
+          <AdminRefundStatus />
         </div>
       )}
     </AdminLayout>

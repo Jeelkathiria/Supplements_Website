@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Download, AlertCircle, FileText } from 'lucide-react';
 import * as orderService from '../../services/orderService';
 import { OrderCancellationService } from '../../services/orderCancellationService';
+import { OrderTrackingTimeline } from '../components/OrderTrackingTimeline';
 import type { Order } from '../../services/orderService';
 
 export const OrderDetail: React.FC = () => {
@@ -260,6 +261,14 @@ export const OrderDetail: React.FC = () => {
               </>
             )}
           </div>
+
+          {/* Order Tracking Timeline */}
+          <OrderTrackingTimeline 
+            status={order.status} 
+            createdAt={order.createdAt}
+            shippedAt={order.shippedAt}
+            deliveredAt={order.deliveredAt}
+          />
 
           {/* Footer */}
           <div className="px-6 md:px-8 py-4 bg-neutral-100 border-t border-neutral-200 text-center text-xs text-neutral-600 max-w-4xl mx-auto">

@@ -58,6 +58,13 @@ export interface Order {
   address: OrderAddress | null;
   createdAt: string;
   updatedAt: string;
+  shippedAt?: string | null;
+  deliveredAt?: string | null;
+  cancellationRequest?: {
+    id: string;
+    status: "PENDING" | "APPROVED" | "REJECTED";
+    reason: string;
+  } | null;
 }
 
 // Admin endpoints

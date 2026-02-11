@@ -165,4 +165,43 @@ export class OrderCancellationController {
       });
     }
   }
+
+  // Upload video for cancellation request (for delivered orders with defects)
+  static async uploadVideo(req: Request, res: Response) {
+    try {
+      const { requestId } = req.params;
+      const userId = req.user?.uid;
+      const id = Array.isArray(requestId) ? requestId[0] : requestId;
+
+      if (!id) {
+        return res.status(400).json({ error: "Request ID is required" });
+      }
+
+      if (!userId) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      if (!req.file) {
+        return res.status(400).json({ error: "Video file is required" });
+      }
+
+      // Store the video URL
+      const videoUrl = `/uploads/videos/${req.file.filename}`;
+
+      // Update cancellation request with video URL
+      const updated = await OrderCancellationService.uploadVideo(id, userId, videoUrl);
+
+      return res.status(200).json({
+        success: true,
+        message: "Video uploaded successfully",
+        data: updated,
+      });
+    } catch (error: any) {
+      return res.status(400).json({
+        success: false,
+        error: error.message || "Failed to upload video",
+      });
+    }
+  }
 }
+

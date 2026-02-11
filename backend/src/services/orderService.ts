@@ -1,6 +1,11 @@
 import prisma from "../lib/prisma";
 import { $Enums } from "../generated/prisma";
 import { generateOrderId } from "../lib/idGenerator";
+import {
+  sendOrderConfirmationEmail,
+  sendOrderShippedEmail,
+  sendOrderDeliveredEmail,
+} from "./emailService";
 
 const OrderStatus = $Enums.OrderStatus;
 type OrderStatusType = $Enums.OrderStatus;
@@ -251,6 +256,61 @@ export const placeOrderFromCart = async (userId: string, addressId: string, paym
       return completeOrder;
     });
 
+    // Send order confirmation email only for COD orders
+    // For online payments (UPI/Razorpay), email will be sent after payment verification
+    const isCodPayment = paymentMethod && paymentMethod.toLowerCase() === 'cod';
+    console.log("Check payment method - paymentMethod:", paymentMethod, "isCod:", isCodPayment);
+    
+    if (isCodPayment) {
+      try {
+        console.log("📧 COD Order - Fetching user for email send. User ID:", userId);
+        const user = await prisma.user.findUnique({
+          where: { id: userId },
+        });
+
+        console.log("📧 User found:", user);
+        console.log("📧 User email:", user?.email);
+        console.log("📧 User name:", user?.name);
+
+        if (!user) {
+          console.error("❌ User not found in database");
+        } else if (!user.email) {
+          console.error("❌ User email is empty or null");
+        } else {
+          const items = order?.items?.map((item) => ({
+            productName: item.product.name,
+            quantity: item.quantity,
+            price: item.price,
+            flavor: item.flavor || undefined,
+            size: item.size || undefined,
+          })) || [];
+
+          console.log("📧 Sending COD confirmation email to:", user.email);
+          console.log("📧 Order ID:", order?.id);
+          console.log("📧 Items count:", items?.length || 0);
+
+          if (order && items) {
+            await sendOrderConfirmationEmail(
+              user.email,
+              order.id,
+              user.name || "Valued Customer",
+              order.totalAmount,
+              items
+            );
+
+            console.log("✅ COD Order confirmation email sent successfully!");
+          }
+        }
+      } catch (emailError: any) {
+        console.error("❌ Error sending COD order confirmation email:");
+        console.error("Error message:", emailError?.message);
+        console.error("Error details:", emailError);
+        // Don't throw error - order is already created, email is just a notification
+      }
+    } else {
+      console.log("📧 Online payment order (UPI/Razorpay) - Email will be sent after payment verification");
+    }
+
     console.log("=== PLACE ORDER FROM CART SUCCESS ===");
     return order;
   } catch (error) {
@@ -292,6 +352,7 @@ export const getOrderById = async (orderId: string) => {
           include: { product: true },
         },
         address: true,
+        cancellationRequest: true,
       },
     });
   } catch (error) {
@@ -310,6 +371,7 @@ export const getAllOrders = async (status?: OrderStatusType) => {
           include: { product: true },
         },
         address: true,
+        cancellationRequest: true,
       },
       orderBy: { createdAt: "desc" },
     });
@@ -324,9 +386,30 @@ export const updateOrderStatus = async (
   status: OrderStatusType
 ) => {
   try {
-    return await prisma.order.update({
+    // Check if there's a pending cancellation request for this order
+    const pendingCancellation = await prisma.orderCancellationRequest.findFirst({
+      where: {
+        orderId,
+        status: 'PENDING'
+      }
+    });
+
+    if (pendingCancellation) {
+      throw new Error("Cannot update order status while a cancellation request is pending. Please accept or reject the cancellation request first.");
+    }
+
+    // Prepare data object with status and appropriate timestamp
+    const updateData: any = { status };
+    
+    if (status === OrderStatus.SHIPPED) {
+      updateData.shippedAt = new Date();
+    } else if (status === OrderStatus.DELIVERED) {
+      updateData.deliveredAt = new Date();
+    }
+
+    const order = await prisma.order.update({
       where: { id: orderId },
-      data: { status },
+      data: updateData,
       include: {
         items: {
           include: { product: true },
@@ -334,6 +417,34 @@ export const updateOrderStatus = async (
         address: true,
       },
     });
+
+    // Send appropriate email based on status change
+    try {
+      const user = await prisma.user.findUnique({
+        where: { id: order.userId },
+      });
+
+      if (user && user.email) {
+        if (status === OrderStatus.SHIPPED) {
+          await sendOrderShippedEmail(
+            user.email,
+            order.id,
+            user.name || "Valued Customer"
+          );
+        } else if (status === OrderStatus.DELIVERED) {
+          await sendOrderDeliveredEmail(
+            user.email,
+            order.id,
+            user.name || "Valued Customer"
+          );
+        }
+      }
+    } catch (emailError) {
+      console.error("Error sending order status email:", emailError);
+      // Don't throw error - order is already updated, email is just a notification
+    }
+
+    return order;
   } catch (error) {
     console.error("Error updating order status:", error);
     throw error;
@@ -396,5 +507,74 @@ export const clearCartAfterPayment = async (userId: string) => {
   } catch (error) {
     console.error("Error clearing cart after payment:", error);
     throw error;
+  }
+};
+
+export const sendOrderConfirmationEmailForOrder = async (orderId: string) => {
+  try {
+    console.log("📧 sendOrderConfirmationEmailForOrder called for order:", orderId);
+    
+    const order = await prisma.order.findUnique({
+      where: { id: orderId },
+      include: {
+        items: {
+          include: { product: true }
+        }
+      }
+    });
+
+    if (!order) {
+      console.error("❌ Order not found:", orderId);
+      return false;
+    }
+
+    console.log("✅ Order found:", order.id, "Payment method:", order.paymentMethod);
+
+    const user = await prisma.user.findUnique({
+      where: { id: order.userId },
+    });
+
+    console.log("📧 User lookup result:", user ? "Found" : "Not found");
+    console.log("📧 User email:", user?.email);
+    console.log("📧 User name:", user?.name);
+
+    if (!user) {
+      console.error("❌ User not found in database");
+      return false;
+    } else if (!user.email) {
+      console.error("❌ User email is empty or null");
+      return false;
+    }
+
+    const items = order.items.map((item) => ({
+      productName: item.product.name,
+      quantity: item.quantity,
+      price: item.price,
+      flavor: item.flavor || undefined,
+      size: item.size || undefined,
+    }));
+
+    console.log("📧 Preparing to send confirmation email...");
+    console.log("📧 To:", user.email);
+    console.log("📧 Order ID:", order.id);
+    console.log("📧 Items count:", items.length);
+
+    await sendOrderConfirmationEmail(
+      user.email,
+      order.id,
+      user.name || "Valued Customer",
+      order.totalAmount,
+      items
+    );
+
+    console.log("✅ Order confirmation email sent successfully for order:", order.id);
+    return true;
+  } catch (error: any) {
+    console.error("❌ CRITICAL ERROR sending order confirmation email:");
+    console.error("Error message:", error?.message);
+    console.error("Error stack:", error?.stack);
+    console.error("Full error:", error);
+    // Don't throw error - order is already created, email is just a notification
+    return false;
   }
 };

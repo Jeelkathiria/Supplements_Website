@@ -65,8 +65,14 @@ export const initiateRazorpayPayment = (
   customerName: string
 ): Promise<any> => {
   return new Promise((resolve, reject) => {
+    const key = import.meta.env.VITE_RAZORPAY_KEY;
+    if (!key) {
+      reject(new Error("Razorpay API key not configured. Please set VITE_RAZORPAY_KEY in your .env file."));
+      return;
+    }
+
     const options = {
-      key: import.meta.env.VITE_RAZORPAY_KEY_ID,
+      key: key,
       amount: Math.round(amount * 100), // Amount in paise
       currency: currency || "INR",
       name: "SATURNIMPORTS",

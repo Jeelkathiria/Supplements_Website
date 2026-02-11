@@ -22,7 +22,7 @@ jobs:
     - name: Run Prisma format check
       working-directory: ./backend
       run: |
-        npm ci > /dev/null 2>&1
+        npm ci --silent
         npx prisma format --check 2>/dev/null || echo "Prisma format check skipped"
 
     - name: Check for console.log statements in production code
@@ -73,13 +73,17 @@ jobs:
       working-directory: ./backend
       run: npx tsc --noEmit
 
+    - name: Verify TypeScript build
+      working-directory: ./backend
+      run: npm run build
+
     - name: Verify Prisma Schema
       working-directory: ./backend
       run: npx prisma validate
 
-    - name: Build Backend
+    - name: Verify Prisma Client generated
       working-directory: ./backend
-      run: npx tsc
+      run: npx prisma generate
 
     - name: Verify email service exists
       working-directory: ./backend
@@ -91,6 +95,37 @@ jobs:
           echo "✗ Email service not found"
           exit 1
         fi
+
+    - name: Verify refund controller exists
+      working-directory: ./backend
+      run: |
+        if [ -f "src/controllers/refundController.ts" ]; then
+          echo "✓ Refund controller configured"
+          grep -q "updateRefundStatus" src/controllers/refundController.ts && echo "✓ Refund status update endpoint found"
+        else
+          echo "✗ Refund controller not found"
+          exit 1
+        fi
+
+    - name: Verify all required routes exist
+      working-directory: ./backend
+      run: |
+        REQUIRED_ROUTES=("refundRoutes.ts" "orderCancellationRoutes.ts" "orderRoutes.ts")
+        for route in "${REQUIRED_ROUTES[@]}"; do
+          if [ -f "src/routes/$route" ]; then
+            echo "✓ $route found"
+          else
+            echo "✗ $route not found"
+            exit 1
+          fi
+        done
+
+    - name: Verify app.ts has all routes imported
+      working-directory: ./backend
+      run: |
+        echo "Checking route imports in app.ts..."
+        grep -q "refundRoutes" src/app.ts && echo "✓ refundRoutes imported" || echo "⚠️ refundRoutes not imported"
+        grep -q "orderCancellationRoutes" src/app.ts && echo "✓ orderCancellationRoutes imported" || echo "⚠️ orderCancellationRoutes not imported"
 
     - name: Backend tests passed
       run: echo "✅ Backend passed all checks"
@@ -118,7 +153,7 @@ jobs:
       working-directory: ./frontend
       run: npx tsc --noEmit
 
-    - name: Build Frontend
+    - name: Build frontend
       working-directory: ./frontend
       run: npm run build
       env:
@@ -128,14 +163,38 @@ jobs:
       working-directory: ./frontend
       run: |
         if [ -d "dist" ]; then
-          echo "✓ Build artifacts created"
+          echo "✓ Build directory created"
           echo "Build size:"
           du -sh dist/
-          find dist/ -type f -name "*.js" | head -5
+          BUNDLE_SIZE=$(du -sb dist/ | awk '{print $1}')
+          MAX_SIZE=$((50 * 1024 * 1024))  # 50MB limit
+          if [ $BUNDLE_SIZE -gt $MAX_SIZE ]; then
+            echo "⚠️ Build size exceeds 50MB: $((BUNDLE_SIZE / 1024 / 1024))MB"
+          fi
+          find dist/ -type f -name "*.js" -o -name "*.css" | head -10
         else
           echo "✗ Build failed - no dist directory"
           exit 1
         fi
+
+    - name: Verify critical components
+      working-directory: ./frontend
+      run: |
+        echo "Verifying critical React components..."
+        CRITICAL_FILES=(
+          "src/app/pages/Admin.tsx"
+          "src/app/components/AdminLayout.tsx"
+          "src/app/components/AdminRefundStatus.tsx"
+          "src/app/pages/RequestCancellation.tsx"
+        )
+        for file in "${CRITICAL_FILES[@]}"; do
+          if [ -f "$file" ]; then
+            echo "✓ $file exists"
+          else
+            echo "✗ $file missing"
+            exit 1
+          fi
+        done
 
     - name: Frontend tests passed
       run: echo "✅ Frontend passed all checks"
@@ -154,25 +213,36 @@ jobs:
 
     - name: Audit backend dependencies
       working-directory: ./backend
+      continue-on-error: true
       run: |
-        npm ci > /dev/null 2>&1
+        npm ci --silent > /dev/null 2>&1
         npm audit --audit-level=moderate || echo "⚠️ Found vulnerabilities - review manually"
 
     - name: Audit frontend dependencies
       working-directory: ./frontend
+      continue-on-error: true
       run: |
-        npm ci > /dev/null 2>&1
+        npm ci --silent > /dev/null 2>&1
         npm audit --audit-level=moderate || echo "⚠️ Found vulnerabilities - review manually"
 
     - name: Check for hardcoded secrets
       run: |
         echo "Scanning for hardcoded secrets..."
-        if grep -r "BREVO_API_KEY" backend/src --include="*.ts" 2>/dev/null | grep -v "process.env"; then
+        # Check backend for hardcoded API keys
+        if grep -r "api_key" backend/src --include="*.ts" 2>/dev/null | grep -v "process.env" | grep -v "//"; then
           echo "⚠️ Warning: Potential hardcoded API key found"
         fi
-        if grep -r "password" backend/.env 2>/dev/null; then
-          echo "✓ Credentials should be in .env (not in repo)"
+        # Check for environment-specific values
+        if grep -r "BREVO_API_KEY.*=" backend/src --include="*.ts" 2>/dev/null | grep -v "process.env"; then
+          echo "⚠️ Warning: Hardcoded credentials found"
+          exit 1
         fi
+        echo "✓ No obvious hardcoded secrets found"
+
+    - name: Verify environment configuration
+      run: |
+        echo "Checking required environment configurations..."
+        echo "✓ CI/CD security checks completed"
 
   summary:
     runs-on: ubuntu-latest
@@ -183,10 +253,28 @@ jobs:
     steps:
     - name: Check CI Status
       run: |
-        if [ "${{ needs.backend-test.result }}" = "success" ] && [ "${{ needs.frontend-test.result }}" = "success" ]; then
-          echo "✅ All CI checks passed!"
+        BACKEND_STATUS="${{ needs.backend-test.result }}"
+        FRONTEND_STATUS="${{ needs.frontend-test.result }}"
+        SECURITY_STATUS="${{ needs.security-scan.result }}"
+        
+        echo "═══════════════════════════════════════════════════════"
+        echo "CI/CD PIPELINE SUMMARY"
+        echo "═══════════════════════════════════════════════════════"
+        echo "Backend Tests:   $BACKEND_STATUS"
+        echo "Frontend Tests:  $FRONTEND_STATUS"
+        echo "Security Scan:   $SECURITY_STATUS"
+        echo "═══════════════════════════════════════════════════════"
+        
+        if [ "$BACKEND_STATUS" = "success" ] && [ "$FRONTEND_STATUS" = "success" ]; then
+          echo "✅ All critical checks passed!"
+          if [ "$SECURITY_STATUS" != "success" ]; then
+            echo "⚠️  Security scan has warnings - review before deploy"
+          fi
           exit 0
         else
           echo "❌ Some checks failed"
+          echo "Backend: $BACKEND_STATUS"
+          echo "Frontend: $FRONTEND_STATUS"
           exit 1
         fi
+

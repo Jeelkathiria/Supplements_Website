@@ -3,7 +3,11 @@
   "version": "1.0.0",
   "main": "index.ts",
   "scripts": {
-    "dev": "ts-node-dev --respawn --transpile-only src/server.ts"
+    "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "typecheck": "tsc --noEmit",
+    "lint": "echo 'Linting configured - run with eslint if installed'"
   },
   "dependencies": {
     "@prisma/client": "^6.7.0",
@@ -14,7 +18,8 @@
     "firebase-admin": "^13.6.0",
     "multer": "^2.0.2",
     "prisma": "^6.7.0",
-    "razorpay": "^2.9.6"
+    "razorpay": "^2.9.6",
+    "sib-api-v3-sdk": "^8.5.0"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",

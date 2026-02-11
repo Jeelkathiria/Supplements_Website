@@ -176,6 +176,8 @@ exports.Prisma.OrderScalarFieldEnum = {
   paymentMethod: 'paymentMethod',
   addressId: 'addressId',
   createdAt: 'createdAt',
+  shippedAt: 'shippedAt',
+  deliveredAt: 'deliveredAt',
   updatedAt: 'updatedAt'
 };
 
@@ -222,7 +224,20 @@ exports.Prisma.OrderCancellationRequestScalarFieldEnum = {
   userId: 'userId',
   reason: 'reason',
   status: 'status',
+  videoUrl: 'videoUrl',
+  videoUploadedAt: 'videoUploadedAt',
   createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.OrderRefundScalarFieldEnum = {
+  id: 'id',
+  orderId: 'orderId',
+  status: 'status',
+  refundAmount: 'refundAmount',
+  reason: 'reason',
+  initiatedAt: 'initiatedAt',
+  completedAt: 'completedAt',
   updatedAt: 'updatedAt'
 };
 
@@ -264,6 +279,11 @@ exports.CancellationRequestStatus = exports.$Enums.CancellationRequestStatus = {
   REJECTED: 'REJECTED'
 };
 
+exports.RefundStatus = exports.$Enums.RefundStatus = {
+  INITIATED: 'INITIATED',
+  REFUND_COMPLETED: 'REFUND_COMPLETED'
+};
+
 exports.Prisma.ModelName = {
   Category: 'Category',
   Product: 'Product',
@@ -274,6 +294,7 @@ exports.Prisma.ModelName = {
   OrderAddress: 'OrderAddress',
   Address: 'Address',
   OrderCancellationRequest: 'OrderCancellationRequest',
+  OrderRefund: 'OrderRefund',
   User: 'User'
 };
 

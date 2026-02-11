@@ -62,7 +62,8 @@ export const getAllOrders = async (_req: Request, res: Response) => {
 
 export const updateOrderStatus = async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const paramId = req.params.id;
+    const id = Array.isArray(paramId) ? paramId[0] : paramId;
     const { status } = req.body;
 
     // Validate status

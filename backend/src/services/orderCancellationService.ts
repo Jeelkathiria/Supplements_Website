@@ -1,4 +1,9 @@
 import { PrismaClient } from "../generated/prisma";
+import {
+  sendCancellationApprovedEmail,
+  sendCancellationRejectedEmail,
+} from "./emailService";
+import * as refundService from "./refundService";
 
 const prisma = new PrismaClient();
 
@@ -10,7 +15,7 @@ export class OrderCancellationService {
     reason: string
   ) {
     console.log("OrderCancellationService.createCancellationRequest:", { orderId, userId, reasonLength: reason.length });
-    
+
     // Validate inputs
     if (!orderId || !userId || !reason) {
       const error = "Order ID, User ID, and reason are required";
@@ -21,7 +26,7 @@ export class OrderCancellationService {
     // Validate reason has at least 20 letters
     const letterCount = reason.trim().length;
     console.log("Letter count:", letterCount);
-    
+
     if (letterCount < 20) {
       const error = `Reason must be at least 20 letters. Current: ${letterCount} letters.`;
       console.error(error);
@@ -158,6 +163,37 @@ export class OrderCancellationService {
       data: { status: "CANCELLED" },
     });
 
+    // Create refund record for the approved cancellation
+    try {
+      console.log("📦 Creating refund record for approved cancellation");
+      await refundService.createRefundForApprovedCancellation(
+        request.orderId,
+        request.reason
+      );
+      console.log("✅ Refund record created successfully");
+    } catch (refundError) {
+      console.error("⚠️ Warning: Could not create refund record:", refundError);
+      // Don't throw error - cancellation approval should succeed even if refund creation fails
+    }
+
+    // Send approval email to user
+    try {
+      const user = await prisma.user.findUnique({
+        where: { id: request.userId },
+      });
+
+      if (user && user.email) {
+        await sendCancellationApprovedEmail(
+          user.email,
+          request.orderId,
+          user.name || "Valued Customer"
+        );
+      }
+    } catch (emailError) {
+      console.error("Error sending cancellation approval email:", emailError);
+      // Don't throw error - cancellation is already processed
+    }
+
     return updatedRequest;
   }
 
@@ -171,10 +207,30 @@ export class OrderCancellationService {
       throw new Error("Cancellation request not found");
     }
 
-    return prisma.orderCancellationRequest.update({
+    const updatedRequest = await prisma.orderCancellationRequest.update({
       where: { id: requestId },
       data: { status: "REJECTED" },
     });
+
+    // Send rejection email to user
+    try {
+      const user = await prisma.user.findUnique({
+        where: { id: request.userId },
+      });
+
+      if (user && user.email) {
+        await sendCancellationRejectedEmail(
+          user.email,
+          request.orderId,
+          user.name || "Valued Customer"
+        );
+      }
+    } catch (emailError) {
+      console.error("Error sending cancellation rejection email:", emailError);
+      // Don't throw error - rejection is already processed
+    }
+
+    return updatedRequest;
   }
 
   // Get cancellation request for user
@@ -189,4 +245,40 @@ export class OrderCancellationService {
       return request;
     });
   }
+
+  // Upload video for cancellation request (for delivered orders with defects)
+  static async uploadVideo(requestId: string, userId: string, videoUrl: string) {
+    // Get the cancellation request
+    const request = await prisma.orderCancellationRequest.findUnique({
+      where: { id: requestId },
+      include: { order: true },
+    });
+
+    if (!request) {
+      throw new Error("Cancellation request not found");
+    }
+
+    // Verify the user owns this request
+    if (request.userId !== userId) {
+      throw new Error("Unauthorized - you can only upload videos for your own requests");
+    }
+
+    // Verify the order is in DELIVERED status
+    if (request.order.status !== "DELIVERED") {
+      throw new Error("Video can only be uploaded for delivered orders");
+    }
+
+    // Update the request with video URL
+    return prisma.orderCancellationRequest.update({
+      where: { id: requestId },
+      data: {
+        videoUrl,
+        videoUploadedAt: new Date(),
+      },
+      include: {
+        order: true,
+      },
+    });
+  }
 }
+

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { Mail, Lock, Eye, EyeOff, ArrowRight, ShoppingCart } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, ArrowRight, ShoppingCart, X, CheckCircle } from 'lucide-react';
 import { useAuth } from '../components/context/AuthContext';
 import heroBg from '../../images/1001380690 (1).jpg';
 
@@ -12,7 +12,7 @@ const validateEmail = (email: string): boolean => {
 export const Login: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { login, loginWithGoogle, redirectAfterLogin, setRedirectAfterLogin } = useAuth();
+  const { login, loginWithGoogle, redirectAfterLogin, setRedirectAfterLogin, resetPassword } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
@@ -26,6 +26,14 @@ export const Login: React.FC = () => {
     password: '',
     rememberMe: false,
   });
+  
+  // Forgot Password Modal State
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotError, setForgotError] = useState('');
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotSuccess, setForgotSuccess] = useState(false);
+  const [forgotEmailError, setForgotEmailError] = useState('');
 
   // Check if redirecting from checkout
   const isCheckoutRedirect = searchParams.get('redirect') === 'checkout';
@@ -140,6 +148,49 @@ export const Login: React.FC = () => {
     }
   };
 
+  const handleForgotPasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setForgotError('');
+    
+    // Validate email
+    if (!forgotEmail.trim()) {
+      setForgotEmailError('Please enter your email address');
+      return;
+    }
+    
+    if (!validateEmail(forgotEmail)) {
+      setForgotEmailError('Please enter a valid email address');
+      return;
+    }
+    
+    setForgotLoading(true);
+    
+    try {
+      await resetPassword(forgotEmail);
+      setForgotSuccess(true);
+      setForgotEmail('');
+      setForgotEmailError('');
+    } catch (error: any) {
+      if (error.code === 'auth/user-not-found') {
+        setForgotError('No account found with this email address.');
+      } else if (error.code === 'auth/invalid-email') {
+        setForgotError('Please enter a valid email address.');
+      } else {
+        setForgotError(error.message || 'Failed to send reset email. Please try again.');
+      }
+    } finally {
+      setForgotLoading(false);
+    }
+  };
+
+  const handleCloseForgotPassword = () => {
+    setShowForgotPassword(false);
+    setForgotEmail('');
+    setForgotError('');
+    setForgotSuccess(false);
+    setForgotEmailError('');
+  };
+
   return (
     <div className="min-h-screen flex">
       {/* LEFT SIDE - FORM */}
@@ -238,12 +289,13 @@ export const Login: React.FC = () => {
 
             {/* Forgot Password Link */}
             <div className="text-right">
-              <Link
-                to="/forgot-password"
-                className="text-sm font-medium text-neutral-900 hover:underline"
+              <button
+                type="button"
+                onClick={() => setShowForgotPassword(true)}
+                className="text-sm font-medium text-neutral-900 hover:underline focus:outline-none"
               >
                 Forgot Password?
-              </Link>
+              </button>
             </div>
 
             {/* Submit Button */}
@@ -359,6 +411,129 @@ export const Login: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* FORGOT PASSWORD MODAL */}
+      {showForgotPassword && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md mx-auto animate-in fade-in zoom-in duration-300">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-6 border-b border-neutral-200">
+              <h2 className="text-xl font-bold text-neutral-900">Reset Password</h2>
+              <button
+                onClick={handleCloseForgotPassword}
+                className="text-neutral-500 hover:text-neutral-700 transition-colors"
+                aria-label="Close modal"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-6">
+              {forgotSuccess ? (
+                // Success State
+                <div className="text-center">
+                  <div className="relative inline-flex items-center justify-center w-20 h-20 bg-green-50 rounded-full mb-6">
+                    <div className="absolute inset-0 bg-green-100 rounded-full animate-ping opacity-25" />
+                    <CheckCircle className="w-10 h-10 text-green-600 relative z-10" />
+                  </div>
+                  
+                  <h3 className="text-xl font-bold text-neutral-900 mb-2">Check Your Email</h3>
+                  <p className="text-neutral-600 text-sm mb-6">
+                    We've sent a secure password reset link to<br />
+                    <span className="font-semibold text-neutral-900 block mt-2 break-all">{forgotEmail}</span>
+                  </p>
+                  
+                  <div className="bg-neutral-50 rounded-lg p-4 mb-6 text-left text-sm text-neutral-600">
+                    <p className="mb-3 font-semibold text-neutral-900">What's next?</p>
+                    <ul className="space-y-2 text-xs">
+                      <li>• Check your inbox and spam folder</li>
+                      <li>• Click the reset link in the email</li>
+                      <li>• Create a new strong password</li>
+                    </ul>
+                  </div>
+                  
+                  <button
+                    onClick={handleCloseForgotPassword}
+                    className="w-full h-11 bg-teal-800 hover:bg-teal-900 text-white rounded-lg font-semibold transition-colors"
+                  >
+                    Back to Login
+                  </button>
+                </div>
+              ) : (
+                // Form State
+                <form onSubmit={handleForgotPasswordSubmit} className="space-y-4">
+                  <p className="text-sm text-neutral-600 mb-4">
+                    Enter the email address associated with your account and we'll send you a link to reset your password.
+                  </p>
+
+                  {/* Error Message */}
+                  {forgotError && (
+                    <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3">
+                      <p className="text-sm font-medium text-red-800">{forgotError}</p>
+                    </div>
+                  )}
+
+                  {/* Email Field */}
+                  <div>
+                    <label htmlFor="forgot-email" className="block text-sm font-medium text-neutral-900 mb-2">
+                      Email Address
+                    </label>
+                    <input
+                      id="forgot-email"
+                      type="email"
+                      value={forgotEmail}
+                      onChange={(e) => {
+                        setForgotEmail(e.target.value);
+                        if (forgotEmailError && e.target.value.trim()) {
+                          setForgotEmailError('');
+                        }
+                      }}
+                      placeholder="your@email.com"
+                      className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-teal-800 focus:border-transparent focus:outline-none transition ${
+                        forgotEmailError ? 'border-red-500' : 'border-neutral-300'
+                      }`}
+                      disabled={forgotLoading}
+                    />
+                    {forgotEmailError && (
+                      <p className="mt-1 text-xs text-red-500">{forgotEmailError}</p>
+                    )}
+                  </div>
+
+                  {/* Buttons */}
+                  <div className="flex gap-3 pt-2">
+                    <button
+                      type="button"
+                      onClick={handleCloseForgotPassword}
+                      disabled={forgotLoading}
+                      className="flex-1 h-11 border border-neutral-300 text-neutral-900 rounded-lg font-semibold hover:bg-neutral-50 transition-colors disabled:opacity-50"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={forgotLoading}
+                      className="flex-1 h-11 bg-teal-800 hover:bg-teal-900 text-white rounded-lg font-semibold transition-colors active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2"
+                    >
+                      {forgotLoading ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          Sending...
+                        </>
+                      ) : (
+                        <>
+                          <Mail className="w-4 h-4" />
+                          Send Reset Link
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

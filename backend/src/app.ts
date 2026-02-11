@@ -12,6 +12,8 @@ import userRoutes from "./routes/user";
 import imageRoutes from "./routes/imageRoutes";
 import paymentRoutes from "./routes/payment";
 import orderCancellationRoutes from "./routes/orderCancellationRoutes";
+import refundRoutes from "./routes/refundRoutes";
+import testRoutes from "./routes/testRoutes";
 
 
 const app = express();
@@ -54,6 +56,9 @@ app.use("/api/admin", adminOrders);
 //Order Cancellation Requests
 app.use("/api/order-cancellation-requests", orderCancellationRoutes);
 
+//Refund Management
+app.use("/api/refunds", refundRoutes);
+
 //User
 app.use("/api/user", userRoutes);
 
@@ -62,5 +67,8 @@ app.use("/api/images", imageRoutes);
 
 // Payments
 app.use("/api/payment", paymentRoutes);
+
+// Test Routes (for debugging - requires auth)
+app.use("/api/test", requireAuth, testRoutes);
 
 export default app;

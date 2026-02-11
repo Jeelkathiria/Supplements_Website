@@ -104,9 +104,12 @@ model Order {
   address   OrderAddress? @relation(fields: [addressId], references: [id])
 
   cancellationRequest OrderCancellationRequest?
+  refund              OrderRefund?
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt   DateTime  @default(now())
+  shippedAt   DateTime?
+  deliveredAt DateTime?
+  updatedAt   DateTime  @updatedAt
 
   @@index([userId])
 }
@@ -181,6 +184,11 @@ enum CancellationRequestStatus {
   REJECTED
 }
 
+enum RefundStatus {
+  INITIATED
+  REFUND_COMPLETED
+}
+
 /**
  * ================= Order Cancellation Request =================
  */
@@ -191,12 +199,35 @@ model OrderCancellationRequest {
   reason  String // Minimum 20 words required
   status  CancellationRequestStatus @default(PENDING)
 
+  // Video evidence for delivered orders (for defect claims)
+  videoUrl        String? // URL to video stored in cloud/local storage
+  videoUploadedAt DateTime? // When the video was uploaded
+
   order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([userId])
+  @@index([status])
+}
+
+/**
+ * ================= Order Refund (For Approved Cancellations) =================
+ */
+model OrderRefund {
+  id           String       @id @default(uuid())
+  orderId      String       @unique
+  status       RefundStatus @default(INITIATED)
+  refundAmount Float
+  reason       String // Reason for refund (from cancellation request)
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  initiatedAt DateTime  @default(now())
+  completedAt DateTime?
+  updatedAt   DateTime  @updatedAt
+
   @@index([status])
 }
 

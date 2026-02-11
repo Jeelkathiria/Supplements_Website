@@ -109,9 +109,24 @@ export const verifyRazorpayPayment = async (req: AuthRequest, res: Response) => 
     
     try {
       await orderService.clearCartAfterPayment(userId);
+      console.log("✅ Cart cleared after payment verification");
     } catch (err) {
       console.error("Error clearing cart after payment:", err);
       // Don't fail the payment verification if cart clearing fails
+    }
+
+    // Send order confirmation email after payment is verified (for online payment methods)
+    try {
+      console.log("📧 Attempting to send order confirmation email after payment verification for order:", orderId);
+      const emailResult = await orderService.sendOrderConfirmationEmailForOrder(orderId);
+      if (emailResult) {
+        console.log("✅ Order confirmation email sent successfully to customer");
+      } else {
+        console.error("⚠️ Failed to send order confirmation email, but payment was verified");
+      }
+    } catch (err) {
+      console.error("Error sending confirmation email after payment:", err);
+      // Don't fail the payment verification if email sending fails
     }
 
     res.json({

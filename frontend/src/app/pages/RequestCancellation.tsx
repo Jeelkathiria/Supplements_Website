@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, AlertCircle, CheckCircle } from 'lucide-react';
+import { ArrowLeft, AlertCircle, CheckCircle, Upload, X, Play } from 'lucide-react';
 import { toast } from 'sonner';
 import * as orderService from '../../services/orderService';
 import { OrderCancellationService } from '../../services/orderCancellationService';
@@ -15,6 +15,12 @@ export const RequestCancellation: React.FC = () => {
   const [reason, setReason] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  
+  // Video upload state
+  const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [videoPreview, setVideoPreview] = useState<string | null>(null);
+  const [uploadingVideo, setUploadingVideo] = useState(false);
+  const [cancellationRequestId, setCancellationRequestId] = useState<string | null>(null);
 
   useEffect(() => {
     const loadOrder = async () => {
@@ -46,6 +52,38 @@ export const RequestCancellation: React.FC = () => {
     loadOrder();
   }, [orderId]);
 
+  const handleVideoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    const validTypes = ['video/mp4', 'video/webm', 'video/quicktime', 'video/x-msvideo', 'video/x-matroska'];
+    if (!validTypes.includes(file.type)) {
+      toast.error('Invalid file type. Please upload MP4, WebM, MOV, AVI, or MKV format.');
+      return;
+    }
+
+    // Validate file size (50MB limit)
+    const maxSize = 50 * 1024 * 1024;
+    if (file.size > maxSize) {
+      toast.error('File size must be less than 50MB');
+      return;
+    }
+
+    setVideoFile(file);
+    // Create preview URL
+    const previewUrl = URL.createObjectURL(file);
+    setVideoPreview(previewUrl);
+  };
+
+  const handleRemoveVideo = () => {
+    if (videoPreview) {
+      URL.revokeObjectURL(videoPreview);
+    }
+    setVideoFile(null);
+    setVideoPreview(null);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -59,10 +97,32 @@ export const RequestCancellation: React.FC = () => {
       return;
     }
 
+    // For delivered orders, video is required
+    if (order?.status === 'DELIVERED' && !videoFile) {
+      toast.error('Video evidence is required for delivered orders');
+      return;
+    }
+
     try {
       setSubmitting(true);
 
-      await OrderCancellationService.createCancellationRequest(orderId!, reason.trim());
+      const request = await OrderCancellationService.createCancellationRequest(orderId!, reason.trim());
+      setCancellationRequestId(request.id);
+
+      // If video is provided, upload it
+      if (videoFile && order?.status === 'DELIVERED') {
+        setUploadingVideo(true);
+        try {
+          await OrderCancellationService.uploadVideo(request.id, videoFile);
+          toast.success('Video uploaded successfully');
+        } catch (err) {
+          const errorMessage = err instanceof Error ? err.message : 'Failed to upload video';
+          toast.error(errorMessage);
+          console.error('Video upload error:', err);
+        } finally {
+          setUploadingVideo(false);
+        }
+      }
 
       setSubmitted(true);
       toast.success('Cancellation request submitted successfully');
@@ -83,6 +143,62 @@ export const RequestCancellation: React.FC = () => {
     return (
       <div className="min-h-screen flex items-center justify-center text-sm text-neutral-600">
         Loading order details...
+      </div>
+    );
+  }
+
+  // Show error if order cannot be cancelled
+  if (order && order.status === 'CANCELLED') {
+    return (
+      <div className="min-h-screen p-6 max-w-2xl mx-auto">
+        <button
+          onClick={() => navigate('/account')}
+          className="flex items-center gap-2 text-sm text-blue-600 mb-6"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back to Orders
+        </button>
+
+        <div className="bg-white p-6 border rounded">
+          <div className="flex gap-2 text-red-600 text-sm">
+            <AlertCircle className="w-4 h-4 mt-0.5" />
+            This order is already cancelled
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error if trying to cancel during shipment
+  if (order && order.status === 'SHIPPED') {
+    return (
+      <div className="min-h-screen p-6 max-w-2xl mx-auto">
+        <button
+          onClick={() => navigate('/account')}
+          className="flex items-center gap-2 text-sm text-blue-600 mb-6"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back to Orders
+        </button>
+
+        <div className="bg-yellow-50 border border-yellow-200 rounded p-6">
+          <div className="flex gap-3">
+            <AlertCircle className="w-6 h-6 text-yellow-600 mt-0.5 flex-shrink-0" />
+            <div className="text-sm">
+              <p className="font-semibold text-yellow-900 mb-2">Cannot Cancel During Shipment</p>
+              <p className="text-yellow-800">
+                Your order is currently in transit. Once your order is delivered and if you find any defects, 
+                you can then request cancellation by uploading a video showing the damage during unpacking.
+              </p>
+              <button
+                onClick={() => navigate('/account')}
+                className="mt-4 text-blue-600 hover:text-blue-700 font-medium text-sm"
+              >
+                Back to Orders
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -172,7 +288,7 @@ export const RequestCancellation: React.FC = () => {
                     value={reason}
                     onChange={(e) => setReason(e.target.value)}
                     placeholder="Please tell us why you want to cancel this order..."
-                    disabled={submitting}
+                    disabled={submitting || uploadingVideo}
                     className="w-full border rounded p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none disabled:bg-neutral-50 disabled:text-neutral-500"
                     rows={5}
                   />
@@ -182,6 +298,64 @@ export const RequestCancellation: React.FC = () => {
                   </div>
                 </div>
 
+                {/* Video Upload Section - Only for Delivered Orders */}
+                {order.status === 'DELIVERED' && (
+                  <div className="mb-4 p-4 bg-orange-50 border border-orange-200 rounded">
+                    <p className="font-semibold text-orange-900 mb-3 flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4" />
+                      Video Evidence Required
+                    </p>
+                    <p className="text-orange-800 text-xs mb-4">
+                      To process your cancellation request for a delivered order, please record and upload a video showing any defects found during unpacking. This video is mandatory for defect claims.
+                    </p>
+
+                    {!videoFile ? (
+                      <div className="border-2 border-dashed border-orange-300 rounded-lg p-6 text-center">
+                        <input
+                          type="file"
+                          id="video"
+                          accept="video/*"
+                          onChange={handleVideoSelect}
+                          disabled={uploadingVideo || submitting}
+                          className="hidden"
+                        />
+                        <label
+                          htmlFor="video"
+                          className="cursor-pointer flex flex-col items-center gap-2"
+                        >
+                          <Upload className="w-8 h-8 text-orange-600" />
+                          <span className="font-medium text-orange-900">Upload Video</span>
+                          <span className="text-xs text-orange-700">
+                            MP4, WebM, MOV, AVI, MKV (Max 50MB)
+                          </span>
+                        </label>
+                      </div>
+                    ) : (
+                      <div className="border border-orange-300 rounded-lg p-4 bg-white">
+                        <div className="flex items-start gap-3">
+                          <Play className="w-8 h-8 text-orange-600 mt-1 flex-shrink-0" />
+                          <div className="flex-1">
+                            <p className="font-medium text-orange-900 text-sm break-words">
+                              {videoFile.name}
+                            </p>
+                            <p className="text-xs text-orange-700 mt-1">
+                              {(videoFile.size / (1024 * 1024)).toFixed(2)} MB
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={handleRemoveVideo}
+                            disabled={uploadingVideo || submitting}
+                            className="flex-shrink-0 text-orange-600 hover:text-orange-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            <X className="w-5 h-5" />
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {/* Info Box */}
                 <div className="bg-blue-50 border border-blue-200 rounded p-3 mb-4 text-xs">
                   <div className="flex gap-2">
@@ -190,6 +364,7 @@ export const RequestCancellation: React.FC = () => {
                       <p className="font-semibold mb-1">What happens next?</p>
                       <ul className="space-y-1 text-blue-800 list-disc list-inside">
                         <li>Your request will be reviewed by our team</li>
+                        {order.status === 'DELIVERED' && <li>Video evidence will be verified</li>}
                         <li>You can track the status anytime from your account</li>
                         <li>Approval typically takes 1-2 business days</li>
                         <li>Refund will be processed after approval</li>
@@ -203,17 +378,17 @@ export const RequestCancellation: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => navigate('/account')}
-                    disabled={submitting}
+                    disabled={submitting || uploadingVideo}
                     className="flex-1 border rounded py-2 text-sm font-medium hover:bg-neutral-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    disabled={submitting || !reason.trim() || reason.trim().length < 10}
+                    disabled={submitting || uploadingVideo || !reason.trim() || reason.trim().length < 10 || (order.status === 'DELIVERED' && !videoFile)}
                     className="flex-1 bg-blue-600 text-white rounded py-2 text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
                   >
-                    {submitting ? 'Submitting...' : 'Submit Request'}
+                    {submitting ? 'Submitting...' : uploadingVideo ? 'Uploading video...' : 'Submit Request'}
                   </button>
                 </div>
               </form>

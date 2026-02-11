@@ -6,15 +6,16 @@ import React, {
   ReactNode,
 } from "react";
 import { safeLocalStorage } from "../../utils/localStorage";
-import { 
-  signInWithEmailAndPassword, 
+import {
+  signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signOut,
   onAuthStateChanged,
   User as FirebaseUser,
   updateProfile,
   signInWithPopup,
-  GoogleAuthProvider 
+  GoogleAuthProvider,
+  sendPasswordResetEmail,
 } from "firebase/auth";
 import { auth } from "../../../firebase";
 
@@ -56,6 +57,7 @@ interface AuthContextType {
   redirectAfterLogin: string | null;
   setRedirectAfterLogin: (url: string | null) => void;
   getIdToken: () => Promise<string | null>;
+  resetPassword: (email: string) => Promise<void>;
 }
 
 const defaultAuthContext: AuthContextType = {
@@ -63,14 +65,15 @@ const defaultAuthContext: AuthContextType = {
   isAuthenticated: false,
   isLoading: true,
   firebaseUser: null,
-  login: async () => {},
-  register: async () => {},
-  loginWithGoogle: async () => {},
-  logout: async () => {},
-  updateUser: () => {},
+  login: async () => { },
+  register: async () => { },
+  loginWithGoogle: async () => { },
+  logout: async () => { },
+  updateUser: () => { },
   redirectAfterLogin: null,
-  setRedirectAfterLogin: () => {},
+  setRedirectAfterLogin: () => { },
   getIdToken: async () => null,
+  resetPassword: async () => { },
 };
 
 const AuthContext = createContext<AuthContextType>(
@@ -105,7 +108,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
           // Get Firebase ID token
           const token = await firebaseUserObj.getIdToken();
           safeLocalStorage.setItem("authToken", token);
-          
+
           // Sync user with backend - send email and name
           let backendUser = null;
           try {
@@ -121,7 +124,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
                 name: firebaseUserObj.displayName  // Send Firebase displayName if available
               })
             });
-            
+
             if (response.ok) {
               backendUser = await response.json();
             } else {
@@ -130,7 +133,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
           } catch (error) {
             console.error("Error syncing user:", error);
           }
-          
+
           // Use name and phone from backend (database) - don't fall back to email prefix
           const userData: User = {
             email: firebaseUserObj.email || "",
@@ -163,22 +166,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
     try {
       // Normalize email - trim whitespace and convert to lowercase
       const normalizedEmail = email.trim().toLowerCase();
-      
+
       const userCredential = await signInWithEmailAndPassword(
         auth,
         normalizedEmail,
         password,
       );
-      
+
       // Token will be set by onAuthStateChanged
       const token = await userCredential.user.getIdToken();
       safeLocalStorage.setItem("authToken", token);
-      
+
       // Wait for auth state to be updated
       await new Promise(resolve => setTimeout(resolve, 100));
     } catch (error: any) {
       console.error("Login error:", error);
-      
+
       // Provide user-friendly error messages
       if (error.code === 'auth/invalid-credential') {
         const customError = new Error('Invalid email or password. Please check and try again.');
@@ -193,7 +196,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
         (customError as any).code = 'auth/wrong-password';
         throw customError;
       }
-      
+
       throw error;
     }
   };
@@ -207,17 +210,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
     try {
       // Normalize email - trim whitespace and convert to lowercase
       const normalizedEmail = email.trim().toLowerCase();
-      
+
       const userCredential = await createUserWithEmailAndPassword(
         auth,
         normalizedEmail,
         password,
       );
-      
+
       // Store the name and phone in the database via backend sync
       const token = await userCredential.user.getIdToken();
       safeLocalStorage.setItem("authToken", token);
-      
+
       // Sync user with backend to store the name and phone in database
       try {
         const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
@@ -233,7 +236,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
             phone: phone.trim()  // Send the phone number
           })
         });
-        
+
         if (response.ok) {
           // Backend sync successful - update local user data immediately
           const backendUser = await response.json();
@@ -255,7 +258,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
       }
     } catch (error: any) {
       console.error("Register error:", error);
-      
+
       // Preserve Firebase error code for handling in component
       if (error.code === 'auth/email-already-in-use') {
         const customError = new Error('This email is already registered. Please login instead.');
@@ -270,7 +273,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
         (customError as any).code = 'auth/invalid-email';
         throw customError;
       }
-      
+
       throw error;
     }
   };
@@ -279,7 +282,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
     try {
       const provider = new GoogleAuthProvider();
       const userCredential = await signInWithPopup(auth, provider);
-      
+
       // Token will be set by onAuthStateChanged
       const token = await userCredential.user.getIdToken();
       safeLocalStorage.setItem("authToken", token);
@@ -315,6 +318,32 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
     return null;
   };
 
+  const resetPassword = async (email: string): Promise<void> => {
+    try {
+      // Configure action settings for password reset email
+      const actionSettings = {
+        url: `${window.location.origin}/reset-password`,
+        handleCodeInApp: false,
+      };
+      
+      await sendPasswordResetEmail(auth, email.trim().toLowerCase(), actionSettings);
+    } catch (error: any) {
+      console.error("Reset password error:", error);
+
+      if (error.code === 'auth/user-not-found') {
+        const customError = new Error('No account found with this email.');
+        (customError as any).code = 'auth/user-not-found';
+        throw customError;
+      } else if (error.code === 'auth/invalid-email') {
+        const customError = new Error('Invalid email address.');
+        (customError as any).code = 'auth/invalid-email';
+        throw customError;
+      }
+
+      throw error;
+    }
+  };
+
 
 
   const updateUser = (userData: Partial<User>) => {
@@ -348,6 +377,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
     redirectAfterLogin,
     setRedirectAfterLogin,
     getIdToken,
+    resetPassword,
   };
 
   return (

@@ -87,7 +87,8 @@ router.post("/", requireAuth, async (req: AuthRequest, res: Response) => {
 // UPDATE PRODUCT
 router.put("/:id", requireAuth, async (req: AuthRequest, res: Response) => {
   try {
-    const { id } = req.params;
+    const paramId = req.params.id;
+    const id = Array.isArray(paramId) ? paramId[0] : paramId;
     const {
       name,
       description,
@@ -170,7 +171,8 @@ router.put("/:id", requireAuth, async (req: AuthRequest, res: Response) => {
 // DELETE PRODUCT
 router.delete("/:id", requireAuth, async (req: AuthRequest, res: Response) => {
   try {
-    const { id } = req.params;
+    const paramId = req.params.id;
+    const id = Array.isArray(paramId) ? paramId[0] : paramId;
 
     // Check if product exists
     const existingProduct = await prisma.product.findUnique({

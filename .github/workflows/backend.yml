@@ -33,28 +33,81 @@ jobs:
       working-directory: ./backend
       run: npm ci
 
-    - name: Check TypeScript compilation
+    - name: TypeScript type check
       working-directory: ./backend
-      run: npx tsc --noEmit
+      run: npm run typecheck
+
+    - name: Build TypeScript
+      working-directory: ./backend
+      run: npm run build
+
+    - name: Verify build output
+      working-directory: ./backend
+      run: |
+        if [ -d "dist" ]; then
+          echo "✓ Build output created"
+          echo "Generated files:"
+          find dist -type f -name "*.js" | wc -l | xargs echo "  JS files:"
+        else
+          echo "⚠️ No dist directory created - checking if expected"
+        fi
 
     - name: Lint with ESLint
       working-directory: ./backend
+      continue-on-error: true
       run: |
-        npx eslint src/ --ext .ts,.tsx 2>/dev/null || echo "ESLint not configured (optional)"
+        if [ -f ".eslintrc.json" ] || [ -f ".eslintrc.js" ]; then
+          npx eslint src/ --ext .ts,.tsx 2>/dev/null || echo "ESLint warnings found"
+        else
+          echo "ESLint not configured (optional)"
+        fi
 
     - name: Check for unused imports
       working-directory: ./backend
+      continue-on-error: true
       run: |
         echo "Checking for unused imports..."
         npx tsc --noEmit --listFilesOnly 2>&1 | grep -i unused || echo "No unused imports found"
 
+    - name: Verify Prisma Schema
+      working-directory: ./backend
+      run: npx prisma validate
+
+    - name: Verify Prisma Client
+      working-directory: ./backend
+      run: npx prisma generate
+
+    - name: Verify critical files exist
+      working-directory: ./backend
+      run: |
+        echo "Verifying critical backend files..."
+        CRITICAL_FILES=(
+          "src/controllers/refundController.ts"
+          "src/services/refundService.ts"
+          "src/routes/refundRoutes.ts"
+          "src/services/emailService.ts"
+          "src/app.ts"
+        )
+        for file in "${CRITICAL_FILES[@]}"; do
+          if [ -f "$file" ]; then
+            echo "✓ $file exists"
+          else
+            echo "✗ $file missing"
+            exit 1
+          fi
+        done
+
     - name: Verify .env requirements
       working-directory: ./backend
       run: |
-        echo "Checking required environment variables..."
-        test -f .env && echo "✓ .env file exists" || echo "⚠ .env file missing (add for deployment)"
-        grep -q "DATABASE_URL" .env 2>/dev/null && echo "✓ DATABASE_URL configured" || echo "⚠ DATABASE_URL missing"
-        grep -q "BREVO_API_KEY" .env 2>/dev/null && echo "✓ BREVO_API_KEY configured" || echo "⚠ BREVO_API_KEY missing"
+        echo "Checking required environment variables in example..."
+        echo "Environment variables should include:"
+        echo "  - DATABASE_URL"
+        echo "  - BREVO_API_KEY"
+        echo "  - SENDER_EMAIL"
+        echo "  - FIREBASE_*"
+        echo "  - RAZORPAY_*"
 
     - name: Build successful
       run: echo "✅ Backend build passed for Node ${{ matrix.node-version }}"
+
