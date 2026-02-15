@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { Check, Clock, AlertCircle } from "lucide-react";
+import { Check, Clock, AlertCircle, RotateCcw } from "lucide-react";
 
 interface Refund {
   id: string;
@@ -8,6 +8,7 @@ interface Refund {
   status: "INITIATED" | "REFUND_COMPLETED";
   refundAmount: number;
   reason: string;
+  upiId?: string;
   initiatedAt: string;
   completedAt?: string;
   order?: {
@@ -17,10 +18,11 @@ interface Refund {
   };
 }
 
-export const AdminRefundStatus: React.FC = () => {
+export const AdminRefundStatus: React.FC<{refreshTrigger?: number}> = ({refreshTrigger}) => {
   const [refunds, setRefunds] = useState<Refund[]>([]);
   const [filteredRefunds, setFilteredRefunds] = useState<Refund[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<"all" | "INITIATED" | "REFUND_COMPLETED">("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [updatingRefundId, setUpdatingRefundId] = useState<string | null>(null);
@@ -31,6 +33,14 @@ export const AdminRefundStatus: React.FC = () => {
   useEffect(() => {
     fetchRefunds();
   }, []);
+
+  // Refresh refunds when refreshTrigger changes (from cancellation approval)
+  useEffect(() => {
+    if (refreshTrigger && refreshTrigger > 0) {
+      console.log('🔄 Refreshing refunds from cancellation approval...');
+      fetchRefunds();
+    }
+  }, [refreshTrigger]);
 
   // Filter refunds based on status and search
   useEffect(() => {
@@ -51,9 +61,13 @@ export const AdminRefundStatus: React.FC = () => {
     setFilteredRefunds(filtered);
   }, [refunds, selectedStatus, searchQuery]);
 
-  const fetchRefunds = async () => {
+  const fetchRefunds = async (isManualRefresh = false) => {
     try {
-      setIsLoading(true);
+      if (isManualRefresh) {
+        setIsRefreshing(true);
+      } else {
+        setIsLoading(true);
+      }
       const response = await fetch(`${apiBase}/refunds/admin/all`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("authToken")}`,
@@ -66,11 +80,15 @@ export const AdminRefundStatus: React.FC = () => {
 
       const data = await response.json();
       setRefunds(data);
+      if (isManualRefresh) {
+        toast.success("Refunds refreshed");
+      }
     } catch (error) {
       console.error("Error fetching refunds:", error);
       toast.error("Failed to load refunds");
     } finally {
       setIsLoading(false);
+      setIsRefreshing(false);
     }
   };
 
@@ -146,11 +164,22 @@ export const AdminRefundStatus: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-neutral-900">Refund Status Management</h2>
-        <p className="mt-1 text-neutral-600">
-          Monitor and manage refund processing for approved cancellations
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-neutral-900">Refund Status Management</h2>
+          <p className="mt-1 text-neutral-600">
+            Monitor and manage refund processing for approved cancellations
+          </p>
+        </div>
+        <button
+          onClick={() => fetchRefunds(true)}
+          disabled={isRefreshing}
+          className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+          title="Refresh refunds list"
+        >
+          <RotateCcw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+          {isRefreshing ? 'Refreshing...' : 'Refresh'}
+        </button>
       </div>
 
       {/* Stats Cards */}
@@ -234,6 +263,9 @@ export const AdminRefundStatus: React.FC = () => {
                   Refund Amount
                 </th>
                 <th className="px-6 py-3 text-left text-sm font-semibold text-neutral-900">
+                  UPI ID
+                </th>
+                <th className="px-6 py-3 text-left text-sm font-semibold text-neutral-900">
                   Reason
                 </th>
                 <th className="px-6 py-3 text-left text-sm font-semibold text-neutral-900">
@@ -251,10 +283,19 @@ export const AdminRefundStatus: React.FC = () => {
               {filteredRefunds.map((refund) => (
                 <tr key={refund.id} className="hover:bg-neutral-50">
                   <td className="px-6 py-4 text-sm font-medium text-neutral-900">
-                    {refund.orderId.substring(0, 8)}...
+                    {refund.orderId}
                   </td>
                   <td className="px-6 py-4 text-sm text-neutral-700">
                     ₹{refund.refundAmount.toFixed(2)}
+                  </td>
+                  <td className="px-6 py-4 text-sm font-mono text-neutral-700">
+                    {refund.upiId ? (
+                      <span className="inline-block px-2 py-1 bg-green-50 text-green-800 rounded text-xs font-medium">
+                        {refund.upiId}
+                      </span>
+                    ) : (
+                      <span className="text-neutral-400 text-xs italic">Not provided</span>
+                    )}
                   </td>
                   <td className="px-6 py-4 text-sm text-neutral-700">
                     <div className="max-w-xs truncate" title={refund.reason}>
@@ -270,7 +311,7 @@ export const AdminRefundStatus: React.FC = () => {
                       <button
                         onClick={() => updateRefundStatus(refund.orderId, "REFUND_COMPLETED")}
                         disabled={updatingRefundId === refund.orderId}
-                        className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                        className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-3 py-1 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
                       >
                         {updatingRefundId === refund.orderId ? (
                           <>

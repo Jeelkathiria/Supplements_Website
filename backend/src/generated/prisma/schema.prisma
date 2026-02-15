@@ -203,6 +203,9 @@ model OrderCancellationRequest {
   videoUrl        String? // URL to video stored in cloud/local storage
   videoUploadedAt DateTime? // When the video was uploaded
 
+  // UPI ID for refunds (required for delivered orders requesting cancellation)
+  upiId String? // UPI ID for refund processing
+
   order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
@@ -221,6 +224,7 @@ model OrderRefund {
   status       RefundStatus @default(INITIATED)
   refundAmount Float
   reason       String // Reason for refund (from cancellation request)
+  upiId        String? // UPI ID where refund should be processed
 
   order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
 

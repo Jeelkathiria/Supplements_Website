@@ -12,9 +12,10 @@ export class OrderCancellationService {
   static async createCancellationRequest(
     orderId: string,
     userId: string,
-    reason: string
+    reason: string,
+    upiId?: string
   ) {
-    console.log("OrderCancellationService.createCancellationRequest:", { orderId, userId, reasonLength: reason.length });
+    console.log("OrderCancellationService.createCancellationRequest:", { orderId, userId, reasonLength: reason.length, hasUpiId: !!upiId });
 
     // Validate inputs
     if (!orderId || !userId || !reason) {
@@ -72,6 +73,7 @@ export class OrderCancellationService {
         orderId,
         userId,
         reason,
+        ...(upiId && { upiId }), // Only include upiId if provided
       },
       include: {
         order: true,
@@ -163,17 +165,41 @@ export class OrderCancellationService {
       data: { status: "CANCELLED" },
     });
 
-    // Create refund record for the approved cancellation
-    try {
-      console.log("📦 Creating refund record for approved cancellation");
-      await refundService.createRefundForApprovedCancellation(
-        request.orderId,
-        request.reason
-      );
-      console.log("✅ Refund record created successfully");
-    } catch (refundError) {
-      console.error("⚠️ Warning: Could not create refund record:", refundError);
-      // Don't throw error - cancellation approval should succeed even if refund creation fails
+    // Determine if this is pre-delivery or post-delivery cancellation
+    const orderDeliveredAt = request.order.deliveredAt;
+    const requestCreatedAt = new Date(request.createdAt);
+    const isPostDelivery = orderDeliveredAt && new Date(orderDeliveredAt) < requestCreatedAt;
+
+    // Create refund record based on delivery status and payment method
+    let shouldCreateRefund = false;
+    
+    if (isPostDelivery) {
+      // Post-delivery: Create refund for ANY payment method
+      shouldCreateRefund = true;
+      console.log("📦 Post-delivery cancellation: Creating refund for ANY payment method");
+    } else {
+      // Pre-delivery: Create refund only for UPI (COD payment not collected yet)
+      if (request.order.paymentMethod === "upi") {
+        shouldCreateRefund = true;
+        console.log("📦 Pre-delivery cancellation: Creating refund for UPI payment");
+      } else {
+        console.log("ℹ️ Pre-delivery cancellation: COD payment - No refund needed (payment not collected yet)");
+      }
+    }
+
+    if (shouldCreateRefund) {
+      try {
+        console.log("Creating refund record - Payment method:", request.order.paymentMethod, "- Type:", isPostDelivery ? "Post-Delivery" : "Pre-Delivery");
+        await refundService.createRefundForApprovedCancellation(
+          request.orderId,
+          request.reason,
+          request.upiId || undefined
+        );
+        console.log("✅ Refund record created successfully");
+      } catch (refundError) {
+        console.error("⚠️ Warning: Could not create refund record:", refundError);
+        // Don't throw error - cancellation approval should succeed even if refund creation fails
+      }
     }
 
     // Send approval email to user

@@ -13,10 +13,10 @@ export class OrderCancellationController {
   // Create cancellation request
   static async createRequest(req: Request, res: Response) {
     try {
-      const { orderId, reason } = req.body;
+      const { orderId, reason, upiId } = req.body;
       const userId = req.user?.uid;
 
-      console.log("📨 Create cancellation request API called:", { orderId, reasonLength: reason?.length, userId });
+      console.log("📨 Create cancellation request API called:", { orderId, reasonLength: reason?.length, userId, hasUpiId: !!upiId });
 
       if (!userId) {
         console.error("❌ No user ID found in request");
@@ -40,7 +40,8 @@ export class OrderCancellationController {
       const request = await OrderCancellationService.createCancellationRequest(
         orderId,
         userId,
-        trimmedReason
+        trimmedReason,
+        upiId
       );
 
       return res.status(201).json({

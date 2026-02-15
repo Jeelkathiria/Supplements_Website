@@ -11293,6 +11293,7 @@ export namespace Prisma {
     status: $Enums.CancellationRequestStatus | null
     videoUrl: string | null
     videoUploadedAt: Date | null
+    upiId: string | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -11305,6 +11306,7 @@ export namespace Prisma {
     status: $Enums.CancellationRequestStatus | null
     videoUrl: string | null
     videoUploadedAt: Date | null
+    upiId: string | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -11317,6 +11319,7 @@ export namespace Prisma {
     status: number
     videoUrl: number
     videoUploadedAt: number
+    upiId: number
     createdAt: number
     updatedAt: number
     _all: number
@@ -11331,6 +11334,7 @@ export namespace Prisma {
     status?: true
     videoUrl?: true
     videoUploadedAt?: true
+    upiId?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -11343,6 +11347,7 @@ export namespace Prisma {
     status?: true
     videoUrl?: true
     videoUploadedAt?: true
+    upiId?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -11355,6 +11360,7 @@ export namespace Prisma {
     status?: true
     videoUrl?: true
     videoUploadedAt?: true
+    upiId?: true
     createdAt?: true
     updatedAt?: true
     _all?: true
@@ -11440,6 +11446,7 @@ export namespace Prisma {
     status: $Enums.CancellationRequestStatus
     videoUrl: string | null
     videoUploadedAt: Date | null
+    upiId: string | null
     createdAt: Date
     updatedAt: Date
     _count: OrderCancellationRequestCountAggregateOutputType | null
@@ -11469,6 +11476,7 @@ export namespace Prisma {
     status?: boolean
     videoUrl?: boolean
     videoUploadedAt?: boolean
+    upiId?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     order?: boolean | OrderDefaultArgs<ExtArgs>
@@ -11482,6 +11490,7 @@ export namespace Prisma {
     status?: boolean
     videoUrl?: boolean
     videoUploadedAt?: boolean
+    upiId?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     order?: boolean | OrderDefaultArgs<ExtArgs>
@@ -11495,6 +11504,7 @@ export namespace Prisma {
     status?: boolean
     videoUrl?: boolean
     videoUploadedAt?: boolean
+    upiId?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     order?: boolean | OrderDefaultArgs<ExtArgs>
@@ -11508,11 +11518,12 @@ export namespace Prisma {
     status?: boolean
     videoUrl?: boolean
     videoUploadedAt?: boolean
+    upiId?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
 
-  export type OrderCancellationRequestOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "orderId" | "userId" | "reason" | "status" | "videoUrl" | "videoUploadedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["orderCancellationRequest"]>
+  export type OrderCancellationRequestOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "orderId" | "userId" | "reason" | "status" | "videoUrl" | "videoUploadedAt" | "upiId" | "createdAt" | "updatedAt", ExtArgs["result"]["orderCancellationRequest"]>
   export type OrderCancellationRequestInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     order?: boolean | OrderDefaultArgs<ExtArgs>
   }
@@ -11536,6 +11547,7 @@ export namespace Prisma {
       status: $Enums.CancellationRequestStatus
       videoUrl: string | null
       videoUploadedAt: Date | null
+      upiId: string | null
       createdAt: Date
       updatedAt: Date
     }, ExtArgs["result"]["orderCancellationRequest"]>
@@ -11969,6 +11981,7 @@ export namespace Prisma {
     readonly status: FieldRef<"OrderCancellationRequest", 'CancellationRequestStatus'>
     readonly videoUrl: FieldRef<"OrderCancellationRequest", 'String'>
     readonly videoUploadedAt: FieldRef<"OrderCancellationRequest", 'DateTime'>
+    readonly upiId: FieldRef<"OrderCancellationRequest", 'String'>
     readonly createdAt: FieldRef<"OrderCancellationRequest", 'DateTime'>
     readonly updatedAt: FieldRef<"OrderCancellationRequest", 'DateTime'>
   }
@@ -12411,6 +12424,7 @@ export namespace Prisma {
     status: $Enums.RefundStatus | null
     refundAmount: number | null
     reason: string | null
+    upiId: string | null
     initiatedAt: Date | null
     completedAt: Date | null
     updatedAt: Date | null
@@ -12422,6 +12436,7 @@ export namespace Prisma {
     status: $Enums.RefundStatus | null
     refundAmount: number | null
     reason: string | null
+    upiId: string | null
     initiatedAt: Date | null
     completedAt: Date | null
     updatedAt: Date | null
@@ -12433,6 +12448,7 @@ export namespace Prisma {
     status: number
     refundAmount: number
     reason: number
+    upiId: number
     initiatedAt: number
     completedAt: number
     updatedAt: number
@@ -12454,6 +12470,7 @@ export namespace Prisma {
     status?: true
     refundAmount?: true
     reason?: true
+    upiId?: true
     initiatedAt?: true
     completedAt?: true
     updatedAt?: true
@@ -12465,6 +12482,7 @@ export namespace Prisma {
     status?: true
     refundAmount?: true
     reason?: true
+    upiId?: true
     initiatedAt?: true
     completedAt?: true
     updatedAt?: true
@@ -12476,6 +12494,7 @@ export namespace Prisma {
     status?: true
     refundAmount?: true
     reason?: true
+    upiId?: true
     initiatedAt?: true
     completedAt?: true
     updatedAt?: true
@@ -12574,6 +12593,7 @@ export namespace Prisma {
     status: $Enums.RefundStatus
     refundAmount: number
     reason: string
+    upiId: string | null
     initiatedAt: Date
     completedAt: Date | null
     updatedAt: Date
@@ -12604,6 +12624,7 @@ export namespace Prisma {
     status?: boolean
     refundAmount?: boolean
     reason?: boolean
+    upiId?: boolean
     initiatedAt?: boolean
     completedAt?: boolean
     updatedAt?: boolean
@@ -12616,6 +12637,7 @@ export namespace Prisma {
     status?: boolean
     refundAmount?: boolean
     reason?: boolean
+    upiId?: boolean
     initiatedAt?: boolean
     completedAt?: boolean
     updatedAt?: boolean
@@ -12628,6 +12650,7 @@ export namespace Prisma {
     status?: boolean
     refundAmount?: boolean
     reason?: boolean
+    upiId?: boolean
     initiatedAt?: boolean
     completedAt?: boolean
     updatedAt?: boolean
@@ -12640,12 +12663,13 @@ export namespace Prisma {
     status?: boolean
     refundAmount?: boolean
     reason?: boolean
+    upiId?: boolean
     initiatedAt?: boolean
     completedAt?: boolean
     updatedAt?: boolean
   }
 
-  export type OrderRefundOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "orderId" | "status" | "refundAmount" | "reason" | "initiatedAt" | "completedAt" | "updatedAt", ExtArgs["result"]["orderRefund"]>
+  export type OrderRefundOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "orderId" | "status" | "refundAmount" | "reason" | "upiId" | "initiatedAt" | "completedAt" | "updatedAt", ExtArgs["result"]["orderRefund"]>
   export type OrderRefundInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     order?: boolean | OrderDefaultArgs<ExtArgs>
   }
@@ -12667,6 +12691,7 @@ export namespace Prisma {
       status: $Enums.RefundStatus
       refundAmount: number
       reason: string
+      upiId: string | null
       initiatedAt: Date
       completedAt: Date | null
       updatedAt: Date
@@ -13099,6 +13124,7 @@ export namespace Prisma {
     readonly status: FieldRef<"OrderRefund", 'RefundStatus'>
     readonly refundAmount: FieldRef<"OrderRefund", 'Float'>
     readonly reason: FieldRef<"OrderRefund", 'String'>
+    readonly upiId: FieldRef<"OrderRefund", 'String'>
     readonly initiatedAt: FieldRef<"OrderRefund", 'DateTime'>
     readonly completedAt: FieldRef<"OrderRefund", 'DateTime'>
     readonly updatedAt: FieldRef<"OrderRefund", 'DateTime'>
@@ -14755,6 +14781,7 @@ export namespace Prisma {
     status: 'status',
     videoUrl: 'videoUrl',
     videoUploadedAt: 'videoUploadedAt',
+    upiId: 'upiId',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
   };
@@ -14768,6 +14795,7 @@ export namespace Prisma {
     status: 'status',
     refundAmount: 'refundAmount',
     reason: 'reason',
+    upiId: 'upiId',
     initiatedAt: 'initiatedAt',
     completedAt: 'completedAt',
     updatedAt: 'updatedAt'
@@ -15572,6 +15600,7 @@ export namespace Prisma {
     status?: EnumCancellationRequestStatusFilter<"OrderCancellationRequest"> | $Enums.CancellationRequestStatus
     videoUrl?: StringNullableFilter<"OrderCancellationRequest"> | string | null
     videoUploadedAt?: DateTimeNullableFilter<"OrderCancellationRequest"> | Date | string | null
+    upiId?: StringNullableFilter<"OrderCancellationRequest"> | string | null
     createdAt?: DateTimeFilter<"OrderCancellationRequest"> | Date | string
     updatedAt?: DateTimeFilter<"OrderCancellationRequest"> | Date | string
     order?: XOR<OrderScalarRelationFilter, OrderWhereInput>
@@ -15585,6 +15614,7 @@ export namespace Prisma {
     status?: SortOrder
     videoUrl?: SortOrderInput | SortOrder
     videoUploadedAt?: SortOrderInput | SortOrder
+    upiId?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     order?: OrderOrderByWithRelationInput
@@ -15601,6 +15631,7 @@ export namespace Prisma {
     status?: EnumCancellationRequestStatusFilter<"OrderCancellationRequest"> | $Enums.CancellationRequestStatus
     videoUrl?: StringNullableFilter<"OrderCancellationRequest"> | string | null
     videoUploadedAt?: DateTimeNullableFilter<"OrderCancellationRequest"> | Date | string | null
+    upiId?: StringNullableFilter<"OrderCancellationRequest"> | string | null
     createdAt?: DateTimeFilter<"OrderCancellationRequest"> | Date | string
     updatedAt?: DateTimeFilter<"OrderCancellationRequest"> | Date | string
     order?: XOR<OrderScalarRelationFilter, OrderWhereInput>
@@ -15614,6 +15645,7 @@ export namespace Prisma {
     status?: SortOrder
     videoUrl?: SortOrderInput | SortOrder
     videoUploadedAt?: SortOrderInput | SortOrder
+    upiId?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     _count?: OrderCancellationRequestCountOrderByAggregateInput
@@ -15632,6 +15664,7 @@ export namespace Prisma {
     status?: EnumCancellationRequestStatusWithAggregatesFilter<"OrderCancellationRequest"> | $Enums.CancellationRequestStatus
     videoUrl?: StringNullableWithAggregatesFilter<"OrderCancellationRequest"> | string | null
     videoUploadedAt?: DateTimeNullableWithAggregatesFilter<"OrderCancellationRequest"> | Date | string | null
+    upiId?: StringNullableWithAggregatesFilter<"OrderCancellationRequest"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"OrderCancellationRequest"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"OrderCancellationRequest"> | Date | string
   }
@@ -15645,6 +15678,7 @@ export namespace Prisma {
     status?: EnumRefundStatusFilter<"OrderRefund"> | $Enums.RefundStatus
     refundAmount?: FloatFilter<"OrderRefund"> | number
     reason?: StringFilter<"OrderRefund"> | string
+    upiId?: StringNullableFilter<"OrderRefund"> | string | null
     initiatedAt?: DateTimeFilter<"OrderRefund"> | Date | string
     completedAt?: DateTimeNullableFilter<"OrderRefund"> | Date | string | null
     updatedAt?: DateTimeFilter<"OrderRefund"> | Date | string
@@ -15657,6 +15691,7 @@ export namespace Prisma {
     status?: SortOrder
     refundAmount?: SortOrder
     reason?: SortOrder
+    upiId?: SortOrderInput | SortOrder
     initiatedAt?: SortOrder
     completedAt?: SortOrderInput | SortOrder
     updatedAt?: SortOrder
@@ -15672,6 +15707,7 @@ export namespace Prisma {
     status?: EnumRefundStatusFilter<"OrderRefund"> | $Enums.RefundStatus
     refundAmount?: FloatFilter<"OrderRefund"> | number
     reason?: StringFilter<"OrderRefund"> | string
+    upiId?: StringNullableFilter<"OrderRefund"> | string | null
     initiatedAt?: DateTimeFilter<"OrderRefund"> | Date | string
     completedAt?: DateTimeNullableFilter<"OrderRefund"> | Date | string | null
     updatedAt?: DateTimeFilter<"OrderRefund"> | Date | string
@@ -15684,6 +15720,7 @@ export namespace Prisma {
     status?: SortOrder
     refundAmount?: SortOrder
     reason?: SortOrder
+    upiId?: SortOrderInput | SortOrder
     initiatedAt?: SortOrder
     completedAt?: SortOrderInput | SortOrder
     updatedAt?: SortOrder
@@ -15703,6 +15740,7 @@ export namespace Prisma {
     status?: EnumRefundStatusWithAggregatesFilter<"OrderRefund"> | $Enums.RefundStatus
     refundAmount?: FloatWithAggregatesFilter<"OrderRefund"> | number
     reason?: StringWithAggregatesFilter<"OrderRefund"> | string
+    upiId?: StringNullableWithAggregatesFilter<"OrderRefund"> | string | null
     initiatedAt?: DateTimeWithAggregatesFilter<"OrderRefund"> | Date | string
     completedAt?: DateTimeNullableWithAggregatesFilter<"OrderRefund"> | Date | string | null
     updatedAt?: DateTimeWithAggregatesFilter<"OrderRefund"> | Date | string
@@ -16484,6 +16522,7 @@ export namespace Prisma {
     status?: $Enums.CancellationRequestStatus
     videoUrl?: string | null
     videoUploadedAt?: Date | string | null
+    upiId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     order: OrderCreateNestedOneWithoutCancellationRequestInput
@@ -16497,6 +16536,7 @@ export namespace Prisma {
     status?: $Enums.CancellationRequestStatus
     videoUrl?: string | null
     videoUploadedAt?: Date | string | null
+    upiId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -16508,6 +16548,7 @@ export namespace Prisma {
     status?: EnumCancellationRequestStatusFieldUpdateOperationsInput | $Enums.CancellationRequestStatus
     videoUrl?: NullableStringFieldUpdateOperationsInput | string | null
     videoUploadedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    upiId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     order?: OrderUpdateOneRequiredWithoutCancellationRequestNestedInput
@@ -16521,6 +16562,7 @@ export namespace Prisma {
     status?: EnumCancellationRequestStatusFieldUpdateOperationsInput | $Enums.CancellationRequestStatus
     videoUrl?: NullableStringFieldUpdateOperationsInput | string | null
     videoUploadedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    upiId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -16533,6 +16575,7 @@ export namespace Prisma {
     status?: $Enums.CancellationRequestStatus
     videoUrl?: string | null
     videoUploadedAt?: Date | string | null
+    upiId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -16544,6 +16587,7 @@ export namespace Prisma {
     status?: EnumCancellationRequestStatusFieldUpdateOperationsInput | $Enums.CancellationRequestStatus
     videoUrl?: NullableStringFieldUpdateOperationsInput | string | null
     videoUploadedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    upiId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -16556,6 +16600,7 @@ export namespace Prisma {
     status?: EnumCancellationRequestStatusFieldUpdateOperationsInput | $Enums.CancellationRequestStatus
     videoUrl?: NullableStringFieldUpdateOperationsInput | string | null
     videoUploadedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    upiId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -16565,6 +16610,7 @@ export namespace Prisma {
     status?: $Enums.RefundStatus
     refundAmount: number
     reason: string
+    upiId?: string | null
     initiatedAt?: Date | string
     completedAt?: Date | string | null
     updatedAt?: Date | string
@@ -16577,6 +16623,7 @@ export namespace Prisma {
     status?: $Enums.RefundStatus
     refundAmount: number
     reason: string
+    upiId?: string | null
     initiatedAt?: Date | string
     completedAt?: Date | string | null
     updatedAt?: Date | string
@@ -16587,6 +16634,7 @@ export namespace Prisma {
     status?: EnumRefundStatusFieldUpdateOperationsInput | $Enums.RefundStatus
     refundAmount?: FloatFieldUpdateOperationsInput | number
     reason?: StringFieldUpdateOperationsInput | string
+    upiId?: NullableStringFieldUpdateOperationsInput | string | null
     initiatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -16599,6 +16647,7 @@ export namespace Prisma {
     status?: EnumRefundStatusFieldUpdateOperationsInput | $Enums.RefundStatus
     refundAmount?: FloatFieldUpdateOperationsInput | number
     reason?: StringFieldUpdateOperationsInput | string
+    upiId?: NullableStringFieldUpdateOperationsInput | string | null
     initiatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -16610,6 +16659,7 @@ export namespace Prisma {
     status?: $Enums.RefundStatus
     refundAmount: number
     reason: string
+    upiId?: string | null
     initiatedAt?: Date | string
     completedAt?: Date | string | null
     updatedAt?: Date | string
@@ -16620,6 +16670,7 @@ export namespace Prisma {
     status?: EnumRefundStatusFieldUpdateOperationsInput | $Enums.RefundStatus
     refundAmount?: FloatFieldUpdateOperationsInput | number
     reason?: StringFieldUpdateOperationsInput | string
+    upiId?: NullableStringFieldUpdateOperationsInput | string | null
     initiatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -16631,6 +16682,7 @@ export namespace Prisma {
     status?: EnumRefundStatusFieldUpdateOperationsInput | $Enums.RefundStatus
     refundAmount?: FloatFieldUpdateOperationsInput | number
     reason?: StringFieldUpdateOperationsInput | string
+    upiId?: NullableStringFieldUpdateOperationsInput | string | null
     initiatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -17350,6 +17402,7 @@ export namespace Prisma {
     status?: SortOrder
     videoUrl?: SortOrder
     videoUploadedAt?: SortOrder
+    upiId?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -17362,6 +17415,7 @@ export namespace Prisma {
     status?: SortOrder
     videoUrl?: SortOrder
     videoUploadedAt?: SortOrder
+    upiId?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -17374,6 +17428,7 @@ export namespace Prisma {
     status?: SortOrder
     videoUrl?: SortOrder
     videoUploadedAt?: SortOrder
+    upiId?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -17401,6 +17456,7 @@ export namespace Prisma {
     status?: SortOrder
     refundAmount?: SortOrder
     reason?: SortOrder
+    upiId?: SortOrder
     initiatedAt?: SortOrder
     completedAt?: SortOrder
     updatedAt?: SortOrder
@@ -17416,6 +17472,7 @@ export namespace Prisma {
     status?: SortOrder
     refundAmount?: SortOrder
     reason?: SortOrder
+    upiId?: SortOrder
     initiatedAt?: SortOrder
     completedAt?: SortOrder
     updatedAt?: SortOrder
@@ -17427,6 +17484,7 @@ export namespace Prisma {
     status?: SortOrder
     refundAmount?: SortOrder
     reason?: SortOrder
+    upiId?: SortOrder
     initiatedAt?: SortOrder
     completedAt?: SortOrder
     updatedAt?: SortOrder
@@ -18805,6 +18863,7 @@ export namespace Prisma {
     status?: $Enums.CancellationRequestStatus
     videoUrl?: string | null
     videoUploadedAt?: Date | string | null
+    upiId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -18816,6 +18875,7 @@ export namespace Prisma {
     status?: $Enums.CancellationRequestStatus
     videoUrl?: string | null
     videoUploadedAt?: Date | string | null
+    upiId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -18830,6 +18890,7 @@ export namespace Prisma {
     status?: $Enums.RefundStatus
     refundAmount: number
     reason: string
+    upiId?: string | null
     initiatedAt?: Date | string
     completedAt?: Date | string | null
     updatedAt?: Date | string
@@ -18840,6 +18901,7 @@ export namespace Prisma {
     status?: $Enums.RefundStatus
     refundAmount: number
     reason: string
+    upiId?: string | null
     initiatedAt?: Date | string
     completedAt?: Date | string | null
     updatedAt?: Date | string
@@ -18921,6 +18983,7 @@ export namespace Prisma {
     status?: EnumCancellationRequestStatusFieldUpdateOperationsInput | $Enums.CancellationRequestStatus
     videoUrl?: NullableStringFieldUpdateOperationsInput | string | null
     videoUploadedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    upiId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -18932,6 +18995,7 @@ export namespace Prisma {
     status?: EnumCancellationRequestStatusFieldUpdateOperationsInput | $Enums.CancellationRequestStatus
     videoUrl?: NullableStringFieldUpdateOperationsInput | string | null
     videoUploadedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    upiId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -18952,6 +19016,7 @@ export namespace Prisma {
     status?: EnumRefundStatusFieldUpdateOperationsInput | $Enums.RefundStatus
     refundAmount?: FloatFieldUpdateOperationsInput | number
     reason?: StringFieldUpdateOperationsInput | string
+    upiId?: NullableStringFieldUpdateOperationsInput | string | null
     initiatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -18962,6 +19027,7 @@ export namespace Prisma {
     status?: EnumRefundStatusFieldUpdateOperationsInput | $Enums.RefundStatus
     refundAmount?: FloatFieldUpdateOperationsInput | number
     reason?: StringFieldUpdateOperationsInput | string
+    upiId?: NullableStringFieldUpdateOperationsInput | string | null
     initiatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string

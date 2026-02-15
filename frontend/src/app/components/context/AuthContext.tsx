@@ -308,7 +308,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
   const getIdToken = async (): Promise<string | null> => {
     if (firebaseUser) {
       try {
-        const token = await firebaseUser.getIdToken();
+        // Force refresh to get a fresh token and prevent expiration errors
+        const token = await firebaseUser.getIdToken(true);
         return token;
       } catch (error) {
         console.error("Error getting ID token:", error);

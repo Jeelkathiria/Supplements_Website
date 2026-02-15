@@ -280,16 +280,15 @@ export const Checkout: React.FC = () => {
       setIsProcessing(true);
       setError(null);
 
-      // Create order first
-      const createdOrder = await orderService.placeOrder(selectedAddressId, paymentMethod);
-      
-      console.log('=== ORDER PLACEMENT DEBUG ===');
-      console.log('Created Order:', createdOrder);
-      console.log('Order ID:', createdOrder?.id);
-      console.log('Full Order Object:', JSON.stringify(createdOrder, null, 2));
-
       // Handle payment based on selected method
       if (paymentMethod === 'cod') {
+        // COD - Create order immediately (payment on delivery)
+        const createdOrder = await orderService.placeOrder(selectedAddressId, paymentMethod);
+        
+        console.log('=== COD ORDER PLACEMENT ===');
+        console.log('Created Order:', createdOrder);
+        console.log('Order ID:', createdOrder?.id);
+
         // COD - Show success toast and add delay for animation
         toast.success('Order placed successfully!');
         await clearCart();
@@ -303,32 +302,40 @@ export const Checkout: React.FC = () => {
         // Then navigate to success page
         navigate(`/order-success/${createdOrder.id}`);
       } else if (paymentMethod === 'upi') {
+        // UPI - Handle payment first, CREATE order ONLY after success
+        console.log('=== UPI PAYMENT FLOW - STARTING ===');
+        
         // Get authentication token
         const token = await getIdToken();
         if (!token) {
           throw new Error('Authentication token not available');
         }
         
-        // Create Razorpay order
+        // Get total amount from checkout data
         const totalAmount = checkoutData?.cart?.totals?.grandTotal || 0;
-        console.log('=== PAYMENT DEBUG ===');
+        console.log('=== RAZORPAY PAYMENT DEBUG ===');
         console.log('Checkout Data:', checkoutData);
         console.log('Cart Items:', checkoutData?.cart?.items);
         console.log('Cart Totals:', checkoutData?.cart?.totals);
         console.log('Total Amount:', totalAmount);
-        console.log('Order ID:', createdOrder.id);
         
         if (totalAmount <= 0) {
           throw new Error('Invalid cart total. Please ensure items are in your cart.');
         }
+
+        // Step 1: Create a temporary Razorpay order (NOT database order yet)
+        // Using a placeholder order ID for Razorpay - actual order created after payment verification
+        const placeholderId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        console.log('Creating Razorpay order with placeholder ID:', placeholderId);
         
         const razorpayOrder = await paymentService.createRazorpayOrder(
           totalAmount,
-          createdOrder.id,
+          placeholderId,
           token
         );
 
-        // Initiate Razorpay payment
+        // Step 2: Initiate Razorpay payment UI
+        console.log('Initiating Razorpay payment...');
         const paymentResponse = await paymentService.initiateRazorpayPayment(
           razorpayOrder.orderId,
           totalAmount,
@@ -338,17 +345,26 @@ export const Checkout: React.FC = () => {
           user?.name || ''
         );
 
-        // Verify payment - pass orderId so backend can clear cart
+        // Step 3: Payment successful! Now verify and create actual database order
+        console.log('Payment completed by user. Verifying payment...');
+        
+        // At this point, create the actual database order
+        const createdOrder = await orderService.placeOrder(selectedAddressId, paymentMethod);
+        console.log('Database order created after payment success:', createdOrder.id);
+
+        // Step 4: Verify payment with backend
         await paymentService.verifyRazorpayPayment(
           {
             razorpay_order_id: paymentResponse.razorpay_order_id,
             razorpay_payment_id: paymentResponse.razorpay_payment_id,
             razorpay_signature: paymentResponse.razorpay_signature,
-            orderId: createdOrder.id,
+            orderId: createdOrder.id,  // Use actual order ID
           },
           token
         );
 
+        console.log('✅ Payment verified successfully. Order ID:', createdOrder.id);
+        
         // Payment successful - clear cart and navigate
         await clearCart();
         toast.success('Payment successful! Order placed.');
@@ -367,9 +383,9 @@ export const Checkout: React.FC = () => {
       toast.error(errorMessage);
       setIsProcessing(false);
       
-      // For UPI payment cancellation, we don't clear the cart
+      // For UPI payment cancellation, cart is NOT cleared
       // User can retry payment or use the same cart for another order
-      console.log('Payment/Order failed:', errorMessage);
+      console.log('❌ Payment/Order failed:', errorMessage);
     }
   };
 

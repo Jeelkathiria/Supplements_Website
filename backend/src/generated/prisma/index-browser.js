@@ -226,6 +226,7 @@ exports.Prisma.OrderCancellationRequestScalarFieldEnum = {
   status: 'status',
   videoUrl: 'videoUrl',
   videoUploadedAt: 'videoUploadedAt',
+  upiId: 'upiId',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -236,6 +237,7 @@ exports.Prisma.OrderRefundScalarFieldEnum = {
   status: 'status',
   refundAmount: 'refundAmount',
   reason: 'reason',
+  upiId: 'upiId',
   initiatedAt: 'initiatedAt',
   completedAt: 'completedAt',
   updatedAt: 'updatedAt'

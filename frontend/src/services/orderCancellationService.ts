@@ -8,6 +8,7 @@ export interface OrderCancellationRequest {
   status: 'PENDING' | 'APPROVED' | 'REJECTED';
   videoUrl?: string;
   videoUploadedAt?: string;
+  upiId?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -16,14 +17,16 @@ export class OrderCancellationService {
   // Create cancellation request
   static async createCancellationRequest(
     orderId: string,
-    reason: string
+    reason: string,
+    upiId?: string
   ): Promise<OrderCancellationRequest> {
     const letterCount = reason.trim().length;
     console.log("📨 Creating cancellation request:", { 
       orderId, 
       reasonLength: reason.length,
       reasonLetterCount: letterCount,
-      reasonPreview: reason.substring(0, 50) + "..."
+      reasonPreview: reason.substring(0, 50) + "...",
+      hasUpiId: !!upiId
     });
     
     const response = await apiFetch('/order-cancellation-requests', {
@@ -31,6 +34,7 @@ export class OrderCancellationService {
       body: JSON.stringify({
         orderId,
         reason,
+        ...(upiId && { upiId }), // Only include upiId if provided
       }),
     });
 

@@ -98,10 +98,15 @@ export const Login: React.FC = () => {
       
       // Wait for auth state to be fully updated and user data to load before redirecting
       setTimeout(() => {
+        // Check if user is admin and redirect to admin page
+        const isAdmin = formData.email.toLowerCase().trim() === 'admin@gmail.com';
+        
         if (redirectAfterLogin) {
           const redirectUrl = redirectAfterLogin;
           setRedirectAfterLogin(null);
           navigate(redirectUrl);
+        } else if (isAdmin) {
+          navigate('/admin');
         } else {
           navigate('/account');
         }

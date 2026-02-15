@@ -8,15 +8,22 @@ import {
   RotateCcw,
 } from "lucide-react";
 
-type OrderStatus = "all" | "pending" | "shipped" | "delivered" | "cancelled";
+type OrderStatus = "pending" | "shipped" | "delivered" | "cancelled" | "all" ;
 type AdminSection = "products" | "orders" | "cancellations" | "refunds";
+type CancellationType = "all" | "after-delivery" | "pre-delivery";
 
 interface AdminLayoutProps {
   children: React.ReactNode;
   activeSection: AdminSection;
+  activeCancellationType?: CancellationType;
+  onCancellationTypeChange?: (type: CancellationType) => void;
   activeOrderStatus?: OrderStatus;
   onSectionChange: (section: AdminSection) => void;
   onOrderStatusChange?: (status: OrderStatus) => void;
+  pendingPreDeliveryCount?: number;
+  pendingPostDeliveryCount?: number;
+  pendingAllCancellationsCount?: number;
+  pendingOrdersCount?: number;
 }
 
 /* =====================================================
@@ -26,9 +33,15 @@ interface AdminLayoutProps {
 export function AdminLayout({
   children,
   activeSection,
+  activeCancellationType = "all",
+  onCancellationTypeChange,
   activeOrderStatus = "all",
   onSectionChange,
   onOrderStatusChange,
+  pendingPreDeliveryCount = 0,
+  pendingPostDeliveryCount = 0,
+  pendingAllCancellationsCount = 0,
+  pendingOrdersCount = 0,
 }: AdminLayoutProps) {
   const [collapsed, setCollapsed] = useState(false);
 
@@ -81,30 +94,37 @@ export function AdminLayout({
             label="Orders"
             collapsed={collapsed}
             active={activeSection === "orders"}
-            onClick={() => onSectionChange("orders")}
+            onClick={() => {
+              onSectionChange("orders");
+              onOrderStatusChange?.("pending");
+            }}
           />
 
-          {/* Order Status */}
-          {activeSection === "orders" && !collapsed && (
-            <div className="ml-9 mt-2 space-y-1 border-l border-neutral-200 pl-3">
-              {["all", "pending", "shipped", "delivered", "cancelled"].map((status) => (
+          {/* Order Status - Always Visible */}
+          <div className={`ml-9 mt-2 space-y-1 border-l border-neutral-200 pl-3 ${collapsed ? "hidden" : ""}`}>
+            {["pending", "shipped", "delivered", "cancelled", "all"].map((status) => (
                 <button
                   key={status}
-                  onClick={() =>
-                    onOrderStatusChange?.(status as OrderStatus)
-                  }
-                  className={`block w-full rounded-md px-3 py-2 text-sm transition
+                  onClick={() => {
+                    onSectionChange("orders");
+                    onOrderStatusChange?.(status as OrderStatus);
+                  }}
+                  className={`flex items-center justify-between w-full rounded-md px-3 py-2 text-sm transition
                     ${
-                      activeOrderStatus === status
+                      activeSection === "orders" && activeOrderStatus === status
                         ? "bg-emerald-100 text-emerald-700 font-medium"
                         : "text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900"
                     }`}
                 >
-                  {status.toUpperCase()}
+                  <span>{status.toUpperCase()}</span>
+                  {status === "pending" && pendingOrdersCount > 0 && (
+                    <span className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-red-500 text-white text-xs font-bold">
+                      {pendingOrdersCount}
+                    </span>
+                  )}
                 </button>
               ))}
             </div>
-          )}
 
           {/* Cancellations */}
           <NavItem
@@ -112,8 +132,41 @@ export function AdminLayout({
             label="Cancellations"
             collapsed={collapsed}
             active={activeSection === "cancellations"}
-            onClick={() => onSectionChange("cancellations")}
+            onClick={() => {
+              onSectionChange("cancellations");
+              onCancellationTypeChange?.("all");
+            }}
           />
+
+          {/* Cancellation Type Submenu - Always Visible */}
+          <div className={`ml-9 mt-2 space-y-1 border-l border-neutral-200 pl-3 ${collapsed ? "hidden" : ""}`}>
+            {[
+              { key: "all" as CancellationType, label: "All Cancellations", count: pendingAllCancellationsCount },
+              { key: "pre-delivery" as CancellationType, label: "Pre-Delivery Requests", count: pendingPreDeliveryCount },
+              { key: "after-delivery" as CancellationType, label: "Post-Delivery Requests", count: pendingPostDeliveryCount },
+            ].map((type) => (
+                <button
+                  key={type.key}
+                  onClick={() => {
+                    onSectionChange("cancellations");
+                    onCancellationTypeChange?.(type.key);
+                  }}
+                  className={`flex items-center justify-between w-full rounded-md px-3 py-2 text-sm transition
+                    ${
+                      activeSection === "cancellations" && activeCancellationType === type.key
+                        ? "bg-blue-100 text-blue-700 font-medium"
+                        : "text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900"
+                    }`}
+                >
+                  <span>{type.label}</span>
+                  {type.count > 0 && (
+                    <span className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-red-500 text-white text-xs font-bold">
+                      {type.count}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
 
           {/* Refunds */}
           <NavItem

@@ -6,10 +6,11 @@ type RefundStatusType = $Enums.RefundStatus;
 
 export const createRefundForApprovedCancellation = async (
   orderId: string,
-  reason: string
+  reason: string,
+  upiId?: string
 ) => {
   try {
-    console.log("📦 Creating refund for approved cancellation - Order ID:", orderId);
+    console.log("📦 Creating refund for approved cancellation - Order ID:", orderId, "UPI ID:", upiId);
 
     // Get order details to get refund amount
     const order = await prisma.order.findUnique({
@@ -27,10 +28,11 @@ export const createRefundForApprovedCancellation = async (
         refundAmount: order.totalAmount,
         reason,
         status: RefundStatus.INITIATED,
+        ...(upiId && { upiId }), // Only include upiId if provided
       },
     });
 
-    console.log("✅ Refund created successfully:", refund.id);
+    console.log("✅ Refund created successfully:", refund.id, "for UPI:", upiId);
     return refund;
   } catch (error) {
     console.error("❌ Error creating refund:", error);

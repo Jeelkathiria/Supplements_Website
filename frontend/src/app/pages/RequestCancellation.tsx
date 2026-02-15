@@ -15,6 +15,7 @@ export const RequestCancellation: React.FC = () => {
   const [reason, setReason] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [upiId, setUpiId] = useState('');
   
   // Video upload state
   const [videoFile, setVideoFile] = useState<File | null>(null);
@@ -97,16 +98,32 @@ export const RequestCancellation: React.FC = () => {
       return;
     }
 
-    // For delivered orders, video is required
-    if (order?.status === 'DELIVERED' && !videoFile) {
-      toast.error('Video evidence is required for delivered orders');
-      return;
+    // For delivered orders, video and UPI ID are required
+    if (order?.status === 'DELIVERED') {
+      if (!videoFile) {
+        toast.error('Video evidence is required for delivered orders');
+        return;
+      }
+      if (!upiId.trim()) {
+        toast.error('UPI ID is required for refund processing');
+        return;
+      }
+      // Simple UPI ID validation (format: username@bankname)
+      const upiRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z]{3,}$/;
+      if (!upiRegex.test(upiId.trim())) {
+        toast.error('Please enter a valid UPI ID (e.g., yourname@upi)');
+        return;
+      }
     }
 
     try {
       setSubmitting(true);
 
-      const request = await OrderCancellationService.createCancellationRequest(orderId!, reason.trim());
+      const request = await OrderCancellationService.createCancellationRequest(
+        orderId!,
+        reason.trim(),
+        order?.status === 'DELIVERED' ? upiId.trim() : undefined
+      );
       setCancellationRequestId(request.id);
 
       // If video is provided, upload it
@@ -298,7 +315,30 @@ export const RequestCancellation: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Video Upload Section - Only for Delivered Orders */}
+                {/* UPI ID Section - Only for Delivered Orders */}
+                {order.status === 'DELIVERED' && (
+                  <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded">
+                    <label htmlFor="upiId" className="block font-semibold mb-2 text-green-900 flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4" />
+                      UPI ID for Refund <span className="text-red-600">*</span>
+                    </label>
+                    <p className="text-green-800 text-xs mb-3">
+                      Please provide your UPI ID where we will refund the amount after approval. This is required to process your refund.
+                    </p>
+                    <input
+                      id="upiId"
+                      type="text"
+                      value={upiId}
+                      onChange={(e) => setUpiId(e.target.value)}
+                      placeholder="e.g., yourname@upi or yourname@paytm"
+                      disabled={submitting || uploadingVideo}
+                      className="w-full border rounded p-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 disabled:bg-neutral-50 disabled:text-neutral-500"
+                    />
+                    <p className="text-xs text-green-700 mt-2">
+                      Format: username@bankname (e.g., john@upi, jane@paytm)
+                    </p>
+                  </div>
+                )}                {/* Video Upload Section - Only for Delivered Orders */}
                 {order.status === 'DELIVERED' && (
                   <div className="mb-4 p-4 bg-orange-50 border border-orange-200 rounded">
                     <p className="font-semibold text-orange-900 mb-3 flex items-center gap-2">
@@ -385,7 +425,7 @@ export const RequestCancellation: React.FC = () => {
                   </button>
                   <button
                     type="submit"
-                    disabled={submitting || uploadingVideo || !reason.trim() || reason.trim().length < 10 || (order.status === 'DELIVERED' && !videoFile)}
+                    disabled={submitting || uploadingVideo || !reason.trim() || reason.trim().length < 10 || (order.status === 'DELIVERED' && (!videoFile || !upiId.trim()))}
                     className="flex-1 bg-blue-600 text-white rounded py-2 text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
                   >
                     {submitting ? 'Submitting...' : uploadingVideo ? 'Uploading video...' : 'Submit Request'}

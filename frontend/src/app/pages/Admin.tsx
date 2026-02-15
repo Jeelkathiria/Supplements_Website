@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Plus, Edit2, Trash2, X, Upload } from "lucide-react";
 import { Product } from "../types";
 import {
@@ -17,6 +17,7 @@ import { AdminOrders } from "../components/AdminOrders";
 import { AdminCancellationRequests } from "../components/AdminCancellationRequests";
 import { AdminRefundStatus } from "../components/AdminRefundStatus";
 import { AdminLayout } from "../components/AdminLayout";
+import { OrderCancellationService } from "../../services/orderCancellationService";
 
 // Helper function to get full image URL
 const getFullImageUrl = (imageUrl: string) => {
@@ -46,10 +47,77 @@ const EMPTY_FORM: Partial<Product> = {
 
 export const Admin: React.FC = () => {
   // Initialize activeTab from localStorage, default to "orders"
-  const [activeTab, setActiveTabState] = useState<"products" | "orders" | "cancellations" | "refunds">(() => {
-    const savedTab = localStorage.getItem("adminActiveTab");
-    return (savedTab as "products" | "orders" | "cancellations" | "refunds") || "orders";
+  const [activeTabState, setActiveTabState] = useState<"products" | "orders" | "cancellations" | "refunds">(
+    (localStorage.getItem("adminActiveTab") as "products" | "orders" | "cancellations" | "refunds") || "orders"
+  );
+  
+  // Initialize cancellation type from localStorage, default to "all"
+  const [activeCancellationType, setActiveCancellationType] = useState<"all" | "after-delivery" | "pre-delivery">(
+    (localStorage.getItem("adminCancellationType") as "all" | "after-delivery" | "pre-delivery") || "all"
+  );
+
+  const [refundRefreshTrigger, setRefundRefreshTrigger] = useState(0);
+  const [pendingCancellationCounts, setPendingCancellationCounts] = useState({
+    all: 0,
+    preDelivery: 0,
+    postDelivery: 0,
   });
+  const [pendingOrdersCancellationCount, setPendingOrdersCancellationCount] = useState(0);
+
+  // Handle cancellation approval - trigger refund refresh
+  const handleCancellationApproved = () => {
+    setRefundRefreshTrigger(prev => prev + 1);
+    // Switch to refunds tab
+    setActiveTab('refunds');
+  };
+
+  // Handle pending counts change from AdminCancellationRequests
+  const handlePendingCountsChange = useCallback((counts: { all: number; preDelivery: number; postDelivery: number }) => {
+    setPendingCancellationCounts(counts);
+    setPendingOrdersCancellationCount(counts.preDelivery);
+  }, []);
+
+  // Load pending counts on page mount
+  useEffect(() => {
+    const loadPendingCounts = async () => {
+      try {
+        const allRequests = await OrderCancellationService.getAllRequests();
+        
+        // Calculate pending counts
+        const pendingAll = allRequests.filter(r => r.status === "PENDING").length;
+        
+        const pendingPreDelivery = allRequests.filter(req => {
+          if (req.status !== "PENDING") return false;
+          const orderStatus = req.order?.status;
+          return ["PENDING", "PAID", "SHIPPED"].includes(orderStatus || "");
+        }).length;
+
+        const pendingPostDelivery = allRequests.filter(req => {
+          if (req.status !== "PENDING") return false;
+          const orderStatus = req.order?.status;
+          const deliveredAt = req.order?.deliveredAt;
+          const requestCreatedAt = new Date(req.createdAt);
+          
+          if (orderStatus === "DELIVERED") return true;
+          if (orderStatus === "CANCELLED" && deliveredAt) {
+            const deliveredDate = new Date(deliveredAt);
+            return requestCreatedAt > deliveredDate;
+          }
+          return false;
+        }).length;
+
+        handlePendingCountsChange({
+          all: pendingAll,
+          preDelivery: pendingPreDelivery,
+          postDelivery: pendingPostDelivery,
+        });
+      } catch (error) {
+        console.error("Error loading pending counts:", error);
+      }
+    };
+
+    loadPendingCounts();
+  }, [handlePendingCountsChange]);
 
   // Wrapper function to update both state and localStorage
   const setActiveTab = (tab: "products" | "orders" | "cancellations" | "refunds") => {
@@ -57,7 +125,14 @@ export const Admin: React.FC = () => {
     localStorage.setItem("adminActiveTab", tab);
   };
 
-  const [activeOrderStatus, setActiveOrderStatus] = useState<"all" | "pending" | "delivered" | "shipped" | "cancelled">("all");
+  // Wrapper function for cancellation type
+  const handleCancellationTypeChange = (type: "all" | "after-delivery" | "pre-delivery") => {
+    setActiveCancellationType(type);
+    localStorage.setItem("adminCancellationType", type);
+  };
+
+  const activeTab = activeTabState;
+  const [activeOrderStatus, setActiveOrderStatus] = useState<"all" | "pending" | "delivered" | "shipped" | "cancelled">("pending");
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -421,8 +496,14 @@ export const Admin: React.FC = () => {
     <AdminLayout
       activeSection={activeTab}
       onSectionChange={setActiveTab}
+      activeCancellationType={activeCancellationType}
+      onCancellationTypeChange={handleCancellationTypeChange}
       activeOrderStatus={activeOrderStatus}
       onOrderStatusChange={setActiveOrderStatus}
+      pendingPreDeliveryCount={pendingCancellationCounts.preDelivery}
+      pendingPostDeliveryCount={pendingCancellationCounts.postDelivery}
+      pendingAllCancellationsCount={pendingCancellationCounts.all}
+      pendingOrdersCount={pendingOrdersCancellationCount}
     >
       {/* PRODUCTS SECTION */}
       {activeTab === "products" && (
@@ -1078,14 +1159,18 @@ export const Admin: React.FC = () => {
       {/* CANCELLATIONS TAB */}
       {activeTab === "cancellations" && (
         <div>
-          <AdminCancellationRequests />
+          <AdminCancellationRequests 
+            cancellationType={activeCancellationType}
+            onCancellationApproved={handleCancellationApproved}
+            onPendingCountsChange={handlePendingCountsChange}
+          />
         </div>
       )}
 
       {/* REFUNDS TAB */}
       {activeTab === "refunds" && (
         <div>
-          <AdminRefundStatus />
+          <AdminRefundStatus refreshTrigger={refundRefreshTrigger} />
         </div>
       )}
     </AdminLayout>

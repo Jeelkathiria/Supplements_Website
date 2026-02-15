@@ -15,7 +15,8 @@ const getAuthToken = async (): Promise<string | null> => {
     if (!user) {
       return null;
     }
-    return await user.getIdToken();
+    // Force refresh to get a fresh token and prevent expiration errors
+    return await user.getIdToken(true);
   } catch (error) {
     console.error('Error getting auth token:', error);
     return null;
