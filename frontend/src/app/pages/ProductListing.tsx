@@ -15,7 +15,6 @@ type SortType =
 export const ProductListing: React.FC = () => {
   const [priceRange] = useState<[number, number]>([0, 5000]);
   const [products, setProducts] = useState<Product[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
 
   const [sortBy, setSortBy] = useState<SortType>("popularity");
   const [selectedCategory, setSelectedCategory] =
@@ -34,13 +33,10 @@ export const ProductListing: React.FC = () => {
   useEffect(() => {
     const loadProducts = async () => {
       try {
-        setIsLoading(true);
         const data = await fetchProducts();
         setProducts(data);
       } catch (error) {
         console.error("Failed to load products:", error);
-      } finally {
-        setIsLoading(false);
       }
     };
 

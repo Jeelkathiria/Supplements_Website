@@ -1,6 +1,6 @@
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../../firebase";
-import { useAuth } from '../components/context/AuthContext';
+
 
 const LoginTest = () => {
   const login = async () => {

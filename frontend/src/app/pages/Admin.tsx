@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback } from "react";
 import { Plus, Edit2, Trash2, X, Upload } from "lucide-react";
 import { Product } from "../types";
 import {
-  PRODUCTS,
   calculateFinalPrice,
 } from "../data/products";
 import { toast } from "sonner";
@@ -47,8 +46,8 @@ const EMPTY_FORM: Partial<Product> = {
 
 export const Admin: React.FC = () => {
   // Initialize activeTab from localStorage, default to "orders"
-  const [activeTabState, setActiveTabState] = useState<"products" | "orders" | "cancellations" | "refunds">(
-    (localStorage.getItem("adminActiveTab") as "products" | "orders" | "cancellations" | "refunds") || "orders"
+  const [activeTabState, setActiveTabState] = useState<"products" | "orders" | "cancellations" | "cancelled-orders" | "refunds">(
+    (localStorage.getItem("adminActiveTab") as "products" | "orders" | "cancellations" | "cancelled-orders" | "refunds") || "orders"
   );
   
   // Initialize cancellation type from localStorage, default to "all"
@@ -120,7 +119,7 @@ export const Admin: React.FC = () => {
   }, [handlePendingCountsChange]);
 
   // Wrapper function to update both state and localStorage
-  const setActiveTab = (tab: "products" | "orders" | "cancellations" | "refunds") => {
+  const setActiveTab = (tab: "products" | "orders" | "cancellations" | "cancelled-orders" | "refunds") => {
     setActiveTabState(tab);
     localStorage.setItem("adminActiveTab", tab);
   };
@@ -132,7 +131,7 @@ export const Admin: React.FC = () => {
   };
 
   const activeTab = activeTabState;
-  const [activeOrderStatus, setActiveOrderStatus] = useState<"all" | "pending" | "delivered" | "shipped" | "cancelled">("pending");
+  const [activeOrderStatus, setActiveOrderStatus] = useState<"all" | "pending" | "delivered" | "shipped">("pending");
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -144,10 +143,8 @@ export const Admin: React.FC = () => {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [showCategorySuggestions, setShowCategorySuggestions] =
-    useState(false);
-  const [newCategoryInput, setNewCategoryInput] = useState("");
   const [isAddingCategory, setIsAddingCategory] = useState(false);
+  const [newCategoryInput, setNewCategoryInput] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const ITEMS_PER_PAGE = 10;
@@ -407,29 +404,7 @@ export const Admin: React.FC = () => {
     currentPage * ITEMS_PER_PAGE,
   );
 
-  /* -------------   --------------------*/
-  // Add inside Admin component
-  const handleAddSize = () => {
-    if (
-      formData.newSize &&
-      !formData.sizes?.includes(formData.newSize)
-    ) {
-      setFormData((prev) => ({
-        ...prev,
-        sizes: [...(prev.sizes || []), prev.newSize!],
-        newSize: "",
-      }));
-      // Clear sizes error when user adds a size
-      if (errors.sizes) {
-        setErrors((prev) => {
-          const newErrors = { ...prev };
-          delete newErrors.sizes;
-          return newErrors;
-        });
-      }
-    }
-  };
-
+  /* --------- Product Form Handlers ---------- */
   const handleRemoveSize = (size: string) => {
     setFormData((prev) => ({
       ...prev,
@@ -1164,6 +1139,13 @@ export const Admin: React.FC = () => {
             onCancellationApproved={handleCancellationApproved}
             onPendingCountsChange={handlePendingCountsChange}
           />
+        </div>
+      )}
+
+      {/* CANCELLED ORDERS TAB */}
+      {activeTab === "cancelled-orders" && (
+        <div>
+          <AdminOrders filterStatus="cancelled" />
         </div>
       )}
 

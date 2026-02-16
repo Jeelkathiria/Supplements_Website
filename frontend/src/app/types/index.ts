@@ -33,6 +33,7 @@ export interface Product {
   stockQuantity?: number; // For backward compatibility
   rating?: number;
   reviews?: number;
+  tax?: number; // Tax amount
   // Form temporary fields
   newSize?: string;
   newSizeUnit?: string;
@@ -45,4 +46,6 @@ export interface CartItem {
   quantity: number;
   selectedSize?: string;
   selectedColor?: string;
+  flavor?: string;
+  size?: string;
 }

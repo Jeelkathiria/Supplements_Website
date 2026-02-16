@@ -16,7 +16,7 @@ const getFullImageUrl = (imageUrl: string) => {
 };
 
 export const Cart: React.FC = () => {
-  const { cartItems, updateQuantity, removeFromCart, getCartTotal, isLoading, error } = useCart();
+  const { cartItems, updateQuantity, removeFromCart, isLoading, error } = useCart();
   const { isAuthenticated, setRedirectAfterLogin } = useAuth();
   const navigate = useNavigate();
   const [updatingItems, setUpdatingItems] = useState<Set<string>>(new Set());

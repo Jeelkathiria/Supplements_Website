@@ -264,7 +264,7 @@ export const OrderDetail: React.FC = () => {
 
           {/* Order Tracking Timeline */}
           <OrderTrackingTimeline 
-            status={order.status} 
+            status={(order.status as 'PENDING' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED') || 'PENDING'} 
             createdAt={order.createdAt}
             shippedAt={order.shippedAt}
             deliveredAt={order.deliveredAt}

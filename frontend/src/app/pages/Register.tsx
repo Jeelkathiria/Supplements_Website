@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { Mail, Lock, User, Eye, EyeOff, Check, X, ShoppingCart, Phone } from 'lucide-react';
+import { Eye, EyeOff, Check, X, ShoppingCart } from 'lucide-react';
 import { useAuth } from '../components/context/AuthContext';
-import heroBg from '../../images/1001380690 (1).jpg';
+
 
 interface PasswordRequirement {
   label: string;

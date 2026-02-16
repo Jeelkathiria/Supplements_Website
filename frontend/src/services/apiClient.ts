@@ -35,9 +35,9 @@ export const apiFetch = async (
   // Extract headers from fetchOptions if they exist
   const existingHeaders = typeof fetchOptions.headers === 'object' && fetchOptions.headers ? fetchOptions.headers : {};
 
-  const headers: Record<string, string> = {
+  const headers = {
     ...existingHeaders,
-  };
+  } as Record<string, string>;
 
   // Only set Content-Type if body is not FormData
   // FormData requires no Content-Type header so browser can set it with boundary
@@ -89,10 +89,10 @@ export const apiCallNoAuth = async <T>(
 ): Promise<T> => {
   const { ...fetchOptions } = options;
 
-  const headers: Record<string, string> = {
+  const headers = {
     'Content-Type': 'application/json',
     ...(typeof fetchOptions.headers === 'object' && fetchOptions.headers ? fetchOptions.headers : {}),
-  };
+  } as Record<string, string>;
 
   const url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`;
 

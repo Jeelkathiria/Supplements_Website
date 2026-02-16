@@ -8,8 +8,8 @@ import {
   RotateCcw,
 } from "lucide-react";
 
-type OrderStatus = "pending" | "shipped" | "delivered" | "cancelled" | "all" ;
-type AdminSection = "products" | "orders" | "cancellations" | "refunds";
+type OrderStatus = "pending" | "shipped" | "delivered" | "all" ;
+type AdminSection = "products" | "orders" | "cancellations" | "cancelled-orders" | "refunds";
 type CancellationType = "all" | "after-delivery" | "pre-delivery";
 
 interface AdminLayoutProps {
@@ -102,7 +102,7 @@ export function AdminLayout({
 
           {/* Order Status - Always Visible */}
           <div className={`ml-9 mt-2 space-y-1 border-l border-neutral-200 pl-3 ${collapsed ? "hidden" : ""}`}>
-            {["pending", "shipped", "delivered", "cancelled", "all"].map((status) => (
+            {["pending", "shipped", "delivered", "all"].map((status) => (
                 <button
                   key={status}
                   onClick={() => {
@@ -129,7 +129,7 @@ export function AdminLayout({
           {/* Cancellations */}
           <NavItem
             icon={<Video size={18} />}
-            label="Cancellations"
+            label="Cancell Requests"
             collapsed={collapsed}
             active={activeSection === "cancellations"}
             onClick={() => {
@@ -168,7 +168,16 @@ export function AdminLayout({
               ))}
             </div>
 
-          {/* Refunds */}
+          {/* Cancelled Orders */}
+          <NavItem
+            icon={<ShoppingCart size={18} />}
+            label="Cancelled Orders"
+            collapsed={collapsed}
+            active={activeSection === "cancelled-orders"}
+            onClick={() => onSectionChange("cancelled-orders")}
+          />
+
+          {/* Refund Status */}
           <NavItem
             icon={<RotateCcw size={18} />}
             label="Refund Status"

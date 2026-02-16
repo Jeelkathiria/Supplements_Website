@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
-import { CartItem, Product } from '../types';
+import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import { CartItem, Product } from '../../types';
 import * as cartService from "../../../services/cartService";
 import { useAuth } from './AuthContext';
 import { toast } from 'sonner';
@@ -80,8 +80,8 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           .map((item) => ({
             productId: item.product.id,
             quantity: item.quantity,
-            flavor: item.selectedColor || null,
-            size: item.selectedSize || null,
+            flavor: item.selectedColor || undefined,
+            size: item.selectedSize || undefined,
           }));
 
         // Only merge if we have valid items
@@ -151,8 +151,8 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         .map((item) => ({
           productId: item.product.id,
           quantity: item.quantity,
-          flavor: item.selectedColor || null,
-          size: item.selectedSize || null,
+          flavor: item.selectedColor || undefined,
+          size: item.selectedSize || undefined,
         }));
 
       // Send to backend to merge

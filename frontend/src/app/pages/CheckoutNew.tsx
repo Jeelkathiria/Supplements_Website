@@ -8,7 +8,7 @@ import { Breadcrumb } from '../components/Breadcrumb';
 import * as checkoutService from '../../services/checkoutService';
 import * as orderService from '../../services/orderService';
 import * as userService from '../../services/userService';
-import type { Address } from '../../services/userService';
+
 import type { CheckoutData } from '../../services/checkoutService';
 
 export const Checkout: React.FC = () => {

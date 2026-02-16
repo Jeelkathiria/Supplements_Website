@@ -21,7 +21,6 @@ export const RequestCancellation: React.FC = () => {
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [videoPreview, setVideoPreview] = useState<string | null>(null);
   const [uploadingVideo, setUploadingVideo] = useState(false);
-  const [cancellationRequestId, setCancellationRequestId] = useState<string | null>(null);
 
   useEffect(() => {
     const loadOrder = async () => {
@@ -98,14 +97,24 @@ export const RequestCancellation: React.FC = () => {
       return;
     }
 
-    // For delivered orders, video and UPI ID are required
+    // For delivered orders, video is required
     if (order?.status === 'DELIVERED') {
       if (!videoFile) {
         toast.error('Video evidence is required for delivered orders');
         return;
       }
+    }
+
+    // UPI ID requirement logic
+    const isPostDelivery = order?.status === 'DELIVERED';
+    const requiresUpiId = isPostDelivery ? true : order?.paymentMethod === 'upi';
+
+    if (requiresUpiId) {
       if (!upiId.trim()) {
-        toast.error('UPI ID is required for refund processing');
+        const errorMsg = isPostDelivery 
+          ? 'UPI ID is required for refund processing (post-delivery cancellation)'
+          : 'UPI ID is required for refund processing';
+        toast.error(errorMsg);
         return;
       }
       // Simple UPI ID validation (format: username@bankname)
@@ -122,9 +131,9 @@ export const RequestCancellation: React.FC = () => {
       const request = await OrderCancellationService.createCancellationRequest(
         orderId!,
         reason.trim(),
-        order?.status === 'DELIVERED' ? upiId.trim() : undefined
+        requiresUpiId ? upiId.trim() : undefined
       );
-      setCancellationRequestId(request.id);
+      // setCancellationRequestId(request.id);
 
       // If video is provided, upload it
       if (videoFile && order?.status === 'DELIVERED') {
@@ -315,15 +324,17 @@ export const RequestCancellation: React.FC = () => {
                   </div>
                 </div>
 
-                {/* UPI ID Section - Only for Delivered Orders */}
-                {order.status === 'DELIVERED' && (
+                {/* UPI ID Section - For Post-Delivery Orders (All) or Pre-Delivery UPI Orders */}
+                {(order.status === 'DELIVERED' || order.paymentMethod === 'upi') && (
                   <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded">
                     <label htmlFor="upiId" className="block font-semibold mb-2 text-green-900 flex items-center gap-2">
                       <AlertCircle className="w-4 h-4" />
                       UPI ID for Refund <span className="text-red-600">*</span>
                     </label>
                     <p className="text-green-800 text-xs mb-3">
-                      Please provide your UPI ID where we will refund the amount after approval. This is required to process your refund.
+                      {order.status === 'DELIVERED' 
+                        ? 'Please provide your UPI ID where we will refund the amount after approval (required for post-delivery cancellations).'
+                        : 'Please provide your UPI ID where we will refund the amount after approval. This is required to process your refund.'}
                     </p>
                     <input
                       id="upiId"

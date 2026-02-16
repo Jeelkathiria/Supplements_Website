@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { ChevronLeft, Dumbbell , ChevronDown, Target} from "lucide-react";
+import { Dumbbell, ChevronDown } from "lucide-react";
 
 import { ProductCard } from "../components/ProductCard";
 import { CategoryCard } from "../components/CategoryCard";
@@ -21,12 +21,10 @@ export const Home: React.FC = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
   const [discountedProducts, setDiscountedProducts] = useState<Product[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
 
   // Function to load products
   const loadProducts = async () => {
     try {
-      setIsLoading(true);
       const products = await fetchProducts();
 
       // Filter featured products
@@ -42,8 +40,6 @@ export const Home: React.FC = () => {
       setDiscountedProducts(discounted);
     } catch (error) {
       console.error("Failed to load products:", error);
-    } finally {
-      setIsLoading(false);
     }
   };
 

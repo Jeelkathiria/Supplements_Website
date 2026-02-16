@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { ChevronDown, AlertCircle, Search, X, Phone, MapPin, CreditCard, User, CheckCircle, XCircle, Video } from "lucide-react";
+import { ChevronDown, AlertCircle, Search, X, Phone, MapPin, CreditCard, User, CheckCircle, XCircle, FileText } from "lucide-react";
 import { toast } from "sonner";
 import {
   getAllOrders,
@@ -9,7 +9,7 @@ import {
 } from "../../services/adminOrderService";
 import { OrderCancellationService } from "../../services/orderCancellationService";
 import { useAuth } from "./context/AuthContext";
-import { AdminCancellationRequests } from "./AdminCancellationRequests";
+import { BillModal } from "./BillModal";
 
 // Helper function to get full image URL
 const getFullImageUrl = (imageUrl: string) => {
@@ -40,7 +40,7 @@ const STATUS_HEADER_BG: Record<string, string> = {
 const getAvailableStatuses = (currentStatus: string): string[] => {
   switch (currentStatus) {
     case "PENDING":
-      return ["PENDING", "SHIPPED", "DELIVERED", "CANCELLED"];
+      return ["PENDING", "SHIPPED", "CANCELLED"];
     case "SHIPPED":
       return ["SHIPPED", "DELIVERED", "CANCELLED"];
     case "DELIVERED":
@@ -60,13 +60,16 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({ filterStatus = "all" }
   const [orders, setOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedOrderForModal, setSelectedOrderForModal] = useState<Order | null>(null);
+  const [selectedBillOrder, setSelectedBillOrder] = useState<Order | null>(null);
+  const [isBillModalOpen, setIsBillModalOpen] = useState(false);
   const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
   const [cancellationRequests, setCancellationRequests] = useState<Record<string, any>>({});
-  const [loadingCancellationRequests, setLoadingCancellationRequests] = useState(false);
-  const [activeTab, setActiveTab] = useState<"orders" | "cancellations">("orders");
+  const [pendingCancellationOrder, setPendingCancellationOrder] = useState<Order | null>(null);
+  const [isCancelConfirmationOpen, setIsCancelConfirmationOpen] = useState(false);
+  const [cancelConfirmationText, setCancelConfirmationText] = useState("");
   const CARDS_PER_PAGE = 12;
   const { firebaseUser } = useAuth();
 
@@ -94,7 +97,6 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({ filterStatus = "all" }
 
   const loadCancellationRequests = async () => {
     try {
-      setLoadingCancellationRequests(true);
       const requests = await OrderCancellationService.getAllRequests();
       const requestsByOrderId: Record<string, any> = {};
       requests.forEach(req => {
@@ -103,19 +105,26 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({ filterStatus = "all" }
       setCancellationRequests(requestsByOrderId);
     } catch (error) {
       console.error("Error loading cancellation requests:", error);
-    } finally {
-      setLoadingCancellationRequests(false);
     }
   };
 
   const handleStatusUpdate = async (orderId: string, newStatus: string) => {
+    // For PENDING and SHIPPED orders being cancelled, show confirmation modal
+    const order = orders.find(o => o.id === orderId);
+    if (order && (order.status === "PENDING" || order.status === "SHIPPED") && newStatus === "CANCELLED") {
+      setPendingCancellationOrder(order);
+      setIsCancelConfirmationOpen(true);
+      setCancelConfirmationText("");
+      return;
+    }
+
     try {
       setUpdatingOrderId(orderId);
       const updated = await updateOrderStatus(orderId, newStatus);
 
       setOrders((prev) =>
-        prev.map((order) =>
-          order.id === orderId ? { ...order, status: updated.status } : order
+        prev.map((o) =>
+          o.id === orderId ? { ...o, status: updated.status } : o
         )
       );
 
@@ -128,6 +137,37 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({ filterStatus = "all" }
       toast.error("Failed to update order status");
     } finally {
       setUpdatingOrderId(null);
+    }
+  };
+
+  const confirmCancellation = async () => {
+    if (cancelConfirmationText !== "SaturnImports") {
+      toast.error("Incorrect confirmation text. Please type 'SaturnImports' to cancel.");
+      return;
+    }
+
+    if (!pendingCancellationOrder) return;
+
+    try {
+      setUpdatingOrderId(pendingCancellationOrder.id);
+      const updated = await updateOrderStatus(pendingCancellationOrder.id, "CANCELLED");
+
+      setOrders((prev) =>
+        prev.map((o) =>
+          o.id === pendingCancellationOrder.id ? { ...o, status: updated.status } : o
+        )
+      );
+
+      toast.success("Order cancelled successfully");
+      loadOrders();
+    } catch (error) {
+      console.error("Error cancelling order:", error);
+      toast.error("Failed to cancel order");
+    } finally {
+      setUpdatingOrderId(null);
+      setIsCancelConfirmationOpen(false);
+      setPendingCancellationOrder(null);
+      setCancelConfirmationText("");
     }
   };
 
@@ -214,41 +254,8 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({ filterStatus = "all" }
 
   return (
     <div className="space-y-4">
-      {/* Tab Switcher */}
-      <div className="flex gap-2 border-b border-neutral-200">
-        <button
-          onClick={() => {
-            setActiveTab("orders");
-            setCurrentPage(1);
-          }}
-          className={`flex items-center gap-2 px-4 py-3 font-medium text-sm border-b-2 transition ${
-            activeTab === "orders"
-              ? "border-blue-600 text-blue-600"
-              : "border-transparent text-neutral-600 hover:text-neutral-900"
-          }`}
-        >
-          Orders
-        </button>
-        <button
-          onClick={() => {
-            setActiveTab("cancellations");
-            setCurrentPage(1);
-          }}
-          className={`flex items-center gap-2 px-4 py-3 font-medium text-sm border-b-2 transition ${
-            activeTab === "cancellations"
-              ? "border-blue-600 text-blue-600"
-              : "border-transparent text-neutral-600 hover:text-neutral-900"
-          }`}
-        >
-          <Video className="w-4 h-4" />
-          Order Cancellations (After Delivery)
-        </button>
-      </div>
-
-      {/* Tab Content */}
-      {activeTab === "orders" ? (
-        // ORDERS TAB
-        <div className="space-y-4">
+      {/* ORDERS SECTION */}
+      <div className="space-y-4">
           {/* Search Bar */}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-400" />
@@ -362,9 +369,14 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({ filterStatus = "all" }
                             {!isExpanded && (
                               <div className="px-4 py-3 bg-neutral-50 border-b border-neutral-200 flex items-center justify-between">
                                 <span className="text-lg font-bold text-neutral-900">₹{order.totalAmount.toFixed(2)}</span>
-                                <button onClick={() => setExpandedOrderId(order.id)} className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-neutral-700 hover:text-neutral-900">
-                                  View details <ChevronDown size={16} />
-                                </button>
+                                <div className="flex items-center gap-2">
+                                  <button onClick={() => { setSelectedBillOrder(order); setIsBillModalOpen(true); }} className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-neutral-700 hover:text-neutral-900" title="View Bill">
+                                    <FileText size={16} />
+                                  </button>
+                                  <button onClick={() => setExpandedOrderId(order.id)} className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-neutral-700 hover:text-neutral-900">
+                                    View details <ChevronDown size={16} />
+                                  </button>
+                                </div>
                               </div>
                             )}
 
@@ -458,9 +470,14 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({ filterStatus = "all" }
                                 {cancellationRequests[order.id] && cancellationRequests[order.id].status === 'PENDING' ? (
                                   <div className="flex items-center justify-between gap-2">
                                     <p className="text-xs text-orange-700 font-semibold">⚠️ Cannot update status: Cancellation request pending</p>
-                                    <button onClick={() => setSelectedOrderForModal(order)} className="px-4 py-1.5 bg-teal-900 border border-neutral-300 rounded font-medium text-xs text-white hover:bg-teal-700 transition whitespace-nowrap">
-                                      View Details
-                                    </button>
+                                    <div className="flex items-center gap-2">
+                                      <button onClick={() => { setSelectedBillOrder(order); setIsBillModalOpen(true); }} className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-neutral-700 hover:text-neutral-900 border border-neutral-300 rounded" title="View Bill">
+                                        <FileText size={16} />
+                                      </button>
+                                      <button onClick={() => setSelectedOrderForModal(order)} className="px-4 py-1.5 bg-teal-900 border border-neutral-300 rounded font-medium text-xs text-white hover:bg-teal-700 transition whitespace-nowrap">
+                                        View Details
+                                      </button>
+                                    </div>
                                   </div>
                                 ) : (
                                   <div className="flex items-center justify-between gap-2">
@@ -471,9 +488,14 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({ filterStatus = "all" }
                                         ))}
                                       </select>
                                     </div>
-                                    <button onClick={() => setSelectedOrderForModal(order)} className="px-4 py-1.5 bg-teal-900 border border-neutral-300 rounded font-medium text-xs text-white hover:bg-teal-700 transition whitespace-nowrap">
-                                      View Details
-                                    </button>
+                                    <div className="flex items-center gap-2">
+                                      <button onClick={() => { setSelectedBillOrder(order); setIsBillModalOpen(true); }} className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-neutral-700 hover:text-neutral-900 border border-neutral-300 rounded" title="View Bill">
+                                        <FileText size={16} />
+                                      </button>
+                                      <button onClick={() => setSelectedOrderForModal(order)} className="px-4 py-1.5 bg-teal-900 border border-neutral-300 rounded font-medium text-xs text-white hover:bg-teal-700 transition whitespace-nowrap">
+                                        View Details
+                                      </button>
+                                    </div>
                                   </div>
                                 )}
                               </div>
@@ -511,10 +533,6 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({ filterStatus = "all" }
             )}
           </div>
         </div>
-      ) : (
-        // CANCELLATIONS TAB
-        <AdminCancellationRequests />
-      )}
 
       {/* MODAL */}
       {selectedOrderForModal && (
@@ -635,6 +653,63 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({ filterStatus = "all" }
                   ))}
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bill Modal */}
+      <BillModal 
+        order={selectedBillOrder as any} 
+        isOpen={isBillModalOpen} 
+        onClose={() => {
+          setIsBillModalOpen(false);
+          setSelectedBillOrder(null);
+        }} 
+      />
+
+      {/* Cancel Confirmation Modal */}
+      {isCancelConfirmationOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+            <div className="px-6 py-4 border-b border-neutral-200">
+              <h3 className="text-lg font-bold text-neutral-900">Confirm Order Cancellation</h3>
+            </div>
+            <div className="px-6 py-4 space-y-4">
+              <div>
+                <p className="text-sm text-neutral-700 mb-4">
+                  Are you sure you want to cancel order <span className="font-semibold">{pendingCancellationOrder?.id}</span>?
+                </p>
+                <p className="text-xs text-neutral-600 mb-4 bg-amber-50 p-3 rounded border border-amber-200">
+                  To confirm cancellation, please type <span className="font-mono font-bold text-amber-900">SaturnImports</span>
+                </p>
+                <input
+                  type="text"
+                  value={cancelConfirmationText}
+                  onChange={(e) => setCancelConfirmationText(e.target.value)}
+                  placeholder="Type here..."
+                  className="w-full px-3 py-2 border border-neutral-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+            <div className="px-6 py-4 border-t border-neutral-200 flex items-center justify-end gap-2">
+              <button
+                onClick={() => {
+                  setIsCancelConfirmationOpen(false);
+                  setPendingCancellationOrder(null);
+                  setCancelConfirmationText("");
+                }}
+                className="px-4 py-2 text-xs font-medium text-neutral-700 border border-neutral-300 rounded hover:bg-neutral-50 transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmCancellation}
+                disabled={cancelConfirmationText !== "SaturnImports" || updatingOrderId !== null}
+                className="px-4 py-2 text-xs font-medium text-white bg-red-600 rounded hover:bg-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Confirm Cancellation
+              </button>
             </div>
           </div>
         </div>

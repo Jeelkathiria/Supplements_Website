@@ -103,12 +103,14 @@ export class OrderCancellationController {
         return res.status(400).json({ error: "Request ID is required" });
       }
 
-      const updated = await OrderCancellationService.approveCancellationRequest(id);
+      const result = await OrderCancellationService.approveCancellationRequest(id);
 
       return res.status(200).json({
         success: true,
         message: "Cancellation request approved. Order cancelled.",
-        data: updated,
+        data: result.request,
+        refund: result.refund || null,
+        refundInitiated: !!result.refund,
       });
     } catch (error: any) {
       return res.status(400).json({

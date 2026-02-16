@@ -1,4 +1,3 @@
-import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Toaster } from './components/ui/sonner';
 import { CartProvider } from './components/context/CartContext';
@@ -21,7 +20,7 @@ import { Dashboard } from './pages/Dashboard';
 import { Account } from './pages/Account';
 import { OrderDetail } from './pages/OrderDetail';
 import { CancellationTicket } from './pages/CancellationTicket';
-import { RequestCancellation } from './pages/RequesTCancellation';
+import { RequestCancellation } from './pages/RequestCancellation';
 import { NotFound } from './pages/NotFound';
 import { ContactUs } from './pages/ContactUs';
 import { ProtectedRoute } from './components/ProtectedRoute';

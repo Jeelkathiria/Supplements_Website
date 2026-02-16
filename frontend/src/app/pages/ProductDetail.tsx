@@ -1,11 +1,10 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
-  Star,
-  ShoppingCart,
+
   Truck,
   Shield,
-  RotateCcw,
+
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
@@ -34,7 +33,6 @@ export const ProductDetail: React.FC = () => {
   const [zoomPos, setZoomPos] = useState({ x: 50, y: 50 });
   
   const carouselRef = useRef<HTMLDivElement>(null);
-  const [scrollPosition, setScrollPosition] = useState(0);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
 
@@ -217,7 +215,8 @@ export const ProductDetail: React.FC = () => {
                   }}
                   onScroll={(e) => {
                     const target = e.currentTarget;
-                    setScrollPosition(target.scrollLeft);
+                    // Track carousel position
+                    // setScrollPosition(target.scrollLeft);
                     setCanScrollLeft(target.scrollLeft > 0);
                     setCanScrollRight(
                       target.scrollLeft < target.scrollWidth - target.clientWidth - 10

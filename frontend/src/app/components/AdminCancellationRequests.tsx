@@ -65,9 +65,9 @@ export const AdminCancellationRequests: React.FC<AdminCancellationRequestsProps>
   const [selectedRequest, setSelectedRequest] = useState<CancellationRequest | null>(null);
   const [updatingRequestId, setUpdatingRequestId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const [scrollPosition, setScrollPosition] = useState(0);
   const [selectedBillOrder, setSelectedBillOrder] = useState<Order | null>(null);
   const [isBillModalOpen, setIsBillModalOpen] = useState(false);
+  const [refundInitiatedInfo, setRefundInitiatedInfo] = useState<{ orderId: string; refundId: string; amount: number } | null>(null);
   const CARDS_PER_PAGE = 9;
   
   // Track previous counts to avoid infinite loops
@@ -151,15 +151,17 @@ export const AdminCancellationRequests: React.FC<AdminCancellationRequestsProps>
   ) => {
     try {
       setUpdatingRequestId(requestId);
-      let updated;
+      let response;
 
       if (newStatus === "APPROVED") {
-        updated = await OrderCancellationService.approveCancellation(requestId);
+        response = await OrderCancellationService.approveCancellation(requestId);
+        const updated = response.request;
+        const refundInitiated = response.refundInitiated || false;
+        const refund = response.refund;
         
         // Get the request and order to show appropriate message
         const request = requests.find(r => r.id === requestId);
         const paymentMethod = request?.order?.paymentMethod;
-        const orderStatus = request?.order?.status;
         const deliveredAt = request?.order?.deliveredAt;
         const requestCreatedAt = new Date(request?.createdAt || "");
         
@@ -167,8 +169,16 @@ export const AdminCancellationRequests: React.FC<AdminCancellationRequestsProps>
         const isPostDelivery = deliveredAt && new Date(deliveredAt) < requestCreatedAt;
         
         // Show appropriate toast based on delivery status and payment method
-        if (isPostDelivery) {
-          toast.success('✓ Post-delivery cancellation approved! Refund initiated.');
+        if (refundInitiated && refund) {
+          toast.success('✓ Cancellation approved! Refund initiated.');
+          // Store refund info for redirect
+          setRefundInitiatedInfo({
+            orderId: request?.orderId || '',
+            refundId: refund.id || '',
+            amount: refund.refundAmount || 0,
+          });
+        } else if (isPostDelivery) {
+          toast.success('✓ Post-delivery cancellation approved!');
         } else {
           if (paymentMethod === "upi") {
             toast.success('✓ Pre-delivery cancellation approved! Refund initiated.');
@@ -178,17 +188,22 @@ export const AdminCancellationRequests: React.FC<AdminCancellationRequestsProps>
         }
         
         // Trigger parent to refresh refunds (for post-delivery or pre-delivery UPI)
-        if (isPostDelivery || paymentMethod === "upi") {
+        if (Boolean(refundInitiated) || isPostDelivery || paymentMethod === "upi") {
           onCancellationApproved?.();
         }
+        
+        setRequests((prev) =>
+          prev.map((req) => (req.id === requestId ? updated : req))
+        );
       } else {
-        updated = await OrderCancellationService.rejectCancellation(requestId);
+        response = await OrderCancellationService.rejectCancellation(requestId);
+        const updated = response as any;
         toast.success('Request rejected');
+        setRequests((prev) =>
+          prev.map((req) => (req.id === requestId ? updated : req))
+        );
       }
 
-      setRequests((prev) =>
-        prev.map((req) => (req.id === requestId ? updated : req))
-      );
       setSelectedRequest(null);
     } catch (error) {
       const errorMessage =
@@ -242,10 +257,11 @@ export const AdminCancellationRequests: React.FC<AdminCancellationRequestsProps>
       req.reason.toLowerCase().includes(searchLower);
 
     // Only apply status filter when viewing "all" requests
+    // For pre-delivery and post-delivery, only show PENDING requests
     const matchesStatus =
       cancellationType === "all" 
         ? (filterStatus === "all" || req.status === filterStatus)
-        : true;
+        : req.status === "PENDING";
 
     return matchesSearch && matchesStatus;
   });
@@ -331,7 +347,6 @@ export const AdminCancellationRequests: React.FC<AdminCancellationRequestsProps>
             <>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {paginatedRequests.map((request) => {
-                  const StatusIcon = STATUS_ICONS[request.status];
                   const refundAmount = request.order?.totalAmount || 0;
                   
                   return (
@@ -940,6 +955,45 @@ export const AdminCancellationRequests: React.FC<AdminCancellationRequestsProps>
           setSelectedBillOrder(null);
         }} 
       />
+
+      {/* Refund Initiated Modal */}
+      {refundInitiatedInfo && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-lg p-8 max-w-md mx-auto">
+            <div className="flex items-center justify-center mb-4">
+              <div className="h-12 w-12 bg-green-100 rounded-full flex items-center justify-center">
+                <Check className="h-6 w-6 text-green-600" />
+              </div>
+            </div>
+            <h3 className="text-xl font-semibold text-center text-neutral-900 mb-2">
+              Refund Initiated Successfully!
+            </h3>
+            <p className="text-center text-neutral-600 mb-4">
+              The refund for order <span className="font-mono font-semibold">{refundInitiatedInfo.orderId}</span> has been initiated.
+            </p>
+            <div className="bg-blue-50 border border-blue-200 rounded p-4 mb-6">
+              <p className="text-sm text-neutral-600"><span className="font-semibold">Refund Amount:</span> ₹{refundInitiatedInfo.amount.toFixed(2)}</p>
+              <p className="text-sm text-neutral-600 mt-2"><span className="font-semibold">Refund ID:</span> <span className="font-mono text-xs">{refundInitiatedInfo.refundId}</span></p>
+            </div>
+            <button
+              onClick={() => {
+                setRefundInitiatedInfo(null);
+                // Trigger refund refresh
+                onCancellationApproved?.();
+              }}
+              className="w-full bg-blue-600 text-white py-2.5 rounded-lg hover:bg-blue-700 transition font-medium"
+            >
+              View Refund Status
+            </button>
+            <button
+              onClick={() => setRefundInitiatedInfo(null)}
+              className="w-full mt-2 bg-neutral-100 text-neutral-900 py-2.5 rounded-lg hover:bg-neutral-200 transition font-medium"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
 
     </div>
   );

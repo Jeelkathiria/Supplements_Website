@@ -4,7 +4,7 @@ import { MapPin, Loader, AlertCircle, Check, Plus, HandHeart } from 'lucide-reac
 import { useCart } from '../components/context/CartContext';
 import { useAuth } from '../components/context/AuthContext';
 import { toast } from 'sonner';
-import { Breadcrumb } from '../components/Breadcrumb';
+
 import * as checkoutService from '../../services/checkoutService';
 import * as orderService from '../../services/orderService';
 import * as userService from '../../services/userService';
@@ -49,45 +49,6 @@ const INDIAN_STATES = [
   'Uttarakhand',
   'West Bengal',
 ].sort();
-
-// Indian Cities by State
-const CITIES_BY_STATE: { [key: string]: string[] } = {
-  'Andaman and Nicobar Islands': ['Port Blair', 'Car Nicobar'],
-  'Andhra Pradesh': ['Visakhapatnam', 'Vijayawada', 'Guntur', 'Tirupati', 'Nellore'],
-  'Arunachal Pradesh': ['Itanagar', 'Pasighat', 'Tawang'],
-  'Assam': ['Guwahati', 'Silchar', 'Dibrugarh', 'Nagaon', 'Barpeta'],
-  'Bihar': ['Patna', 'Gaya', 'Bhagalpur', 'Muzaffarpur', 'Darbhanga'],
-  'Chandigarh': ['Chandigarh', 'Mohali'],
-  'Chhattisgarh': ['Raipur', 'Bilaspur', 'Durg', 'Rajnandgaon', 'Jagdalpur'],
-  'Dadra and Nagar Haveli and Daman and Diu': ['Silvassa', 'Daman', 'Diu'],
-  'Delhi': ['New Delhi', 'Delhi', 'South Delhi', 'East Delhi', 'West Delhi'],
-  'Goa': ['Panaji', 'Margao', 'Vasco da Gama', 'Ponda'],
-  'Gujarat': ['Ahmedabad', 'Surat', 'Vadodara', 'Rajkot', 'Gandhinagar'],
-  'Haryana': ['Faridabad', 'Gurgaon', 'Hisar', 'Rohtak', 'Panipat'],
-  'Himachal Pradesh': ['Shimla', 'Mandi', 'Kangra', 'Solan', 'Bilaspur'],
-  'Jharkhand': ['Ranchi', 'Jamshedpur', 'Dhanbad', 'Giridih', 'Bokaro'],
-  'Karnataka': ['Bangalore', 'Mysore', 'Mangalore', 'Hubballi', 'Belgaum'],
-  'Kerala': ['Kochi', 'Thiruvananthapuram', 'Kozhikode', 'Thrissur', 'Kottayam'],
-  'Ladakh': ['Leh', 'Kargil'],
-  'Lakshadweep': ['Kavaratti', 'Agatti'],
-  'Madhya Pradesh': ['Indore', 'Bhopal', 'Jabalpur', 'Gwalior', 'Ujjain'],
-  'Maharashtra': ['Mumbai', 'Pune', 'Nagpur', 'Ahmedabad', 'Thane'],
-  'Manipur': ['Imphal', 'Bishnupur', 'Thoubal', 'Churachandpur'],
-  'Meghalaya': ['Shillong', 'Tura', 'Jowai', 'Nongstoin'],
-  'Mizoram': ['Aizawl', 'Lunglei', 'Saiha'],
-  'Nagaland': ['Kohima', 'Dimapur', 'Mon'],
-  'Odisha': ['Bhubaneswar', 'Cuttack', 'Raurkela', 'Balasore', 'Sambalpur'],
-  'Puducherry': ['Puducherry', 'Yanam', 'Mahe', 'Karaikal'],
-  'Punjab': ['Ludhiana', 'Amritsar', 'Chandigarh', 'Jalandhar', 'Patiala'],
-  'Rajasthan': ['Jaipur', 'Jodhpur', 'Kota', 'Ajmer', 'Udaipur'],
-  'Sikkim': ['Gangtok', 'Namchi', 'Mangan', 'Gyalshing'],
-  'Tamil Nadu': ['Chennai', 'Coimbatore', 'Madurai', 'Salem', 'Tiruchirappalli'],
-  'Telangana': ['Hyderabad', 'Secunderabad', 'Warangal', 'Vijayawada', 'Karimnagar'],
-  'Tripura': ['Agartala', 'Udaipur', 'Dharmanagar'],
-  'Uttar Pradesh': ['Lucknow', 'Kanpur', 'Ghaziabad', 'Agra', 'Varanasi'],
-  'Uttarakhand': ['Dehradun', 'Haridwar', 'Nainital', 'Almora', 'Rishikesh'],
-  'West Bengal': ['Kolkata', 'Darjeeling', 'Siliguri', 'Asansol', 'Durgapur'],
-};
 
 interface AddressFormData {
   name: string;

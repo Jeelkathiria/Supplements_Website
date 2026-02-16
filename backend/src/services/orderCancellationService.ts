@@ -146,12 +146,30 @@ export class OrderCancellationService {
   static async approveCancellationRequest(requestId: string) {
     const request = await prisma.orderCancellationRequest.findUnique({
       where: { id: requestId },
-      include: { order: true },
+      include: {
+        order: {
+          select: {
+            id: true,
+            totalAmount: true,
+            paymentMethod: true,
+            deliveredAt: true,
+            status: true,
+          },
+        },
+      },
     });
 
     if (!request) {
       throw new Error("Cancellation request not found");
     }
+
+    console.log("🔍 Order details:", {
+      orderId: request.orderId,
+      paymentMethod: request.order.paymentMethod,
+      status: request.order.status,
+      deliveredAt: request.order.deliveredAt,
+      requestCreatedAt: request.createdAt,
+    });
 
     // Update request status
     const updatedRequest = await prisma.orderCancellationRequest.update({
@@ -166,31 +184,63 @@ export class OrderCancellationService {
     });
 
     // Determine if this is pre-delivery or post-delivery cancellation
+    const orderStatus = request.order.status;
     const orderDeliveredAt = request.order.deliveredAt;
     const requestCreatedAt = new Date(request.createdAt);
-    const isPostDelivery = orderDeliveredAt && new Date(orderDeliveredAt) < requestCreatedAt;
+    
+    // An order is considered post-delivery if:
+    // 1. Status is DELIVERED, OR
+    // 2. deliveredAt timestamp exists and is before the cancellation request was created
+    const isPostDelivery = 
+      orderStatus === "DELIVERED" || 
+      (orderDeliveredAt && new Date(orderDeliveredAt) < requestCreatedAt);
+
+    console.log("📊 Cancellation Type Analysis:", {
+      orderStatus,
+      orderDeliveredAt,
+      requestCreatedAt,
+      isPostDelivery,
+      detectionReason: orderStatus === "DELIVERED" 
+        ? "Order status is DELIVERED" 
+        : orderDeliveredAt 
+          ? "deliveredAt exists and is before request creation"
+          : "Order not yet delivered (pre-delivery)",
+    });
 
     // Create refund record based on delivery status and payment method
     let shouldCreateRefund = false;
+    let refundReason = "";
     
     if (isPostDelivery) {
-      // Post-delivery: Create refund for ANY payment method
+      // Post-delivery: Create refund for ANY payment method (UPI or COD)
       shouldCreateRefund = true;
+      refundReason = "Post-delivery cancellation (both UPI and COD)";
       console.log("📦 Post-delivery cancellation: Creating refund for ANY payment method");
     } else {
       // Pre-delivery: Create refund only for UPI (COD payment not collected yet)
-      if (request.order.paymentMethod === "upi") {
+      const paymentMethod = (request.order.paymentMethod || "").toLowerCase().trim();
+      console.log("💳 Pre-delivery cancellation - Payment method check:", {
+        rawPaymentMethod: request.order.paymentMethod,
+        normalizedPaymentMethod: paymentMethod,
+      });
+
+      if (paymentMethod === "upi") {
         shouldCreateRefund = true;
+        refundReason = "Pre-delivery cancellation (UPI payment)";
         console.log("📦 Pre-delivery cancellation: Creating refund for UPI payment");
       } else {
+        refundReason = "Pre-delivery cancellation (COD - no payment collected)";
         console.log("ℹ️ Pre-delivery cancellation: COD payment - No refund needed (payment not collected yet)");
       }
     }
 
+    console.log("💰 Refund Decision:", { shouldCreateRefund, refundReason });
+
+    let refundCreated = null;
     if (shouldCreateRefund) {
       try {
         console.log("Creating refund record - Payment method:", request.order.paymentMethod, "- Type:", isPostDelivery ? "Post-Delivery" : "Pre-Delivery");
-        await refundService.createRefundForApprovedCancellation(
+        refundCreated = await refundService.createRefundForApprovedCancellation(
           request.orderId,
           request.reason,
           request.upiId || undefined
@@ -220,7 +270,11 @@ export class OrderCancellationService {
       // Don't throw error - cancellation is already processed
     }
 
-    return updatedRequest;
+    // Return both request and refund info
+    return {
+      request: updatedRequest,
+      refund: refundCreated,
+    };
   }
 
   // Reject cancellation request

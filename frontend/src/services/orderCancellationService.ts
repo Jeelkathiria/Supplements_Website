@@ -1,4 +1,4 @@
-import { apiFetch, apiCall } from './apiClient';
+import { apiFetch } from './apiClient';
 
 export interface OrderCancellationRequest {
   id: string;
@@ -11,6 +11,7 @@ export interface OrderCancellationRequest {
   upiId?: string;
   createdAt: string;
   updatedAt: string;
+  order?: any; // Order data attached by backend
 }
 
 export class OrderCancellationService {
@@ -114,7 +115,11 @@ export class OrderCancellationService {
   }
 
   // Approve cancellation request (admin)
-  static async approveCancellation(requestId: string): Promise<OrderCancellationRequest> {
+  static async approveCancellation(requestId: string): Promise<{
+    request: OrderCancellationRequest;
+    refund?: any;
+    refundInitiated?: boolean;
+  }> {
     const response = await apiFetch(
       `/order-cancellation-requests/${requestId}/approve`,
       {
@@ -128,7 +133,11 @@ export class OrderCancellationService {
     }
 
     const data = await response.json();
-    return data.data;
+    return {
+      request: data.data,
+      refund: data.refund || null,
+      refundInitiated: data.refundInitiated || false,
+    };
   }
 
   // Reject cancellation request (admin)

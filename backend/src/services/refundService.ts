@@ -10,16 +10,31 @@ export const createRefundForApprovedCancellation = async (
   upiId?: string
 ) => {
   try {
-    console.log("📦 Creating refund for approved cancellation - Order ID:", orderId, "UPI ID:", upiId);
+    console.log("📦 Creating refund for approved cancellation", {
+      orderId,
+      hasUpiId: !!upiId,
+      upiId: upiId ? "***" : "not provided",
+    });
 
     // Get order details to get refund amount
     const order = await prisma.order.findUnique({
       where: { id: orderId },
+      select: {
+        id: true,
+        totalAmount: true,
+        paymentMethod: true,
+      },
     });
 
     if (!order) {
       throw new Error("Order not found");
     }
+
+    console.log("💳 Order payment info:", {
+      orderId,
+      paymentMethod: order.paymentMethod,
+      totalAmount: order.totalAmount,
+    });
 
     // Create refund record with INITIATED status
     const refund = await prisma.orderRefund.create({
@@ -32,10 +47,20 @@ export const createRefundForApprovedCancellation = async (
       },
     });
 
-    console.log("✅ Refund created successfully:", refund.id, "for UPI:", upiId);
+    console.log("✅ Refund created successfully", {
+      refundId: refund.id,
+      orderId: refund.orderId,
+      amount: refund.refundAmount,
+      status: refund.status,
+      hasUpiId: !!refund.upiId,
+    });
     return refund;
-  } catch (error) {
-    console.error("❌ Error creating refund:", error);
+  } catch (error: any) {
+    console.error("❌ Error creating refund:", {
+      orderId,
+      errorMessage: error.message,
+      errorCode: error.code,
+    });
     throw error;
   }
 };

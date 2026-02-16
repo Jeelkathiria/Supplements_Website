@@ -11,7 +11,7 @@ import {
   Phone,
   Mail,
 } from "lucide-react";
-import { Address } from "../types";
+import type { Address } from "../../services/userService";
 import { toast } from "sonner";
 import { useAuth } from "../components/context/AuthContext";
 import { useCart } from "../components/context/CartContext";
@@ -29,14 +29,14 @@ export const Dashboard: React.FC = () => {
   const [addresses, setAddresses] = useState<Address[]>([
     {
       id: "1",
-      fullName: "John Doe",
-      street: "123 Fitness Street",
+      name: "John Doe",
+      address: "123 Fitness Street",
       city: "Mumbai",
       state: "Maharashtra",
       pincode: "400001",
       phone: "+91 9876543210",
       isDefault: true,
-    },
+    } as any,
   ]);
 
   const orders = [
@@ -71,7 +71,7 @@ export const Dashboard: React.FC = () => {
       const product = PRODUCTS.find(
         (p) => p.id === item.productId,
       );
-      if (product) addToCart(product, item.qty);
+      if (product as any) addToCart(product as any, item.qty);
     });
 
     toast.success("Items added to cart");
@@ -246,10 +246,10 @@ export const Dashboard: React.FC = () => {
                   >
                     <div className="text-sm">
                       <p className="font-medium">
-                        {address.fullName}
+                        {address.name}
                       </p>
                       <p className="text-neutral-600">
-                        {address.street}, {address.city}
+                        {address.address}, {address.city}
                       </p>
                       <p className="text-neutral-600">
                         {address.state} – {address.pincode}

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, User, MapPin, Package, AlertCircle, Trash2, Plus, RotateCcw, Check } from 'lucide-react';
+import { LogOut, User, MapPin, Package, AlertCircle, Trash2, Plus, Check } from 'lucide-react';
 import { useAuth } from '../components/context/AuthContext';
 import { useCart } from '../components/context/CartContext';
 import { OrderTrackingProgress } from '../components/OrderTrackingProgress';
@@ -52,45 +52,10 @@ const INDIAN_STATES = [
   'West Bengal',
 ].sort();
 
-const CITIES_BY_STATE: { [key: string]: string[] } = {
-  'Andaman and Nicobar Islands': ['Port Blair', 'Car Nicobar'],
-  'Andhra Pradesh': ['Visakhapatnam', 'Vijayawada', 'Guntur', 'Tirupati', 'Nellore'],
-  'Arunachal Pradesh': ['Itanagar', 'Pasighat', 'Tawang'],
-  'Assam': ['Guwahati', 'Silchar', 'Dibrugarh', 'Nagaon', 'Barpeta'],
-  'Bihar': ['Patna', 'Gaya', 'Bhagalpur', 'Muzaffarpur', 'Darbhanga'],
-  'Chandigarh': ['Chandigarh', 'Mohali'],
-  'Chhattisgarh': ['Raipur', 'Bilaspur', 'Durg', 'Rajnandgaon', 'Jagdalpur'],
-  'Dadra and Nagar Haveli and Daman and Diu': ['Silvassa', 'Daman', 'Diu'],
-  'Delhi': ['New Delhi', 'Delhi', 'South Delhi', 'East Delhi', 'West Delhi'],
-  'Goa': ['Panaji', 'Margao', 'Vasco da Gama', 'Ponda'],
-  'Gujarat': ['Ahmedabad', 'Surat', 'Vadodara', 'Rajkot', 'Gandhinagar'],
-  'Haryana': ['Faridabad', 'Gurgaon', 'Hisar', 'Rohtak', 'Panipat'],
-  'Himachal Pradesh': ['Shimla', 'Mandi', 'Kangra', 'Solan', 'Bilaspur'],
-  'Jharkhand': ['Ranchi', 'Jamshedpur', 'Dhanbad', 'Giridih', 'Bokaro'],
-  'Karnataka': ['Bangalore', 'Mysore', 'Mangalore', 'Hubballi', 'Belgaum'],
-  'Kerala': ['Kochi', 'Thiruvananthapuram', 'Kozhikode', 'Thrissur', 'Kottayam'],
-  'Ladakh': ['Leh', 'Kargil'],
-  'Lakshadweep': ['Kavaratti', 'Agatti'],
-  'Madhya Pradesh': ['Indore', 'Bhopal', 'Jabalpur', 'Gwalior', 'Ujjain'],
-  'Maharashtra': ['Mumbai', 'Pune', 'Nagpur', 'Ahmedabad', 'Thane'],
-  'Manipur': ['Imphal', 'Bishnupur', 'Thoubal', 'Churachandpur'],
-  'Meghalaya': ['Shillong', 'Tura', 'Jowai', 'Nongstoin'],
-  'Mizoram': ['Aizawl', 'Lunglei', 'Saiha'],
-  'Nagaland': ['Kohima', 'Dimapur', 'Mon'],
-  'Odisha': ['Bhubaneswar', 'Cuttack', 'Raurkela', 'Balasore', 'Sambalpur'],
-  'Puducherry': ['Puducherry', 'Yanam', 'Mahe', 'Karaikal'],
-  'Punjab': ['Ludhiana', 'Amritsar', 'Chandigarh', 'Jalandhar', 'Patiala'],
-  'Rajasthan': ['Jaipur', 'Jodhpur', 'Kota', 'Ajmer', 'Udaipur'],
-  'Sikkim': ['Gangtok', 'Namchi', 'Mangan', 'Gyalshing'],
-  'Tamil Nadu': ['Chennai', 'Coimbatore', 'Madurai', 'Salem', 'Tiruchirappalli'],
-  'Telangana': ['Hyderabad', 'Secunderabad', 'Warangal', 'Vijayawada', 'Karimnagar'],
-  'Tripura': ['Agartala', 'Udaipur', 'Dharmanagar'],
-  'Uttar Pradesh': ['Lucknow', 'Kanpur', 'Ghaziabad', 'Agra', 'Varanasi'],
-  'Uttarakhand': ['Dehradun', 'Haridwar', 'Nainital', 'Almora', 'Rishikesh'],
-  'West Bengal': ['Kolkata', 'Darjeeling', 'Siliguri', 'Asansol', 'Durgapur'],
-};
+  // Address management state
+  // (Cities by state mapping would be defined here if needed)
 
-interface AddressFormData {
+  interface AddressFormData {
   name: string;
   phone: string;
   address: string;
@@ -169,7 +134,7 @@ export const Account: React.FC = () => {
   const [reorderingOrderId, setReorderingOrderId] = useState<string | null>(null);
   const [currentOrderPage, setCurrentOrderPage] = useState(1);
   const ORDERS_PER_PAGE = 5;
-  const [selectedAddressForModal, setSelectedAddressForModal] = useState<Partial<Address> | null>(null);
+  // Address components
 
   // Profile editing state
   const [isEditingProfile, setIsEditingProfile] = useState(false);
@@ -880,7 +845,7 @@ export const Account: React.FC = () => {
                           {/* Order Tracking Progress */}
                           {order.status !== 'DELIVERED' && order.status !== 'CANCELLED' && (
                             <div className="px-4 md:px-6 py-3 bg-yellow-50 border-t border-yellow-200">
-                              <OrderTrackingProgress status={order.status} />
+                              <OrderTrackingProgress status={(order.status as 'PENDING' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED') || 'PENDING'} />
                             </div>
                           )}
 

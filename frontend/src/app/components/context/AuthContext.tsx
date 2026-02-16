@@ -12,7 +12,6 @@ import {
   signOut,
   onAuthStateChanged,
   User as FirebaseUser,
-  updateProfile,
   signInWithPopup,
   GoogleAuthProvider,
   sendPasswordResetEmail,

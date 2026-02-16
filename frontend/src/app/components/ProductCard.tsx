@@ -2,8 +2,6 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ShoppingCart, Zap } from 'lucide-react';
 import { Product } from '../types';
-import { useCart } from './context/CartContext';
-import { toast } from 'sonner';
 import { calculateFinalPrice } from '../data/products';
 
 interface ProductCardProps {
@@ -15,7 +13,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   product,
   variant = 'featured',
 }) => {
-  const { addToCart } = useCart();
   const navigate = useNavigate();
   const [imageError, setImageError] = useState(false);
 
@@ -40,16 +37,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   
   // Filter out base64 images that might be too large, use placeholder if none available
   const displayImage = images.length > 0 ? getFullImageUrl(images[0]) : '/placeholder.png';
-
-  const handleAddToCart = (e: React.MouseEvent) => {
-    e.preventDefault();
-    if (product.isOutOfStock) {
-      toast.error('This product is out of stock');
-      return;
-    }
-    addToCart(product, 1);
-    toast.success(`${product.name} added to cart!`);
-  };
 
   const handleQuickBuy = (e: React.MouseEvent) => {
     e.preventDefault();

@@ -1,6 +1,5 @@
-import { Product } from "../types";
-
-export const PRODUCTS: Product[] = [
+// Products data with backward-compatible format
+export const PRODUCTS = [
   {
     id: "1",
     name: "Premium Whey Protein Isolate",
