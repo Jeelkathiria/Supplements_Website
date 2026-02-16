@@ -1,5 +1,9 @@
 import prisma from "../lib/prisma";
 import { $Enums } from "../generated/prisma";
+import {
+  sendRefundInitiatedEmail,
+  sendRefundCompletedEmail,
+} from "./emailService";
 
 const RefundStatus = $Enums.RefundStatus;
 type RefundStatusType = $Enums.RefundStatus;
@@ -54,6 +58,51 @@ export const createRefundForApprovedCancellation = async (
       status: refund.status,
       hasUpiId: !!refund.upiId,
     });
+
+    // Send refund initiated email to user
+    try {
+      const user = await prisma.user.findUnique({
+        where: { id: order.id }, // Get user from order
+        include: {
+          orders: {
+            where: { id: orderId },
+            select: { id: true },
+          },
+        },
+      });
+
+      // Actually, we need to get the order first to get the user, let me fix that
+      const orderWithUser = await prisma.order.findUnique({
+        where: { id: orderId },
+        select: {
+          totalAmount: true,
+          paymentMethod: true,
+          userId: true,
+        },
+      });
+
+      if (orderWithUser) {
+        const userForEmail = await prisma.user.findUnique({
+          where: { id: orderWithUser.userId },
+        });
+
+        if (userForEmail && userForEmail.email) {
+          console.log("📧 Sending refund initiated email to:", userForEmail.email);
+          await sendRefundInitiatedEmail(
+            userForEmail.email,
+            orderId,
+            userForEmail.name || "Valued Customer",
+            refund.refundAmount,
+            orderWithUser.paymentMethod || "cod"
+          );
+          console.log("✅ Refund initiated email sent successfully!");
+        }
+      }
+    } catch (emailError) {
+      console.error("❌ Error sending refund initiated email:", emailError);
+      // Don't throw error - refund is already created, email is just a notification
+    }
+
     return refund;
   } catch (error: any) {
     console.error("❌ Error creating refund:", {
@@ -131,6 +180,31 @@ export const updateRefundStatus = async (
     });
 
     console.log("✅ Refund status updated successfully");
+
+    // Send refund completed email when status is REFUND_COMPLETED
+    if (newStatus === RefundStatus.REFUND_COMPLETED) {
+      try {
+        const userForEmail = await prisma.user.findUnique({
+          where: { id: refund.order.userId },
+        });
+
+        if (userForEmail && userForEmail.email) {
+          console.log("📧 Sending refund completed email to:", userForEmail.email);
+          await sendRefundCompletedEmail(
+            userForEmail.email,
+            orderId,
+            userForEmail.name || "Valued Customer",
+            refund.refundAmount,
+            refund.completedAt?.toString() || new Date().toString()
+          );
+          console.log("✅ Refund completed email sent successfully!");
+        }
+      } catch (emailError) {
+        console.error("❌ Error sending refund completed email:", emailError);
+        // Don't throw error - refund status is already updated, email is just a notification
+      }
+    }
+
     return refund;
   } catch (error) {
     console.error("Error updating refund status:", error);

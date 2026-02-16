@@ -68,6 +68,8 @@ export const AdminCancellationRequests: React.FC<AdminCancellationRequestsProps>
   const [selectedBillOrder, setSelectedBillOrder] = useState<Order | null>(null);
   const [isBillModalOpen, setIsBillModalOpen] = useState(false);
   const [refundInitiatedInfo, setRefundInitiatedInfo] = useState<{ orderId: string; refundId: string; amount: number } | null>(null);
+  const [dateFilterStart, setDateFilterStart] = useState("");
+  const [dateFilterEnd, setDateFilterEnd] = useState("");
   const CARDS_PER_PAGE = 9;
   
   // Track previous counts to avoid infinite loops
@@ -263,7 +265,18 @@ export const AdminCancellationRequests: React.FC<AdminCancellationRequestsProps>
         ? (filterStatus === "all" || req.status === filterStatus)
         : req.status === "PENDING";
 
-    return matchesSearch && matchesStatus;
+    // Date filter logic
+    let matchesDateFilter = true;
+    if (dateFilterStart || dateFilterEnd) {
+      const reqDate = new Date(req.createdAt).setHours(0, 0, 0, 0);
+      const startDate = dateFilterStart ? new Date(dateFilterStart).setHours(0, 0, 0, 0) : null;
+      const endDate = dateFilterEnd ? new Date(dateFilterEnd).setHours(23, 59, 59, 999) : null;
+      
+      if (startDate && reqDate < startDate) matchesDateFilter = false;
+      if (endDate && reqDate > new Date(dateFilterEnd).setHours(23, 59, 59, 999)) matchesDateFilter = false;
+    }
+
+    return matchesSearch && matchesStatus && matchesDateFilter;
   });
 
   const totalPages = Math.ceil(filteredRequests.length / CARDS_PER_PAGE);
@@ -307,6 +320,46 @@ export const AdminCancellationRequests: React.FC<AdminCancellationRequestsProps>
               className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600"
             >
               <X className="w-5 h-5" />
+            </button>
+          )}
+        </div>
+
+        {/* Date Filter - Right side below search bar */}
+        <div className="flex gap-3 items-end">
+          <div className="flex-1">
+            <label className="block text-sm font-medium text-neutral-700 mb-1">From Date</label>
+            <input
+              type="date"
+              value={dateFilterStart}
+              onChange={(e) => {
+                setDateFilterStart(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+          <div className="flex-1">
+            <label className="block text-sm font-medium text-neutral-700 mb-1">To Date</label>
+            <input
+              type="date"
+              value={dateFilterEnd}
+              onChange={(e) => {
+                setDateFilterEnd(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+          {(dateFilterStart || dateFilterEnd) && (
+            <button
+              onClick={() => {
+                setDateFilterStart("");
+                setDateFilterEnd("");
+                setCurrentPage(1);
+              }}
+              className="px-3 py-2 bg-neutral-200 text-neutral-700 rounded-lg hover:bg-neutral-300 transition text-sm font-medium"
+            >
+              Clear
             </button>
           )}
         </div>
@@ -620,7 +673,7 @@ export const AdminCancellationRequests: React.FC<AdminCancellationRequestsProps>
           )}
         </>
       ) : (
-        /* ALL CANCELLATIONS - GRID VIEW */
+        /* ALL CANCELLATIONS - HORIZONTAL SCROLL */
         <>
           {paginatedRequests.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12">
@@ -628,102 +681,165 @@ export const AdminCancellationRequests: React.FC<AdminCancellationRequestsProps>
               <p className="text-neutral-600">No cancellation requests found</p>
             </div>
           ) : (
-            <>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {paginatedRequests.map((request) => {
-                  const StatusIcon = STATUS_ICONS[request.status];
-                  const orderStatus = request.order?.status;
-                  const deliveredAt = request.order?.deliveredAt;
-                  const requestCreatedAt = new Date(request.createdAt);
-                  const isPostDelivery =
-                    orderStatus === "DELIVERED" ||
-                    (orderStatus === "CANCELLED" && deliveredAt && requestCreatedAt > new Date(deliveredAt));
-                  
-                  return (
-                    <div
-                      key={request.id}
-                      className="bg-white border border-neutral-200 rounded-lg p-4 hover:shadow-lg transition cursor-pointer"
-                      onClick={() => setSelectedRequest(request)}
-                    >
-                      {/* Header */}
-                      <div className="flex items-start justify-between mb-3">
-                        <div>
-                          <p className="text-sm font-mono text-neutral-500">
-                            Order ID
-                          </p>
-                          <p className="font-bold text-neutral-900">
-                            {request.orderId.substring(0, 8)}...
-                          </p>
-                        </div>
-                        <div className="flex gap-2">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedBillOrder(request.order || null);
-                              setIsBillModalOpen(true);
-                            }}
-                            className="p-1.5 hover:bg-blue-50 rounded transition text-blue-600 hover:text-blue-700"
-                            title="View Bill"
-                          >
-                            <FileText size={18} />
-                          </button>
-                          <div
-                            className={`rounded-full p-2 ${STATUS_COLORS[request.status]}`}
-                          >
-                            <StatusIcon className="w-5 h-5" />
+            <div className="space-y-4">
+              {/* Results Info */}
+              <div className="text-sm text-neutral-600">
+                Showing {paginatedRequests.length} of {filteredRequests.length} requests
+              </div>
+
+              {/* Horizontal Scroll Container */}
+              <div className="bg-gradient-to-br from-neutral-50 to-neutral-100 p-4 rounded-xl">
+                <div className="overflow-x-auto pb-4">
+                  <div className="flex gap-4 items-start min-w-min">
+                    {paginatedRequests.map((request) => {
+                      const orderStatus = request.order?.status;
+                      const deliveredAt = request.order?.deliveredAt;
+                      const requestCreatedAt = new Date(request.createdAt);
+                      const isPostDelivery =
+                        orderStatus === "DELIVERED" ||
+                        (orderStatus === "CANCELLED" && deliveredAt && requestCreatedAt > new Date(deliveredAt));
+                      
+                      return (
+                        <div
+                          key={request.id}
+                          className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow overflow-hidden border border-neutral-200 flex-shrink-0 w-80 cursor-pointer"
+                          onClick={() => setSelectedRequest(request)}
+                        >
+                          {/* HEADER */}
+                          <div className={`px-4 py-3 border-b border-neutral-200 ${
+                            isPostDelivery ? 'bg-orange-50' : 'bg-blue-50'
+                          }`}>
+                            <div className="flex items-start justify-between mb-2">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <h3 className="font-bold text-base text-neutral-900">REQ #{request.id.substring(0, 8)}</h3>
+                                </div>
+                                <p className="text-xs text-neutral-600">
+                                  Order: {request.orderId}
+                                </p>
+                              </div>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedBillOrder(request.order || null);
+                                  setIsBillModalOpen(true);
+                                }}
+                                className="p-1.5 hover:bg-white rounded transition text-blue-600 hover:text-blue-700"
+                                title="View Bill"
+                              >
+                                <FileText size={18} />
+                              </button>
+                            </div>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-bold ${
+                                isPostDelivery
+                                  ? "bg-orange-100 text-orange-800"
+                                  : "bg-blue-100 text-blue-800"
+                              }`}>
+                                {isPostDelivery ? "Post-Delivery" : "Pre-Delivery"}
+                              </span>
+                              <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-bold ${STATUS_COLORS[request.status] || "bg-neutral-100"}`}>
+                                {request.status}
+                              </span>
+                            </div>
                           </div>
-                        </div>
-                      </div>
 
-                      {/* Order and Request Status */}
-                      <div className="flex gap-2 mb-3 flex-wrap">
-                        <div
-                          className={`inline-block px-2 py-1 rounded text-xs font-semibold ${
-                            request.order?.status === "PENDING"
-                              ? "bg-blue-100 text-blue-800"
-                              : request.order?.status === "SHIPPED"
-                              ? "bg-purple-100 text-purple-800"
-                              : request.order?.status === "DELIVERED"
-                              ? "bg-green-100 text-green-800"
-                              : "bg-neutral-100 text-neutral-800"
-                          }`}
-                        >
-                          Order: {request.order?.status || "UNKNOWN"}
-                        </div>
-                        <div
-                          className={`inline-block px-2 py-1 rounded text-xs font-semibold ${
-                            isPostDelivery
-                              ? "bg-orange-100 text-orange-800"
-                              : "bg-blue-100 text-blue-800"
-                          }`}
-                        >
-                          {isPostDelivery ? "Post-Delivery" : "Pre-Delivery"}
-                        </div>
-                        <div
-                          className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${STATUS_COLORS[request.status]
-                            }`}
-                        >
-                          {request.status}
-                        </div>
-                      </div>
+                          {/* DETAILS */}
+                          <div className="px-4 py-3 border-b border-neutral-200 space-y-2">
+                            {/* Customer */}
+                            <div>
+                              <p className="text-xs text-neutral-500 font-semibold">Customer</p>
+                              <p className="text-sm font-medium text-neutral-900">{request.order?.address?.name || "N/A"}</p>
+                            </div>
 
-                      {/* Reason Preview */}
-                      <p className="text-sm text-neutral-600 line-clamp-2 mb-3">
-                        {request.reason}
-                      </p>
+                            {/* Order Status */}
+                            <div>
+                              <p className="text-xs text-neutral-500 font-semibold">Order Status</p>
+                              <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
+                                request.order?.status === "PENDING"
+                                  ? "bg-yellow-100 text-yellow-800"
+                                  : request.order?.status === "SHIPPED"
+                                  ? "bg-purple-100 text-purple-800"
+                                  : request.order?.status === "DELIVERED"
+                                  ? "bg-green-100 text-green-800"
+                                  : "bg-red-100 text-red-800"
+                              }`}>
+                                {request.order?.status || "UNKNOWN"}
+                              </span>
+                            </div>
 
-                      {/* Date */}
-                      <p className="text-xs text-neutral-500">
-                        {new Date(request.createdAt).toLocaleDateString("en-IN")}
-                      </p>
-                    </div>
-                  );
-                })}
+                            {/* Reason */}
+                            <div>
+                              <p className="text-xs text-neutral-500 font-semibold">Reason</p>
+                              <p className="text-xs text-neutral-700 line-clamp-2">{request.reason}</p>
+                            </div>
+
+                            {/* Refund Amount */}
+                            <div>
+                              <p className="text-xs text-neutral-500 font-semibold">Refund Amount</p>
+                              <p className="text-base font-bold text-emerald-600">₹{(request.order?.totalAmount || 0).toFixed(2)}</p>
+                            </div>
+
+                            {/* Date */}
+                            <p className="text-xs text-neutral-500">
+                              {new Date(request.createdAt).toLocaleDateString("en-IN")}
+                            </p>
+                          </div>
+
+                          {/* ACTION BUTTONS */}
+                          {request.status === "PENDING" && (
+                            <div className="px-4 py-3 flex gap-2">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleStatusUpdate(request.id, "APPROVED");
+                                }}
+                                disabled={updatingRequestId === request.id}
+                                className="flex-1 px-3 py-1.5 bg-green-600 text-white text-xs font-medium rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                              >
+                                {updatingRequestId === request.id ? (
+                                  <span className="flex items-center justify-center gap-1">
+                                    <span className="h-2.5 w-2.5 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
+                                    Approving...
+                                  </span>
+                                ) : (
+                                  "Approve"
+                                )}
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleStatusUpdate(request.id, "REJECTED");
+                                }}
+                                disabled={updatingRequestId === request.id}
+                                className="flex-1 px-3 py-1.5 bg-red-600 text-white text-xs font-medium rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                              >
+                                {updatingRequestId === request.id ? (
+                                  <span className="flex items-center justify-center gap-1">
+                                    <span className="h-2.5 w-2.5 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
+                                    Rejecting...
+                                  </span>
+                                ) : (
+                                  "Reject"
+                                )}
+                              </button>
+                            </div>
+                          )}
+                          {request.status !== "PENDING" && (
+                            <div className="px-4 py-3">
+                              <span className="text-xs text-neutral-500">Status: {request.status}</span>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
 
               {/* Pagination */}
               {totalPages > 1 && (
-                <div className="flex items-center justify-between mt-6">
+                <div className="flex items-center justify-between mt-4">
                   <p className="text-sm text-neutral-600">
                     Page {currentPage} of {totalPages}
                   </p>
@@ -749,7 +865,7 @@ export const AdminCancellationRequests: React.FC<AdminCancellationRequestsProps>
                   </div>
                 </div>
               )}
-            </>
+            </div>
           )}
         </>
       )}

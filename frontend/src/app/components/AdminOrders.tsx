@@ -70,6 +70,8 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({ filterStatus = "all" }
   const [pendingCancellationOrder, setPendingCancellationOrder] = useState<Order | null>(null);
   const [isCancelConfirmationOpen, setIsCancelConfirmationOpen] = useState(false);
   const [cancelConfirmationText, setCancelConfirmationText] = useState("");
+  const [dateFilterStart, setDateFilterStart] = useState("");
+  const [dateFilterEnd, setDateFilterEnd] = useState("");
   const CARDS_PER_PAGE = 12;
   const { firebaseUser } = useAuth();
 
@@ -248,8 +250,19 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({ filterStatus = "all" }
       const allowedStatuses = statusMap[filterStatus] || [];
       matchesStatus = allowedStatuses.includes(order.status);
     }
+
+    // Date filter logic
+    let matchesDateFilter = true;
+    if (dateFilterStart || dateFilterEnd) {
+      const orderDate = new Date(order.createdAt).setHours(0, 0, 0, 0);
+      const startDate = dateFilterStart ? new Date(dateFilterStart).setHours(0, 0, 0, 0) : null;
+      const endDate = dateFilterEnd ? new Date(dateFilterEnd).setHours(23, 59, 59, 999) : null;
+      
+      if (startDate && orderDate < startDate) matchesDateFilter = false;
+      if (endDate && orderDate > new Date(dateFilterEnd).setHours(23, 59, 59, 999)) matchesDateFilter = false;
+    }
     
-    return matchesSearch && matchesStatus;
+    return matchesSearch && matchesStatus && matchesDateFilter;
   });
 
   return (
@@ -272,6 +285,39 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({ filterStatus = "all" }
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600"
               >
                 <X className="w-5 h-5" />
+              </button>
+            )}
+          </div>
+
+          {/* Date Filter - Right side below search bar */}
+          <div className="flex gap-3 items-end">
+            <div className="flex-1">
+              <label className="block text-sm font-medium text-neutral-700 mb-1">From Date</label>
+              <input
+                type="date"
+                value={dateFilterStart}
+                onChange={(e) => setDateFilterStart(e.target.value)}
+                className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+            <div className="flex-1">
+              <label className="block text-sm font-medium text-neutral-700 mb-1">To Date</label>
+              <input
+                type="date"
+                value={dateFilterEnd}
+                onChange={(e) => setDateFilterEnd(e.target.value)}
+                className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+            {(dateFilterStart || dateFilterEnd) && (
+              <button
+                onClick={() => {
+                  setDateFilterStart("");
+                  setDateFilterEnd("");
+                }}
+                className="px-3 py-2 bg-neutral-200 text-neutral-700 rounded-lg hover:bg-neutral-300 transition text-sm font-medium"
+              >
+                Clear
               </button>
             )}
           </div>

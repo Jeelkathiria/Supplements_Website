@@ -2,6 +2,7 @@ import { PrismaClient } from "../generated/prisma";
 import {
   sendCancellationApprovedEmail,
   sendCancellationRejectedEmail,
+  sendCancellationRequestRaisedEmail,
 } from "./emailService";
 import * as refundService from "./refundService";
 
@@ -81,6 +82,39 @@ export class OrderCancellationService {
     });
 
     console.log("Cancellation request created:", request.id);
+
+    // Send cancellation request email to user
+    try {
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+      });
+
+      if (user && user.email) {
+        // Determine if this is pre-delivery or post-delivery
+        const orderDeliveredAt = order.deliveredAt;
+        const requestCreatedAt = new Date();
+        
+        const isPostDelivery = 
+          order.status === "DELIVERED" || 
+          (orderDeliveredAt && new Date(orderDeliveredAt) < requestCreatedAt);
+
+        const cancellationType = isPostDelivery ? "post-delivery" : "pre-delivery";
+
+        console.log("📧 Sending cancellation request email - Type:", cancellationType);
+        await sendCancellationRequestRaisedEmail(
+          user.email,
+          orderId,
+          user.name || "Valued Customer",
+          reason,
+          cancellationType
+        );
+        console.log("✅ Cancellation request email sent successfully!");
+      }
+    } catch (emailError) {
+      console.error("❌ Error sending cancellation request email:", emailError);
+      // Don't throw error - request is already created, email is just a notification
+    }
+
     return request;
   }
 

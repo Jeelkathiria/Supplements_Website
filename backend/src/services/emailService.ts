@@ -1,12 +1,37 @@
 import SibApiV3Sdk from "sib-api-v3-sdk";
 
-// Initialize Brevo API client
-const client = SibApiV3Sdk.ApiClient.instance;
-if (process.env.BREVO_API_KEY) {
-  client.authentications["api-key"].apiKey = process.env.BREVO_API_KEY;
-}
+// Initialize Brevo API client with proper configuration
+let api: SibApiV3Sdk.TransactionalEmailsApi | null = null;
 
-const api = new SibApiV3Sdk.TransactionalEmailsApi();
+const initializeBrevoApi = () => {
+  if (api) return api;
+
+  if (!process.env.BREVO_API_KEY) {
+    console.error("❌ BREVO_API_KEY not found in environment variables");
+    return null;
+  }
+
+  try {
+    // Get the default API client instance
+    const defaultClient = SibApiV3Sdk.ApiClient.instance;
+    
+    // Set the API key authentication
+    defaultClient.authentications["api-key"].apiKey = process.env.BREVO_API_KEY;
+    
+    console.log("✅ Brevo API client configured successfully");
+    console.log("📧 API Key:", process.env.BREVO_API_KEY?.substring(0, 20) + "...");
+
+    // Create the transactional emails API instance
+    api = new SibApiV3Sdk.TransactionalEmailsApi();
+    
+    console.log("✅ Brevo TransactionalEmailsApi initialized");
+    
+    return api;
+  } catch (error: any) {
+    console.error("❌ Failed to initialize Brevo API:", error?.message);
+    return null;
+  }
+};
 
 interface EmailPayload {
   to: string;
@@ -16,7 +41,9 @@ interface EmailPayload {
 
 export const sendEmail = async ({ to, subject, html }: EmailPayload) => {
   try {
-    console.log("📧 sendEmail called with:", { to, subject: subject.substring(0, 50) });
+    console.log("📧 sendEmail called");
+    console.log("📧 Recipient:", to);
+    console.log("📧 Subject:", subject.substring(0, 50) + "...");
 
     if (!to || !subject || !html) {
       throw new Error("Missing required email fields: to, subject, html");
@@ -30,11 +57,16 @@ export const sendEmail = async ({ to, subject, html }: EmailPayload) => {
       throw new Error("SENDER_EMAIL is not configured in environment variables");
     }
 
-    console.log("📧 API Key configured:", process.env.BREVO_API_KEY?.substring(0, 20) + "...");
-    console.log("📧 Sender email:", process.env.SENDER_EMAIL);
-    console.log("📧 About to call Brevo API...");
+    const emailApi = initializeBrevoApi();
+    if (!emailApi) {
+      throw new Error("Failed to initialize Brevo API client");
+    }
 
-    const result = await api.sendTransacEmail({
+    console.log("📧 Sender email:", process.env.SENDER_EMAIL);
+    console.log("📧 About to send email via Brevo API...");
+
+    // Create the email payload
+    const sendSmtpEmail = {
       sender: {
         email: process.env.SENDER_EMAIL,
         name: process.env.SENDER_NAME || "SaturnImports",
@@ -42,21 +74,24 @@ export const sendEmail = async ({ to, subject, html }: EmailPayload) => {
       to: [{ email: to }],
       subject,
       htmlContent: html,
-    });
+    };
 
-    console.log(`✅ Email sent successfully to ${to}: ${subject}`);
-    console.log("📧 Send result:", result);
+    console.log("📧 Email payload prepared");
+    console.log("📧 Calling Brevo sendTransacEmail method...");
+
+    // Send the email
+    const result = await emailApi.sendTransacEmail(sendSmtpEmail as any);
+
+    console.log(`✅ Email sent successfully to ${to}`);
+    console.log("📧 Brevo Response:", result);
     return result;
   } catch (error: any) {
-    console.error(`❌ Error sending email to ${to}:`);
-    console.error("Error object:", error);
+    console.error(`❌ Error sending email to ${to}`);
+    console.error("Error type:", error?.constructor?.name);
     console.error("Error message:", error?.message);
+    console.error("Error code:", error?.code);
     console.error("Error status:", error?.status);
-    console.error("Error statusCode:", error?.statusCode);
-    console.error("Error response:", error?.response);
-    console.error("Error response status:", error?.response?.status);
-    console.error("Error response body:", error?.response?.body);
-    console.error("Full error toString:", error?.toString());
+    console.error("Full error:", error);
     throw error;
   }
 };
@@ -163,9 +198,12 @@ export const sendOrderShippedEmail = async (
   customerName: string,
   trackingNumber?: string
 ) => {
-  const trackingInfo = trackingNumber
-    ? `<p><strong>Tracking Number:</strong> ${trackingNumber}</p>`
-    : "";
+  try {
+    console.log("📧 sendOrderShippedEmail called:", { userEmail, orderId, trackingNumber });
+    
+    const trackingInfo = trackingNumber
+      ? `<p><strong>Tracking Number:</strong> ${trackingNumber}</p>`
+      : "";
 
   const html = `
     <!DOCTYPE html>
@@ -213,11 +251,16 @@ export const sendOrderShippedEmail = async (
     </html>
   `;
 
-  await sendEmail({
-    to: userEmail,
-    subject: `Your Order is Shipped - Order #${orderId}`,
-    html,
-  });
+    await sendEmail({
+      to: userEmail,
+      subject: `Your Order is Shipped - Order #${orderId}`,
+      html,
+    });
+    console.log("✅ Order shipped email sent successfully");
+  } catch (error: any) {
+    console.error("❌ Error in sendOrderShippedEmail:", error?.message || error);
+    throw error;
+  }
 };
 
 export const sendOrderDeliveredEmail = async (
@@ -286,6 +329,8 @@ export const sendCancellationApprovedEmail = async (
   customerName: string,
   reason?: string
 ) => {
+  try {
+    console.log("📧 sendCancellationApprovedEmail called:", { userEmail, orderId, customerName });
   const reasonText = reason
     ? `<p><strong>Admin Response:</strong> ${reason}</p>`
     : "";
@@ -335,11 +380,16 @@ export const sendCancellationApprovedEmail = async (
     </html>
   `;
 
-  await sendEmail({
-    to: userEmail,
-    subject: `Cancellation Approved - Order #${orderId}`,
-    html,
-  });
+    await sendEmail({
+      to: userEmail,
+      subject: `Cancellation Approved - Order #${orderId}`,
+      html,
+    });
+    console.log("✅ Cancellation approved email sent successfully");
+  } catch (error: any) {
+    console.error("❌ Error in sendCancellationApprovedEmail:", error?.message || error);
+    throw error;
+  }
 };
 
 export const sendCancellationRejectedEmail = async (
@@ -348,11 +398,14 @@ export const sendCancellationRejectedEmail = async (
   customerName: string,
   reason?: string
 ) => {
-  const reasonText = reason
-    ? `<p><strong>Admin Response:</strong> ${reason}</p>`
-    : "";
+  try {
+    console.log("📧 sendCancellationRejectedEmail called:", { userEmail, orderId, customerName });
+    
+    const reasonText = reason
+      ? `<p><strong>Admin Response:</strong> ${reason}</p>`
+      : "";
 
-  const html = `
+    const html = `
     <!DOCTYPE html>
     <html>
       <head>
@@ -397,11 +450,16 @@ export const sendCancellationRejectedEmail = async (
     </html>
   `;
 
-  await sendEmail({
-    to: userEmail,
-    subject: `Cancellation Request Update - Order #${orderId}`,
-    html,
-  });
+    await sendEmail({
+      to: userEmail,
+      subject: `Cancellation Request Update - Order #${orderId}`,
+      html,
+    });
+    console.log("✅ Cancellation rejected email sent successfully");
+  } catch (error: any) {
+    console.error("❌ Error in sendCancellationRejectedEmail:", error?.message || error);
+    throw error;
+  }
 };
 
 export const sendForgotPasswordEmail = async (
@@ -460,4 +518,261 @@ export const sendForgotPasswordEmail = async (
     subject: "Reset Your Password - SaturnImports",
     html,
   });
+};
+
+// ========================
+// CANCELLATION EMAILS
+// ========================
+
+export const sendCancellationRequestRaisedEmail = async (
+  userEmail: string,
+  orderId: string,
+  customerName: string,
+  reason: string,
+  cancellationType: "pre-delivery" | "post-delivery"
+) => {
+  try {
+    console.log("📧 sendCancellationRequestRaisedEmail called:", { userEmail, orderId, cancellationType });
+    
+    const typeLabel = cancellationType === "pre-delivery" ? "Pre-Delivery" : "Post-Delivery";
+    const headerColor = cancellationType === "pre-delivery" ? "#2196F3" : "#FF9800";
+
+    const html = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="UTF-8">
+        <style>
+          body { font-family: Arial, sans-serif; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background-color: ${headerColor}; color: white; padding: 20px; text-align: center; border-radius: 5px; }
+          .content { padding: 20px; background-color: #f9f9f9; margin-top: 20px; border-radius: 5px; }
+          .status-badge { display: inline-block; background-color: ${headerColor}; color: white; padding: 8px 16px; border-radius: 20px; margin: 10px 0; }
+          .footer { margin-top: 20px; text-align: center; color: #999; font-size: 12px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>Cancellation Request Submitted 📋</h1>
+          </div>
+          <div class="content">
+            <p>Hi ${customerName},</p>
+            <p>Your ${typeLabel} cancellation request for order <strong>#${orderId}</strong> has been successfully submitted.</p>
+            
+            <div class="status-badge">Type: ${typeLabel} Cancellation</div>
+
+            <p style="margin-top: 20px; color: #666;">
+              <strong>Your Request Details:</strong>
+            </p>
+            <div style="background-color: #f0f0f0; padding: 15px; border-radius: 5px; margin: 15px 0;">
+              <p><strong>Order ID:</strong> #${orderId}</p>
+              <p><strong>Cancellation Type:</strong> ${typeLabel}</p>
+              <p><strong>Reason:</strong> ${reason}</p>
+              <p><strong>Status:</strong> <span style="color: #FF9800; font-weight: bold;">PENDING APPROVAL</span></p>
+            </div>
+
+            <p style="margin-top: 20px; color: #666;">
+              Our team will review your request shortly. You will receive another email notification once your request has been approved or rejected. Typically, this takes 1-2 business days.
+            </p>
+
+            <p style="margin-top: 20px; color: #666;">
+              <strong>What happens next?</strong>
+            </p>
+            <ul style="color: #666; line-height: 1.8;">
+              <li>We will verify your cancellation request</li>
+              <li>You will receive an email with the decision (approved/rejected)</li>
+              ${typeLabel === "Pre-Delivery" ? '<li>If approved, your order will be cancelled and you will receive a full refund</li>' : '<li>If approved, we will process your refund after verifying the return</li>'}
+            </ul>
+
+            <p style="margin-top: 20px; color: #666;">
+              If you have any questions, please don't hesitate to contact us.
+            </p>
+          </div>
+          <div class="footer">
+            <p>SaturnImports - Your trusted supplement store</p>
+            <p>This is an automated email. Please don't reply to this email.</p>
+          </div>
+        </div>
+      </body>
+    </html>
+  `;
+
+    await sendEmail({
+      to: userEmail,
+      subject: `${typeLabel} Cancellation Request Submitted - Order #${orderId}`,
+      html,
+    });
+    console.log("✅ Cancellation request email sent successfully");
+  } catch (error: any) {
+    console.error("❌ Error in sendCancellationRequestRaisedEmail:", error?.message || error);
+    throw error;
+  }
+};
+
+// ========================
+// REFUND EMAILS
+// ========================
+
+export const sendRefundInitiatedEmail = async (
+  userEmail: string,
+  orderId: string,
+  customerName: string,
+  refundAmount: number,
+  refundMethod: string
+) => {
+  try {
+    console.log("📧 sendRefundInitiatedEmail called:", { userEmail, orderId, refundAmount, refundMethod });
+    
+    const methodLabel = refundMethod === "upi" ? "UPI Transfer" : "Original Payment Method";
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="UTF-8">
+        <style>
+          body { font-family: Arial, sans-serif; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background-color: #4CAF50; color: white; padding: 20px; text-align: center; border-radius: 5px; }
+          .content { padding: 20px; background-color: #f9f9f9; margin-top: 20px; border-radius: 5px; }
+          .status-badge { display: inline-block; background-color: #4CAF50; color: white; padding: 8px 16px; border-radius: 20px; margin: 10px 0; }
+          .amount-box { background-color: #e8f5e9; border-left: 4px solid #4CAF50; padding: 15px; margin: 15px 0; border-radius: 5px; }
+          .footer { margin-top: 20px; text-align: center; color: #999; font-size: 12px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>Refund Initiated 💰</h1>
+          </div>
+          <div class="content">
+            <p>Hi ${customerName},</p>
+            <p>Great news! Your refund for order <strong>#${orderId}</strong> has been initiated.</p>
+            
+            <div class="status-badge">Status: REFUND INITIATED</div>
+
+            <div class="amount-box">
+              <p style="margin: 0; font-size: 14px; color: #666;">Refund Amount</p>
+              <p style="margin: 5px 0 0 0; font-size: 28px; font-weight: bold; color: #4CAF50;">₹${refundAmount.toFixed(2)}</p>
+            </div>
+
+            <p style="margin-top: 20px; color: #666;">
+              <strong>Refund Details:</strong>
+            </p>
+            <div style="background-color: #f0f0f0; padding: 15px; border-radius: 5px; margin: 15px 0;">
+              <p><strong>Order ID:</strong> #${orderId}</p>
+              <p><strong>Refund Amount:</strong> ₹${refundAmount.toFixed(2)}</p>
+              <p><strong>Refund Method:</strong> ${methodLabel}</p>
+              <p><strong>Processing Time:</strong> 5-7 business days</p>
+            </div>
+
+            <p style="margin-top: 20px; color: #666;">
+              The refund will be credited to your <strong>${methodLabel}</strong> within 5-7 business days. Please note that bank processing times may vary depending on your financial institution.
+            </p>
+
+            <p style="margin-top: 20px; color: #666;">
+              <strong>Need Help?</strong> If you don't see the refund in your account after 7 business days, please contact us immediately.
+            </p>
+          </div>
+          <div class="footer">
+            <p>SaturnImports - Your trusted supplement store</p>
+            <p>This is an automated email. Please don't reply to this email.</p>
+          </div>
+        </div>
+      </body>
+    </html>
+  `;
+
+  await sendEmail({
+    to: userEmail,
+    subject: `Refund Initiated - Order #${orderId}`,
+    html,
+  });
+    console.log("✅ Refund initiated email sent successfully");
+  } catch (error: any) {
+    console.error("❌ Error in sendRefundInitiatedEmail:", error?.message || error);
+    throw error;
+  }
+};
+
+export const sendRefundCompletedEmail = async (
+  userEmail: string,
+  orderId: string,
+  customerName: string,
+  refundAmount: number,
+  refundDate: string
+) => {
+  try {
+    console.log("📧 sendRefundCompletedEmail called:", { userEmail, orderId, refundAmount });
+    
+    const html = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="UTF-8">
+        <style>
+          body { font-family: Arial, sans-serif; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background-color: #4CAF50; color: white; padding: 20px; text-align: center; border-radius: 5px; }
+          .content { padding: 20px; background-color: #f9f9f9; margin-top: 20px; border-radius: 5px; }
+          .status-badge { display: inline-block; background-color: #4CAF50; color: white; padding: 8px 16px; border-radius: 20px; margin: 10px 0; }
+          .amount-box { background-color: #e8f5e9; border-left: 4px solid #4CAF50; padding: 15px; margin: 15px 0; border-radius: 5px; }
+          .footer { margin-top: 20px; text-align: center; color: #999; font-size: 12px; }
+          .check-icon { font-size: 48px; margin-bottom: 10px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div className="header">
+            <div class="check-icon">✅</div>
+            <h1>Refund Completed Successfully!</h1>
+          </div>
+          <div class="content">
+            <p>Hi ${customerName},</p>
+            <p>Your refund for order <strong>#${orderId}</strong> has been successfully completed!</p>
+            
+            <div class="status-badge">Status: REFUND COMPLETED</div>
+
+            <div class="amount-box">
+              <p style="margin: 0; font-size: 14px; color: #666;">Refund Amount</p>
+              <p style="margin: 5px 0 0 0; font-size: 28px; font-weight: bold; color: #4CAF50;">₹${refundAmount.toFixed(2)}</p>
+            </div>
+
+            <p style="margin-top: 20px; color: #666;">
+              <strong>Refund Summary:</strong>
+            </p>
+            <div style="background-color: #f0f0f0; padding: 15px; border-radius: 5px; margin: 15px 0;">
+              <p><strong>Order ID:</strong> #${orderId}</p>
+              <p><strong>Refund Amount:</strong> ₹${refundAmount.toFixed(2)}</p>
+              <p><strong>Completion Date:</strong> ${new Date(refundDate).toLocaleDateString('en-IN')}</p>
+            </div>
+
+            <p style="margin-top: 20px; color: #666;">
+              The refund of <strong>₹${refundAmount.toFixed(2)}</strong> has been successfully credited to your account. Please check your bank account or payment method to confirm the amount.
+            </p>
+
+            <p style="margin-top: 20px; color: #666;">
+              <strong>Thank you for your business!</strong> We hope to serve you again in the future. If you have any feedback about your experience, please let us know.
+            </p>
+          </div>
+          <div class="footer">
+            <p>SaturnImports - Your trusted supplement store</p>
+            <p>This is an automated email. Please don't reply to this email.</p>
+          </div>
+        </div>
+      </body>
+    </html>
+  `;
+
+  await sendEmail({
+    to: userEmail,
+    subject: `Refund Completed - Order #${orderId}`,
+    html,
+  });
+    console.log("✅ Refund completed email sent successfully");
+  } catch (error: any) {
+    console.error("❌ Error in sendRefundCompletedEmail:", error?.message || error);
+    throw error;
+  }
 };
