@@ -16,7 +16,7 @@ export const Breadcrumb: React.FC<BreadcrumbProps> = ({ items }) => {
     <nav className="flex items-center gap-2 text-sm mb-6">
       {items.map((item, index) => {
         const isLast = index === items.length - 1;
-        
+
         return (
           <div key={index} className="flex items-center gap-2">
             {index > 0 && (

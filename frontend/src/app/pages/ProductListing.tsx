@@ -144,9 +144,8 @@ export const ProductListing: React.FC = () => {
         <div className="flex flex-col md:flex-row gap-12">
           {/* FILTERS — LEFT */}
           <aside
-            className={`w-full md:w-[280px] ${
-              showFilters ? "block" : "hidden md:block"
-            }`}
+            className={`w-full md:w-[280px] ${showFilters ? "block" : "hidden md:block"
+              }`}
           >
             <div className="bg-white rounded-xl border border-neutral-200 p-6 sticky top-24 space-y-8">
               {/* Header */}
@@ -289,7 +288,7 @@ export const ProductListing: React.FC = () => {
             </div>
 
             {/* Products Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-6 mb-8">
               {paginatedProducts.map((product) => (
                 <ProductCard
                   key={product.id}
@@ -325,11 +324,10 @@ export const ProductListing: React.FC = () => {
                       <button
                         key={page}
                         onClick={() => setCurrentPage(page)}
-                        className={`px-3 py-2 rounded-lg transition ${
-                          currentPage === page
-                            ? 'bg-teal-800 text-white'
-                            : 'border border-neutral-300 hover:bg-neutral-100'
-                        }`}
+                        className={`px-3 py-2 rounded-lg transition ${currentPage === page
+                          ? 'bg-teal-800 text-white'
+                          : 'border border-neutral-300 hover:bg-neutral-100'
+                          }`}
                       >
                         {page}
                       </button>

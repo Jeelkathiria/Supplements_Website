@@ -13,6 +13,7 @@ type Props = {
   onSelect: (id: string) => void;
   dropdownRef: React.RefObject<HTMLDivElement>;
   rounded?: string;
+  transparent?: boolean;
 };
 
 export const CategoryDropdown: React.FC<Props> = ({
@@ -22,6 +23,7 @@ export const CategoryDropdown: React.FC<Props> = ({
   onSelect,
   dropdownRef,
   rounded = "rounded-none",
+  transparent = false,
 }) => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -70,7 +72,10 @@ export const CategoryDropdown: React.FC<Props> = ({
       <button
         type="button"
         onClick={() => setIsOpen((prev) => !prev)}
-        className={`w-full h-11 px-3 flex items-center justify-between bg-neutral-50 text-sm ${rounded}`}
+        className={`w-full h-11 md:h-11 h-10 px-3 flex items-center justify-between transition-colors ${transparent
+            ? "bg-transparent text-white"
+            : "bg-neutral-50 text-neutral-900"
+          } text-xs md:text-sm ${rounded}`}
       >
         <span className="truncate">{current}</span>
         <ChevronDown
@@ -90,11 +95,10 @@ export const CategoryDropdown: React.FC<Props> = ({
               <button
                 key={cat.id}
                 onClick={() => onSelect(cat.id)}
-                className={`w-full text-left px-3 py-2 text-sm hover:bg-neutral-100 ${
-                  selectedCategory === cat.id
-                    ? "bg-neutral-100 font-medium"
-                    : ""
-                }`}
+                className={`w-full text-left px-3 py-2 text-sm hover:bg-neutral-100 ${selectedCategory === cat.id
+                  ? "bg-neutral-100 font-medium"
+                  : ""
+                  }`}
               >
                 {cat.name}
               </button>

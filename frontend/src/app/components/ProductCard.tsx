@@ -19,12 +19,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   // Price calculation - handle both old and new field names
   const basePrice = product.basePrice || 0;
   const discount = product.discountPercent || product.discount || 0;
-  
+
   const finalPrice = calculateFinalPrice(basePrice, discount);
 
   // Get images from either field
   const images = product.imageUrls || product.images || [];
-  
+
   // Build full image URL if it's relative
   const getFullImageUrl = (imageUrl: string) => {
     if (!imageUrl) return '/placeholder.png';
@@ -34,7 +34,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     const backendBase = apiBase.replace('/api', '');
     return `${backendBase}${imageUrl}`;
   };
-  
+
   // Filter out base64 images that might be too large, use placeholder if none available
   const displayImage = images.length > 0 ? getFullImageUrl(images[0]) : '/placeholder.png';
 
@@ -57,7 +57,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         `}
       >
         {/* Product Image */}
-        <div className="relative h-64 bg-neutral-100 overflow-hidden flex items-center justify-center">
+        <div className="relative h-48 md:h-64 bg-neutral-100 overflow-hidden flex items-center justify-center">
           {!imageError ? (
             <img
               src={displayImage}
@@ -99,20 +99,18 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         <div className="p-4">
           {/* Category */}
           <div
-            className={`text-xs uppercase tracking-widest font-semibold mb-1 ${
-              isDiscount ? 'text-white/70' : 'text-neutral-500'
-            }`}
+            className={`text-xs uppercase tracking-widest font-semibold mb-1 ${isDiscount ? 'text-white/70' : 'text-neutral-500'
+              }`}
           >
             {product.categoryName || (typeof product.category === 'object' ? product.category?.name : product.category) || 'Product'}
           </div>
 
           {/* Product Name */}
           <h3
-            className={`font-bold mb-2 line-clamp-2 transition-colors text-sm ${
-              isDiscount
-                ? 'text-white'
-                : 'text-neutral-900 group-hover:text-neutral-600'
-            }`}
+            className={`font-bold mb-2 line-clamp-2 transition-colors text-sm ${isDiscount
+              ? 'text-white'
+              : 'text-neutral-900 group-hover:text-neutral-600'
+              }`}
           >
             {product.name}
           </h3>
@@ -123,7 +121,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             <div className={`text-2xl font-bold mb-1 ${isDiscount ? 'text-white' : 'text-neutral-900'}`}>
               ₹{finalPrice.toFixed(0)}
             </div>
-            
+
             {/* MRP Section */}
             {discount > 0 && (
               <div className="flex items-center gap-2">

@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, User, MapPin, Package, AlertCircle, Trash2, Plus, Check } from 'lucide-react';
+import { LogOut, User, MapPin, Package, AlertCircle, Trash2, Plus, Check, ChevronLeft, ChevronsLeft, ChevronsRight, Menu, X, ChevronDown } from 'lucide-react';
 import { useAuth } from '../components/context/AuthContext';
 import { useCart } from '../components/context/CartContext';
-import { OrderTrackingProgress } from '../components/OrderTrackingProgress';
+import { BillModal } from '../components/BillModal';
 import { toast } from 'sonner';
 import * as userService from '../../services/userService';
 import * as orderService from '../../services/orderService';
@@ -52,10 +52,10 @@ const INDIAN_STATES = [
   'West Bengal',
 ].sort();
 
-  // Address management state
-  // (Cities by state mapping would be defined here if needed)
+// Address management state
+// (Cities by state mapping would be defined here if needed)
 
-  interface AddressFormData {
+interface AddressFormData {
   name: string;
   phone: string;
   address: string;
@@ -131,8 +131,12 @@ export const Account: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [showAddressForm, setShowAddressForm] = useState(false);
   const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
-  const [reorderingOrderId, setReorderingOrderId] = useState<string | null>(null);
+  const [, setReorderingOrderId] = useState<string | null>(null);
   const [currentOrderPage, setCurrentOrderPage] = useState(1);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isBillModalOpen, setIsBillModalOpen] = useState(false);
+  const [selectedOrderForBill, setSelectedOrderForBill] = useState<Order | null>(null);
   const ORDERS_PER_PAGE = 5;
   // Address components
 
@@ -286,23 +290,23 @@ export const Account: React.FC = () => {
   const handleReorder = async (order: Order) => {
     try {
       setReorderingOrderId(order.id);
-      
+
       // Fetch current product details to check stock status
       const allProducts = await productService.fetchProducts();
       const productMap = new Map(allProducts.map(p => [p.id, p]));
-      
+
       // Check if any item is out of stock
       const outOfStockItems = order.items.filter(item => {
         const product = productMap.get(item.productId);
         return product?.isOutOfStock;
       });
-      
+
       if (outOfStockItems.length > 0) {
         const outOfStockNames = outOfStockItems.map(item => item.product?.name || item.productName).join(', ');
         toast.error(`Sorry! ${outOfStockNames} ${outOfStockItems.length === 1 ? 'is' : 'are'} out of stock`);
         return;
       }
-      
+
       // Add all items to cart
       for (const item of order.items) {
         await addToCart(
@@ -312,7 +316,7 @@ export const Account: React.FC = () => {
           item.size
         );
       }
-      
+
       toast.success('Order added to cart! Redirecting...');
       setTimeout(() => {
         navigate('/cart');
@@ -324,60 +328,224 @@ export const Account: React.FC = () => {
     }
   };
 
-  const sidebarItems = [
-    { id: 'profile', label: 'Profile', icon: User },
-    { id: 'addresses', label: 'Addresses', icon: MapPin },
-    { id: 'orders', label: 'Orders', icon: Package },
-  ];
+  const handleShowInvoice = (order: Order) => {
+    setSelectedOrderForBill(order);
+    setIsBillModalOpen(true);
+  };
 
   if (loading) {
     return <div className="min-h-screen bg-neutral-50 flex items-center justify-center">Loading...</div>;
   }
 
   return (
-    <div className="min-h-screen bg-neutral-50 py-8 md:py-12">
-      <div className="max-w-[1400px] mx-auto px-4 md:px-8">
-        <h1 className="text-2xl md:text-3xl font-bold mb-8 text-neutral-900">My Account</h1>
+    <div className="min-h-screen bg-[#F8FAFB] py-8 md:py-12">
+      <div className="max-w-[1440px] mx-auto px-4 md:px-10">
+        <div className="flex items-center gap-3 md:gap-4 mb-6 md:mb-8">
+          {/* Mobile Menu Toggle - Top Left */}
+          <button
+            onClick={() => setIsMobileMenuOpen(true)}
+            className="md:hidden p-2.5 bg-white border border-neutral-200 rounded-xl shadow-sm text-teal-900 hover:text-teal-700 active:scale-95 transition-all"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
 
-        <div className="flex flex-col md:flex-row gap-6">
-          {/* SIDEBAR */}
-          <div className="md:w-48">
-            <div className="bg-white rounded-lg shadow-sm p-4 md:p-6 space-y-2 sticky top-20">
-              {sidebarItems.map((item) => {
-                const Icon = item.icon;
-                return (
+          <div className="flex-1 min-w-0">
+            <h1 className="text-xl md:text-3xl font-bold tracking-tight text-neutral-900 mb-0.5 md:mb-1 truncate">Account Dashboard</h1>
+            <p className="text-neutral-500 text-[11px] md:text-sm font-medium truncate">Manage your personal information and track activity</p>
+          </div>
+        </div>
+
+        <div className="flex flex-col md:flex-row gap-10 items-start">
+          {/* MINIMALIST COLLAPSIBLE SIDEBAR */}
+          <div
+            className={`hidden md:block flex-shrink-0 transition-all duration-500 ease-in-out sticky top-24 ${isSidebarCollapsed ? 'w-20' : 'w-72'
+              }`}
+          >
+            <div className="bg-white border border-neutral-200 rounded-3xl overflow-hidden shadow-sm flex flex-col h-full min-h-[750px] transition-all relative">
+
+              {/* Header: Logo & Toggle */}
+              <div className="p-6 flex items-center justify-between">
+                {!isSidebarCollapsed ? (
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-teal-900 flex items-center justify-center text-white font-bold">S</div>
+                    <span className="font-bold text-lg text-neutral-900">Supplements</span>
+                  </div>
+                ) : (
+                  <div className="w-8 h-8 rounded-lg bg-teal-900 flex items-center justify-center text-white font-bold mx-auto transition-all">S</div>
+                )}
+
+                {!isSidebarCollapsed && (
                   <button
-                    key={item.id}
-                    onClick={() => setActiveTab(item.id as TabType)}
-                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition ${
-                      activeTab === item.id
-                        ? 'bg-teal-900 text-white'
-                        : 'text-neutral-700 hover:bg-neutral-100'
-                    }`}
+                    onClick={() => setIsSidebarCollapsed(true)}
+                    className="p-1.5 hover:bg-neutral-100 rounded-lg transition-colors text-neutral-400"
                   >
-                    <Icon className="w-5 h-5" />
-                    <span className="font-medium">{item.label}</span>
+                    <ChevronsLeft className="w-4 h-4" />
                   </button>
-                );
-              })}
+                )}
 
-              <div className="border-t border-neutral-200 pt-4 mt-4">
+                {isSidebarCollapsed && (
+                  <button
+                    onClick={() => setIsSidebarCollapsed(false)}
+                    className="absolute -right-3 top-7 bg-white border border-neutral-200 p-1 rounded-full shadow-sm hover:bg-neutral-50 z-10 transition-transform active:scale-90"
+                  >
+                    <ChevronsRight className="w-3 h-3 text-neutral-500" />
+                  </button>
+                )}
+              </div>
+
+              {/* User Profile Section */}
+              <div className={`mx-4 mb-6 p-4 rounded-2xl transition-all ${isSidebarCollapsed ? 'px-0 bg-transparent border-none' : 'bg-neutral-50 border border-neutral-100'}`}>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 min-w-[2.5rem] rounded-xl bg-teal-900 text-white flex items-center justify-center font-bold text-sm shadow-md overflow-hidden flex-shrink-0">
+                    {user?.name?.charAt(0) || 'U'}
+                  </div>
+                  {!isSidebarCollapsed && (
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-bold text-neutral-900 truncate">{user?.name || 'User'}</p>
+                      <p className="text-[10px] text-neutral-500 truncate">{user?.email}</p>
+                    </div>
+                  )}
+                  {!isSidebarCollapsed && <ChevronLeft className="w-3 h-3 text-neutral-400 rotate-[-90deg] flex-shrink-0" />}
+                </div>
+              </div>
+
+              {/* Navigation Menu */}
+              <div className="flex-1 px-3 space-y-1">
+                {[
+                  { id: 'profile', label: 'Profile', icon: User },
+                  { id: 'addresses', label: 'Addresses', icon: MapPin },
+                  { id: 'orders', label: 'Orders', icon: Package, badge: orders.length },
+                ].map((item) => {
+                  const Icon = item.icon;
+                  const isActive = activeTab === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => setActiveTab(item.id as TabType)}
+                      className={`w-full flex items-center gap-3.5 py-3 rounded-xl transition-all relative group h-12 ${isSidebarCollapsed ? 'justify-center mx-auto' : 'px-4'
+                        } ${isActive
+                          ? 'bg-teal-900 text-white font-bold shadow-teal-900/10 shadow-lg'
+                          : 'text-neutral-500 hover:bg-teal-50 hover:text-teal-900'
+                        }`}
+                    >
+                      <Icon className={`w-5 h-5 flex-shrink-0 transition-colors ${isActive ? 'text-white' : 'text-neutral-400 group-hover:text-teal-600'}`} />
+                      {!isSidebarCollapsed && (
+                        <span className="flex-1 text-left text-[14px] font-medium tracking-tight truncate">{item.label}</span>
+                      )}
+                      {!isSidebarCollapsed && item.badge !== undefined && item.badge > 0 && (
+                        <span className="bg-teal-600 text-white text-[10px] px-1.5 py-0.5 rounded-md font-bold min-w-[1.2rem] text-center ml-auto">
+                          {item.badge}
+                        </span>
+                      )}
+
+                      {isSidebarCollapsed && (
+                        <div className="absolute left-full ml-4 px-3 py-2 bg-neutral-900 text-white text-[11px] rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-all translate-x-[-10px] group-hover:translate-x-0 whitespace-nowrap z-50 shadow-xl">
+                          {item.label}
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Bottom Section: Sign Out Only */}
+              <div className="p-4 border-t border-neutral-100">
                 <button
-                  onClick={() => {
-                    logout();
-                    navigate('/');
-                  }}
-                  className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-red-600 hover:bg-red-50 transition"
+                  onClick={() => { logout(); navigate('/'); }}
+                  className={`w-full flex items-center gap-3.5 py-3 rounded-xl transition-all text-rose-500 hover:bg-rose-50 group font-bold ${isSidebarCollapsed ? 'justify-center mx-auto' : 'px-4'
+                    }`}
                 >
-                  <LogOut className="w-5 h-5" />
-                  <span className="font-medium">Logout</span>
+                  <LogOut className="w-5 h-5 flex-shrink-0" />
+                  {!isSidebarCollapsed && <span className="text-[14px] flex-1 text-left">Sign out</span>}
                 </button>
               </div>
             </div>
           </div>
 
-          {/* CONTENT */}
-          <div className="flex-1">
+          {/* MOBILE SIDEBAR MODAL / DRAWER */}
+          {isMobileMenuOpen && (
+            <div className="fixed inset-0 z-[100] md:hidden">
+              {/* Backdrop */}
+              <div
+                className="absolute inset-0 bg-neutral-900/40 backdrop-blur-sm animate-in fade-in duration-300"
+                onClick={() => setIsMobileMenuOpen(false)}
+              />
+
+              {/* Drawer Content */}
+              <div className="absolute left-0 top-0 bottom-0 w-[280px] bg-white shadow-2xl animate-in slide-in-from-left duration-300 flex flex-col">
+                <div className="p-6 border-b border-neutral-100 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-teal-900 flex items-center justify-center text-white font-bold">S</div>
+                    <span className="font-bold text-lg text-neutral-900">Supplements</span>
+                  </div>
+                  <button
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="p-2 hover:bg-neutral-100 rounded-xl transition-colors text-neutral-400"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <div className="flex-1 overflow-y-auto p-4 space-y-6">
+                  {/* Profile */}
+                  <div className="p-4 rounded-2xl bg-neutral-50 border border-neutral-100">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-xl bg-teal-100 text-teal-800 flex items-center justify-center font-bold text-lg">
+                        {user?.name?.charAt(0) || 'U'}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-bold text-neutral-900 truncate">{user?.name || 'User'}</p>
+                        <p className="text-[10px] text-neutral-500 truncate">{user?.email}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Menu Items */}
+                  <div className="space-y-1">
+                    {[
+                      { id: 'profile', label: 'Profile', icon: User },
+                      { id: 'addresses', label: 'Addresses', icon: MapPin },
+                      { id: 'orders', label: 'Orders', icon: Package, badge: orders.length },
+                    ].map((item) => {
+                      const Icon = item.icon;
+                      const isActive = activeTab === item.id;
+                      return (
+                        <button
+                          key={item.id}
+                          onClick={() => { setActiveTab(item.id as TabType); setIsMobileMenuOpen(false); }}
+                          className={`w-full flex items-center gap-4 py-4 px-4 rounded-xl transition-all ${isActive
+                            ? 'bg-teal-900 text-white font-bold shadow-lg shadow-teal-900/10'
+                            : 'text-neutral-500 hover:bg-teal-50'
+                            }`}
+                        >
+                          <Icon className={`w-5 h-5 ${isActive ? 'text-white' : 'text-neutral-400'}`} />
+                          <span className="text-[15px] font-medium">{item.label}</span>
+                          {item.badge !== undefined && item.badge > 0 && (
+                            <span className="bg-teal-600 text-white text-[10px] px-1.5 py-0.5 rounded-md font-bold ml-auto">
+                              {item.badge}
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="p-4 border-t border-neutral-100">
+                  <button
+                    onClick={() => { logout(); navigate('/'); }}
+                    className="w-full flex items-center gap-4 py-4 px-4 text-rose-500 font-bold"
+                  >
+                    <LogOut className="w-5 h-5" />
+                    <span className="text-[15px]">Sign out</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* CONTENT AREA */}
+          <div className="flex-1 min-w-0 w-full animate-in fade-in slide-in-from-bottom-4 duration-1000">
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6 flex items-start gap-3">
                 <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
@@ -419,9 +587,8 @@ export const Account: React.FC = () => {
                         type="text"
                         value={editedName}
                         onChange={(e) => setEditedName(e.target.value)}
-                        className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                          profileErrors.name ? 'border-red-500' : 'border-neutral-300'
-                        }`}
+                        className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${profileErrors.name ? 'border-red-500' : 'border-neutral-300'
+                          }`}
                         placeholder="Enter your name"
                       />
                       {profileErrors.name && (
@@ -453,9 +620,8 @@ export const Account: React.FC = () => {
                           setEditedPhone(val);
                         }}
                         maxLength={10}
-                        className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                          profileErrors.phone ? 'border-red-500' : 'border-neutral-300'
-                        }`}
+                        className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${profileErrors.phone ? 'border-red-500' : 'border-neutral-300'
+                          }`}
                         placeholder="10 digit number"
                       />
                       {profileErrors.phone && (
@@ -569,9 +735,8 @@ export const Account: React.FC = () => {
                               setNewAddress({ ...newAddress, address: e.target.value });
                               if (validationErrors.address) setValidationErrors({ ...validationErrors, address: undefined });
                             }}
-                            className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
-                              validationErrors.address ? 'border-red-500 focus:ring-red-500' : 'border-neutral-300 focus:ring-teal-800'
-                            }`}
+                            className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${validationErrors.address ? 'border-red-500 focus:ring-red-500' : 'border-neutral-300 focus:ring-teal-800'
+                              }`}
                             placeholder="123 Main Street"
                           />
                           {validationErrors.address && <p className="text-red-600 text-xs mt-1">{validationErrors.address}</p>}
@@ -585,9 +750,8 @@ export const Account: React.FC = () => {
                               setNewAddress({ ...newAddress, state: e.target.value });
                               if (validationErrors.state) setValidationErrors({ ...validationErrors, state: undefined });
                             }}
-                            className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
-                              validationErrors.state ? 'border-red-500 focus:ring-red-500' : 'border-neutral-300 focus:ring-teal-800'
-                            }`}
+                            className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${validationErrors.state ? 'border-red-500 focus:ring-red-500' : 'border-neutral-300 focus:ring-teal-800'
+                              }`}
                           >
                             <option value="">Select a state</option>
                             {INDIAN_STATES.map((state) => (
@@ -608,9 +772,8 @@ export const Account: React.FC = () => {
                               setNewAddress({ ...newAddress, city: e.target.value });
                               if (validationErrors.city) setValidationErrors({ ...validationErrors, city: undefined });
                             }}
-                            className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
-                              validationErrors.city ? 'border-red-500 focus:ring-red-500' : 'border-neutral-300 focus:ring-teal-800'
-                            }`}
+                            className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${validationErrors.city ? 'border-red-500 focus:ring-red-500' : 'border-neutral-300 focus:ring-teal-800'
+                              }`}
                             placeholder="Enter your city"
                           />
                           {validationErrors.city && <p className="text-red-600 text-xs mt-1">{validationErrors.city}</p>}
@@ -626,9 +789,8 @@ export const Account: React.FC = () => {
                               setNewAddress({ ...newAddress, pincode: val });
                               if (validationErrors.pincode) setValidationErrors({ ...validationErrors, pincode: undefined });
                             }}
-                            className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
-                              validationErrors.pincode ? 'border-red-500 focus:ring-red-500' : 'border-neutral-300 focus:ring-teal-800'
-                            }`}
+                            className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${validationErrors.pincode ? 'border-red-500 focus:ring-red-500' : 'border-neutral-300 focus:ring-teal-800'
+                              }`}
                             placeholder="400001"
                           />
                           {validationErrors.pincode && <p className="text-red-600 text-xs mt-1">{validationErrors.pincode}</p>}
@@ -697,274 +859,214 @@ export const Account: React.FC = () => {
 
             {/* ORDERS TAB */}
             {activeTab === 'orders' && (
-              <div className="space-y-5">
+              <div className="space-y-6">
+                <div>
+                  <h2 className="text-2xl font-bold text-neutral-900">Your Orders</h2>
+
+                  {/* Amazon style sub-tabs */}
+                  <div className="flex items-center gap-8 border-b border-neutral-200 mt-4 overflow-x-auto no-scrollbar">
+                    {['Orders', 'Buy Again', 'Not Yet Shipped', 'Cancelled'].map((tab, idx) => (
+                      <button
+                        key={tab}
+                        className={`pb-3 text-sm font-medium whitespace-nowrap transition-colors relative ${idx === 0 ? 'text-orange-700 border-b-2 border-orange-700' : 'text-neutral-600 hover:text-orange-700'}`}
+                      >
+                        {tab}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Filter Section */}
+                  <div className="flex flex-col md:flex-row gap-4 mt-6 items-start md:items-center text-[13px]">
+                    <div className="flex items-center gap-2">
+                      <span className="text-neutral-600"><strong>{orders.length} orders</strong> placed in</span>
+                      <div className="relative">
+                        <select className="appearance-none bg-neutral-100 border border-neutral-300 rounded-lg px-4 py-1.5 pr-8 focus:outline-none focus:ring-2 focus:ring-teal-800 cursor-pointer">
+                          <option>past 3 months</option>
+                          <option>last 30 days</option>
+                          <option>2024</option>
+                          <option>2023</option>
+                        </select>
+                        <ChevronDown className="w-4 h-4 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-neutral-500" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 {orders.length > 0 ? (
-                  <>
-                    {/* Orders List */}
-                    <div className="space-y-4">
-                      {orders
-                        .slice((currentOrderPage - 1) * ORDERS_PER_PAGE, currentOrderPage * ORDERS_PER_PAGE)
-                        .map((order) => (
-                          <div
-                            key={order.id}
-                            className="bg-white border border-gray-200 rounded-lg shadow-sm  hover:shadow-md transition"
-                          >
-                          {/* Order Header Strip */}
-                          <div className="bg-gray-100 border-b border-gray-200 px-4 md:px-6 py-3">
-                            <div className="flex justify-between items-start">
+                  <div className="space-y-6">
+                    {orders
+                      .slice((currentOrderPage - 1) * ORDERS_PER_PAGE, currentOrderPage * ORDERS_PER_PAGE)
+                      .map((order) => (
+                        <div key={order.id} className="bg-white border border-neutral-200 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+                          {/* Order Header - Amazon Style */}
+                          <div className="bg-neutral-50 border-b border-neutral-200 px-4 md:px-6 py-3 flex flex-wrap gap-y-4 items-center justify-between text-[11px] text-neutral-600">
+                            <div className="flex flex-wrap gap-x-4 md:gap-x-10 gap-y-2">
+                              <div className="min-w-[80px]">
+                                <p className="uppercase font-bold tracking-wider mb-0.5">Order Placed</p>
+                                <p className="text-[12px] md:text-[13px] font-medium text-neutral-900 whitespace-nowrap">
+                                  {new Date(order.createdAt).toLocaleDateString('en-IN', {
+                                    day: 'numeric',
+                                    month: 'short',
+                                    year: 'numeric',
+                                  })}
+                                </p>
+                              </div>
+                              <div className="min-w-[60px]">
+                                <p className="uppercase font-bold tracking-wider mb-0.5">Total</p>
+                                <p className="text-[12px] md:text-[13px] font-medium text-neutral-900">₹{order.totalAmount.toFixed(2)}</p>
+                              </div>
+                              <div className="relative group">
+                                <p className="uppercase font-bold tracking-wider mb-0.5">Ship To</p>
+                                <button className="flex items-center gap-1 text-teal-700 hover:text-orange-700 group-hover:underline text-[12px] md:text-[13px] font-medium">
+                                  <span className="truncate max-w-[80px] md:max-w-none">{order.address?.name}</span>
+                                  <ChevronDown className="w-3.5 h-3.5 transition-transform group-hover:rotate-180" />
+                                </button>
 
-                              {/* LEFT SIDE */}
-                              <div className="grid grid-cols-3 gap-8">
-
-                                {/* Order Placed */}
-                                <div>
-                                  <p className="text-xs text-gray-500 uppercase font-semibold">
-                                    Order Placed
-                                  </p>
-                                  <p className="text-sm font-semibold text-gray-600 mt-1">
-                                    {new Date(order.createdAt).toLocaleDateString('en-IN', {
-                                      day: 'numeric',
-                                      month: 'long',
-                                      year: 'numeric',
-                                    })}
-                                  </p>
-                                </div>
-
-                                {/* Total */}
-                                <div>
-                                  <p className="text-xs text-gray-500 uppercase font-semibold">
-                                    Total
-                                  </p>
-                                  <p className="text-sm font-semibold text-gray-600 mt-1">
-                                    ₹{order.totalAmount.toFixed(2)}
-                                  </p>
-                                </div>
-
-                                {/* Ship To (hover stays same) */}
-                                <div className="relative group inline-block">
-                                  <p className="text-xs text-gray-500 uppercase font-semibold">
-                                    Ship To
-                                  </p>
-
-                                  <div className="flex items-center gap-1 text-sm font-semibold text-teal-700 cursor-pointer group-hover:underline">
-                                    <span>{order.address?.name}</span>
-
-                                    <svg
-                                      className="w-4 h-4 transition-transform duration-200 group-hover:rotate-180"
-                                      fill="none"
-                                      stroke="currentColor"
-                                      viewBox="0 0 24 24"
-                                    >
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                    </svg>
+                                {/* Hover Card */}
+                                {order.address && (
+                                  <div className="absolute left-0 top-full mt-2 z-50 invisible opacity-0 group-hover:visible group-hover:opacity-100 transition-all duration-200">
+                                    <div className="bg-white border border-neutral-200 rounded-lg shadow-xl p-4 w-64 text-neutral-800 text-xs">
+                                      <div className="absolute -top-1.5 left-6 w-3 h-3 bg-white border-l border-t border-neutral-200 rotate-45"></div>
+                                      <p className="font-bold mb-1 text-sm">{order.address.name}</p>
+                                      <p className="leading-relaxed">
+                                        {order.address.address}<br />
+                                        {order.address.city}, {order.address.state} {order.address.pincode}<br />
+                                        India
+                                      </p>
+                                      {order.address.phone && <p className="mt-2 font-semibold">Phone: {order.address.phone}</p>}
+                                    </div>
                                   </div>
+                                )}
+                              </div>
+                            </div>
 
-                                  {/* Hover Card */}
-                                  {order.address && (
-                                    <div
-                                      className="absolute left-0 top-full mt-2 z-[9999]
-                                                invisible opacity-0 group-hover:visible group-hover:opacity-100
-                                                transition-opacity duration-150"
-                                    >
-                                      <div className="relative w-50 bg-white border border-gray-300 rounded-lg p-4 text-sm">
+                            <div className="text-right w-full md:w-auto mt-2 md:mt-0 pt-2 md:pt-0 border-t md:border-t-0 border-neutral-200 md:border-transparent flex md:flex-col justify-between items-center md:items-end">
+                              <div>
+                                <p className="uppercase font-bold tracking-wider mb-0.5 text-[9px] md:text-[10px]">Order # {order.id.slice(-12).toUpperCase()}</p>
+                                <div className="flex items-center justify-end gap-2 md:gap-3 text-teal-700 font-medium text-[12px] md:text-[13px]">
+                                  <button onClick={() => navigate(`/account/order/${order.id}`)} className="hover:text-orange-700 hover:underline">Details</button>
+                                  <span className="text-neutral-300 font-light">|</span>
+                                  <button
+                                    onClick={() => handleShowInvoice(order)}
+                                    className="hover:text-orange-700 hover:underline"
+                                  >
+                                    Invoice
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
 
-                                        {/* Arrow */}
-                                        <div className="absolute -top-2 left-6 w-4 h-4 bg-white border-l border-t border-gray-200 rotate-45"></div>
+                          {/* Order Body */}
+                          <div className="p-4 md:p-6">
+                            <h3 className={`text-[17px] font-bold mb-4 ${order.status === 'DELIVERED' ? 'text-neutral-900' : 'text-emerald-700'}`}>
+                              {order.status === 'DELIVERED' ? 'Delivered' : order.status === 'CONFIRMED' ? 'Confirmed' : 'Status: ' + order.status}
+                            </h3>
 
-                                        <p className="font-bold text-gray-900">
-                                          {order.address.name}
-                                        </p>
+                            <div className="flex flex-col lg:flex-row gap-8">
+                              <div className="flex-1 space-y-6">
+                                {order.items.map((item, idx) => {
+                                  const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+                                  const baseUrl = apiBaseUrl.replace('/api', '');
+                                  let imageUrl = null;
+                                  if (Array.isArray(item.product?.imageUrls) && item.product.imageUrls.length > 0) {
+                                    const imgPath = item.product.imageUrls[0];
+                                    imageUrl = imgPath.startsWith('http') ? imgPath : `${baseUrl}${imgPath}`;
+                                  }
 
-                                        <p className="mt-1 text-gray-700">
-                                          {order.address.address}
-                                        </p>
-
-                                        <p className="mt-1 text-gray-700">
-                                          {order.address.city}, {order.address.state}
-                                        </p>
-
-                                        <p className="text-gray-700">
-                                          {order.address.pincode}
-                                        </p>
-
-                                        <p className="text-gray-700">
-                                          India
-                                        </p>
-
-                                        {/* Phone */}
-                                        {order.address.phone && (
-                                          <div className="mt-2 flex items-center gap-2 text-gray-900 font-semibold">
-                                            <svg
-                                              className="w-4 h-4 text-gray-700"
-                                              fill="none"
-                                              stroke="currentColor"
-                                              viewBox="0 0 24 24"
-                                            >
-                                              <path
-                                                strokeLinecap="round"
-                                                strokeLinejoin="round"
-                                                strokeWidth={2}
-                                                d="M3 5a2 2 0 012-2h3l2 5-2 1a11 11 0 005 5l1-2 5 2v3a2 2 0 01-2 2A16 16 0 013 5z"
-                                              />
-                                            </svg>
-
-                                            <span>{order.address.phone}</span>
-                                          </div>
+                                  return (
+                                    <div key={idx} className="flex gap-4">
+                                      <div className="w-20 h-20 md:w-24 md:h-24 bg-neutral-50 rounded-lg border border-neutral-100 flex-shrink-0 flex items-center justify-center overflow-hidden">
+                                        {imageUrl ? (
+                                          <img src={imageUrl} alt={item.product?.name} className="w-full h-full object-contain mix-blend-multiply" />
+                                        ) : (
+                                          <Package className="w-8 h-8 text-neutral-300" />
                                         )}
                                       </div>
-                                    </div>
-                                  )}
-                                </div>
 
+                                      <div className="flex-1 min-w-0">
+                                        <button
+                                          onClick={() => navigate(`/product/${item.product?._id}`)}
+                                          className="text-sm md:text-base font-medium text-teal-800 hover:text-orange-700 leading-snug line-clamp-2 transition-colors text-left"
+                                        >
+                                          {item.product?.name || item.productName}
+                                        </button>
+                                        <p className="text-xs text-neutral-500 mt-1">Sold by: {item.product?.brand || 'Supplements Store'}</p>
+                                        <div className="mt-2 flex items-center gap-3">
+                                          <button
+                                            onClick={() => handleReorder(order)}
+                                            className="px-4 py-1.5 bg-yellow-400 hover:bg-yellow-500 rounded-full text-xs font-bold shadow-sm transition-colors"
+                                          >
+                                            Buy it again
+                                          </button>
+                                          <button className="text-xs text-neutral-600 hover:text-orange-700 underline font-medium">View your item</button>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
                               </div>
 
-                              {/* RIGHT SIDE */}
-                              <div className="text-right space-y-1">
-                                <p className="text-sm text-gray-500">
-                                  Order # {order.id}
-                                </p>
-
-                                <span
-                                  className={`inline-block text-xs font-semibold px-3 py-1 rounded-full ${
-                                    order.status === 'PENDING'
-                                      ? 'bg-yellow-100 text-yellow-800'
-                                      : order.status === 'CONFIRMED'
-                                      ? 'bg-blue-100 text-blue-800'
-                                      : order.status === 'DELIVERED'
-                                      ? 'bg-green-100 text-green-800'
-                                      : 'bg-gray-100 text-gray-700'
-                                  }`}
+                              {/* Right Actions Column */}
+                              <div className="lg:w-64 space-y-2">
+                                <button
+                                  onClick={() => navigate(`/account/order/${order.id}`)}
+                                  className="w-full py-2 bg-neutral-100 border border-neutral-300 rounded-lg text-sm font-medium hover:bg-neutral-200 transition-colors shadow-sm"
                                 >
-                                  {order.status}
-                                </span>
+                                  Track package
+                                </button>
+                                <button className="w-full py-2 bg-neutral-100 border border-neutral-300 rounded-lg text-sm font-medium hover:bg-neutral-200 transition-colors shadow-sm">
+                                  Return or replace items
+                                </button>
+                                <button className="w-full py-2 bg-neutral-100 border border-neutral-300 rounded-lg text-sm font-medium hover:bg-neutral-200 transition-colors shadow-sm">
+                                  Share gift receipt
+                                </button>
+                                <button className="w-full py-2 bg-neutral-100 border border-neutral-300 rounded-lg text-sm font-medium hover:bg-neutral-200 transition-colors shadow-sm">
+                                  Leave delivery feedback
+                                </button>
+                                <button className="w-full py-2 bg-neutral-100 border border-neutral-300 rounded-lg text-sm font-medium hover:bg-neutral-200 transition-colors shadow-sm">
+                                  Write a product review
+                                </button>
                               </div>
-
                             </div>
                           </div>
-
-                          {/* Order Tracking Progress */}
-                          {order.status !== 'DELIVERED' && order.status !== 'CANCELLED' && (
-                            <div className="px-4 md:px-6 py-3 bg-yellow-50 border-t border-yellow-200">
-                              <OrderTrackingProgress status={(order.status as 'PENDING' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED') || 'PENDING'} />
-                            </div>
-                          )}
-
-                            {/* Order Items */}
-                            <div className="px-4 md:px-6 py-4 space-y-3">
-                              {order.items.slice(0, 2).map((item, idx) => {
-                                const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-                                const baseUrl = apiBaseUrl.replace('/api', '');
-                                let imageUrl = null;
-
-                                if (Array.isArray(item.product?.imageUrls) && item.product.imageUrls.length > 0) {
-                                  const imgPath = item.product.imageUrls[0];
-                                  imageUrl = imgPath.startsWith('http') ? imgPath : `${baseUrl}${imgPath}`;
-                                }
-
-                                return (
-                                  <div key={idx} className="flex gap-3">
-                                    {imageUrl && (
-                                      <img
-                                        src={imageUrl}
-                                        alt={item.product?.name}
-                                        className="w-14 h-14 object-cover border border-gray-200 rounded"
-                                      />
-                                    )}
-
-                                    <div className="flex-1 text-sm">
-                                      <p className="font-medium text-gray-900">
-                                        {item.product?.name || item.productName}
-                                      </p>
-                                      <p className="text-gray-600 text-xs mt-0.5">
-                                        Qty: {item.quantity} × ₹{item.price}
-                                      </p>
-
-                                      {(item.flavor || item.size) && (
-                                        <p className="text-xs text-gray-500 mt-1">
-                                          {item.flavor && `Flavor: ${item.flavor}`}
-                                          {item.flavor && item.size && ' • '}
-                                          {item.size && `Size: ${item.size}`}
-                                        </p>
-                                      )}
-                                    </div>
-
-                                    <div className="text-sm font-semibold text-gray-900">
-                                      ₹{(item.quantity * item.price).toFixed(2)}
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                              {order.items.length > 2 && (
-                                <p className="text-xs text-gray-600 pt-2 border-t border-gray-100">
-                                  +{order.items.length - 2} more item{order.items.length - 2 > 1 ? 's' : ''}
-                                </p>
-                              )}
-                            </div>
-
-                            {/* Order Actions */}
-                            <div className="border-t border-gray-200 px-4 md:px-6 py-3 flex justify-between items-center gap-3 bg-gray-50">
-                              <button
-                                onClick={() => navigate(`/account/order/${order.id}`)}
-                                className="text-sm font-semibold text-teal-700 hover:text-teal-900 hover:underline"
-                              >
-                                View Details
-                              </button>
-                              <button
-                                onClick={() => handleReorder(order)}
-                                disabled={reorderingOrderId === order.id}
-                                className={`px-4 py-2 rounded text-sm font-semibold transition ${
-                                  reorderingOrderId === order.id
-                                    ? 'bg-gray-200 text-gray-600 cursor-not-allowed'
-                                    : 'bg-yellow-400 hover:bg-yellow-500 text-black'
-                                }`}
-                              >
-                                {reorderingOrderId === order.id ? 'Reordering...' : 'Reorder'}
-                              </button>
-                            </div>
-                          </div>
-                        ))}
-                    </div>
+                        </div>
+                      ))}
 
                     {/* Pagination */}
                     {orders.length > ORDERS_PER_PAGE && (
-                      <div className="flex items-center justify-between bg-white rounded-lg shadow-sm p-4 border border-neutral-200">
-                        <div className="text-sm text-neutral-600">
-                          Showing {(currentOrderPage - 1) * ORDERS_PER_PAGE + 1} to {Math.min(currentOrderPage * ORDERS_PER_PAGE, orders.length)} of {orders.length} orders
-                        </div>
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => setCurrentOrderPage(prev => Math.max(1, prev - 1))}
-                            disabled={currentOrderPage === 1}
-                            className="px-3 py-2 border border-neutral-300 rounded-lg hover:bg-neutral-50 disabled:opacity-50 disabled:cursor-not-allowed transition font-medium text-sm"
-                          >
-                            Previous
-                          </button>
-                          <div className="flex items-center gap-1">
-                            {Array.from({ length: Math.ceil(orders.length / ORDERS_PER_PAGE) }, (_, i) => i + 1).map((page) => (
-                              <button
-                                key={page}
-                                onClick={() => setCurrentOrderPage(page)}
-                                className={`w-10 h-10 rounded-lg font-medium text-sm transition ${
-                                  currentOrderPage === page
-                                    ? 'bg-teal-900 text-white shadow-md'
-                                    : 'border border-neutral-300 hover:bg-neutral-50'
+                      <div className="flex items-center justify-between pt-4">
+                        <button
+                          onClick={() => setCurrentOrderPage(prev => Math.max(1, prev - 1))}
+                          disabled={currentOrderPage === 1}
+                          className="px-4 py-2 border border-neutral-300 rounded-lg hover:bg-neutral-50 disabled:opacity-50 disabled:cursor-not-allowed transition font-medium text-sm"
+                        >
+                          Previous
+                        </button>
+                        <div className="flex items-center gap-2">
+                          {Array.from({ length: Math.ceil(orders.length / ORDERS_PER_PAGE) }, (_, i) => i + 1).map(page => (
+                            <button
+                              key={page}
+                              onClick={() => setCurrentOrderPage(page)}
+                              className={`w-10 h-10 rounded-lg font-medium text-sm transition ${currentOrderPage === page
+                                ? 'bg-teal-900 text-white shadow-md'
+                                : 'border border-neutral-300 hover:bg-neutral-50'
                                 }`}
-                              >
-                                {page}
-                              </button>
-                            ))}
-                          </div>
-                          <button
-                            onClick={() => setCurrentOrderPage(prev => Math.min(Math.ceil(orders.length / ORDERS_PER_PAGE), prev + 1))}
-                            disabled={currentOrderPage === Math.ceil(orders.length / ORDERS_PER_PAGE)}
-                            className="px-3 py-2 border border-neutral-300 rounded-lg hover:bg-neutral-50 disabled:opacity-50 disabled:cursor-not-allowed transition font-medium text-sm"
-                          >
-                            Next
-                          </button>
+                            >
+                              {page}
+                            </button>
+                          ))}
                         </div>
+                        <button
+                          onClick={() => setCurrentOrderPage(prev => Math.min(Math.ceil(orders.length / ORDERS_PER_PAGE), prev + 1))}
+                          disabled={currentOrderPage === Math.ceil(orders.length / ORDERS_PER_PAGE)}
+                          className="px-4 py-2 border border-neutral-300 rounded-lg hover:bg-neutral-50 disabled:opacity-50 disabled:cursor-not-allowed transition font-medium text-sm"
+                        >
+                          Next
+                        </button>
                       </div>
                     )}
-                  </>
+                  </div>
                 ) : (
                   <div className="bg-white rounded-xl shadow-md p-12 text-center border border-neutral-200">
                     <Package className="w-16 h-16 text-neutral-300 mx-auto mb-4" />
@@ -977,7 +1079,6 @@ export const Account: React.FC = () => {
                       Continue Shopping
                     </button>
                   </div>
-                  
                 )}
               </div>
             )}
@@ -985,7 +1086,12 @@ export const Account: React.FC = () => {
         </div>
       </div>
 
-      
+      {/* Invoice Modal */}
+      <BillModal
+        isOpen={isBillModalOpen}
+        onClose={() => setIsBillModalOpen(false)}
+        order={selectedOrderForBill}
+      />
     </div>
   );
 };

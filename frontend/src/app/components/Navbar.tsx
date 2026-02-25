@@ -9,11 +9,14 @@ import {
   ShoppingCart,
   User,
   LogOut,
+  ChevronRight,
+  X
 } from "lucide-react";
 
 import { useCart } from "./context/CartContext";
 import { useAuth } from "./context/AuthContext";
 import { CategoryDropdown } from "./CategoryDropdown";
+import saturnLogo from "../../images/Gemini_Generated_Image_p3uqyop3uqyop3uq.png";
 
 export const Navbar: React.FC = () => {
   const { cartItems } = useCart();
@@ -43,10 +46,9 @@ export const Navbar: React.FC = () => {
   const isActive = (path: string) => location.pathname === path;
 
   const navLinkClass = (path: string) =>
-    `text-sm transition relative pb-1 text-white ${
-      isActive(path)
-        ? "font-medium after:absolute after:left-0 after:-bottom-0.5 after:w-full after:h-[2px] after:bg-white"
-        : "hover:text-neutral-200"
+    `text-sm transition relative pb-1 text-white ${isActive(path)
+      ? "font-medium after:absolute after:left-0 after:-bottom-0.5 after:w-full after:h-[2px] after:bg-white"
+      : "hover:text-neutral-200"
     }`;
 
   /* CLICK OUTSIDE */
@@ -111,257 +113,254 @@ export const Navbar: React.FC = () => {
 
   return (
     <>
-      <nav className="sticky top-0 z-50 bg-teal-900 border-b shadow-sm">
-        <div className="max-w-[1400px] mx-auto px-4 md:px-8">
-          <div className="flex items-center justify-between h-16 gap-2">
-            <Link to="/" className="text-lg md:text-xl font-bold text-white flex-shrink-0">
-              Saturnimports
-            </Link>
+      <nav className="sticky top-0 z-50 transition-all duration-300">
+        {/* DESKTOP NAV - UNTOUCHED */}
+        <div className="hidden lg:block bg-teal-900 border-b shadow-sm">
+          <div className="max-w-[1400px] mx-auto px-8">
+            <div className="flex items-center justify-between h-16 gap-2">
+              <Link to="/" className="flex items-center flex-shrink-0 hover:opacity-90 transition">
+                <img
+                  src={saturnLogo}
+                  alt="Saturn Imports"
+                  className="h-12 w-12 object-contain"
+                />
+              </Link>
 
-            {/* DESKTOP SEARCH */}
-            <div className="hidden md:flex flex-1 mx-8 max-w-[760px]">
-              <div className="flex w-full border rounded-2xl ">
-                <div className="basis-[120px] shrink-0 rounded-l-2xl">
-                  <CategoryDropdown
-                    isOpen={desktopOpen}
-                    setIsOpen={setDesktopOpen}
-                    selectedCategory={selectedCategory}
-                    onSelect={handleCategorySelect}
-                    dropdownRef={desktopDropdownRef}
-                  />
-                </div>
+              {/* DESKTOP SEARCH */}
+              <div className="flex flex-1 mx-8 max-w-[760px]">
+                <div className="flex w-full border border-white/20 rounded-2xl overflow-hidden">
+                  <div className="basis-[120px] shrink-0">
+                    <CategoryDropdown
+                      isOpen={desktopOpen}
+                      setIsOpen={setDesktopOpen}
+                      selectedCategory={selectedCategory}
+                      onSelect={handleCategorySelect}
+                      dropdownRef={desktopDropdownRef}
+                    />
+                  </div>
 
-                <div className="relative flex-1 rounded-r-2xl">
-                  <input
-                    value={searchQuery}
-                    onChange={(e) =>
-                      setSearchQuery(e.target.value)
-                    }
-                    placeholder="Search supplements..."
-                    className="w-full h-11 px-4 pr-10 focus:outline-none bg-white text-neutral-900 placeholder:text-neutral-400 rounded-r-2xl"
-                  />
-                  <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
+                  <div className="relative flex-1 bg-white">
+                    <input
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Search supplements..."
+                      className="w-full h-11 px-4 pr-10 focus:outline-none text-neutral-900 placeholder:text-neutral-400"
+                    />
+                    <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* DESKTOP NAV */}
-            <div className="hidden md:flex items-center gap-6">
-              <Link to="/" className={navLinkClass("/")}>
-                Home
-              </Link>
-              <Link
-                to="/products"
-                className={navLinkClass("/products")}
-              >
-                Products
-              </Link>
-              {isAuthenticated && (
-                <Link to="/account" className={navLinkClass("/account")}>
-                  Orders
+              {/* DESKTOP LINKS */}
+              <div className="flex items-center gap-6">
+                <Link to="/" className={navLinkClass("/")}>Home</Link>
+                <Link to="/products" className={navLinkClass("/products")}>Products</Link>
+                {isAuthenticated && <Link to="/account" className={navLinkClass("/account")}>Orders</Link>}
+                {isAdmin && <Link to="/admin" className={navLinkClass("/admin")}>Admin</Link>}
+
+                <Link to="/cart" className="relative text-white hover:text-neutral-200 transition">
+                  <ShoppingCart className="w-5 h-5" />
+                  {cartItemsCount > 0 && (
+                    <span className="absolute -top-2 -right-2 bg-black text-white text-[10px] rounded-full px-1.5 py-0.5">
+                      {cartItemsCount}
+                    </span>
+                  )}
                 </Link>
-              )}
-              {isAdmin && (
-                <Link
-                  to="/admin"
-                  className={navLinkClass("/admin")}
-                >
-                  Admin
-                </Link>
-                
-              )}
 
-              <Link to="/cart" className="relative text-white hover:text-neutral-200 transition">
-                <ShoppingCart className="w-5 h-5" />
-                {cartItemsCount > 0 && (
-                  <span className="absolute -top-2 -right-2 bg-black text-white text-[10px] rounded-full px-1.5 py-0.5">
-                    {cartItemsCount}
-                  </span>
-                )}
-              </Link>
-
-              {isAuthenticated ? (
-                <>
-                  <Link to="/account" title="My Account" className="text-white hover:text-neutral-200 transition">
+                {isAuthenticated ? (
+                  <div className="flex items-center gap-4">
+                    <Link to="/account" title="My Account" className="text-white hover:text-neutral-200 transition">
+                      <User className="w-5 h-5" />
+                    </Link>
+                    <button
+                      onClick={() => { logout(); navigate('/'); }}
+                      className="text-white hover:text-neutral-200 transition"
+                    >
+                      <LogOut className="w-5 h-5" />
+                    </button>
+                  </div>
+                ) : (
+                  <Link to="/login" className="text-white hover:text-neutral-200 transition">
                     <User className="w-5 h-5" />
                   </Link>
-                  <button 
-                    onClick={() => {
-                      logout();
-                      navigate('/');
-                    }}
-                    title="Logout"
-                    className="text-white hover:text-neutral-200 transition"
-                  >
-                    <LogOut className="w-5 h-5" />
-                  </button>
-                </>
-              ) : (
-                <Link to="/login" title="Login" className="text-white hover:text-neutral-200 transition">
-                  <User className="w-5 h-5" />
-                </Link>
-              )}
+                )}
+              </div>
             </div>
+          </div>
+        </div>
 
-            {/* MOBILE BUTTONS */}
-            <div className="md:hidden flex items-center gap-3 text-white">
-              <Link to="/cart" className="relative hover:text-neutral-200 transition">
-                <ShoppingCart className="w-5 h-5" />
+        {/* MOBILE NAV - PREMIUM REDESIGN */}
+        <div className="lg:hidden bg-[#003D45] border-b border-white/5 shadow-lg">
+          <div className="px-4">
+            {/* Top Bar */}
+            <div className="flex items-center justify-between h-16">
+              {/* Left: Menu Toggle */}
+              <button
+                onClick={() => setIsMenuOpen(true)}
+                className="w-10 h-10 flex items-center justify-center bg-white/5 rounded-xl active:scale-90 transition-all border border-white/10"
+              >
+                <div className="w-5 h-4 flex flex-col justify-between">
+                  <span className="h-0.5 w-full bg-white rounded-full" />
+                  <span className="h-0.5 w-3/4 bg-white rounded-full" />
+                  <span className="h-0.5 w-full bg-white rounded-full" />
+                </div>
+              </button>
+
+              {/* Center: Logo */}
+              <Link to="/" className="flex items-center gap-2">
+                <img src={saturnLogo} alt="Logo" className="h-9 w-9 object-contain" />
+                <span className="text-white font-black text-sm tracking-tighter uppercase italic">
+                  SATURN<span className="text-teal-400 not-italic">IMPORTS</span>
+                </span>
+              </Link>
+
+              {/* Right: Cart */}
+              <Link
+                to="/cart"
+                className="w-10 h-10 flex items-center justify-center bg-white/5 rounded-xl active:scale-90 transition-all border border-white/10 relative"
+              >
+                <ShoppingCart className="w-5 h-5 text-white" />
                 {cartItemsCount > 0 && (
-                  <span className="absolute -top-2 -right-2 bg-black text-white text-[10px] rounded-full px-1 py-0.5">
+                  <span className="absolute -top-1 -right-1 bg-teal-400 text-[#003D45] text-[10px] font-black rounded-full w-5 h-5 flex items-center justify-center border-2 border-[#003D45] animate-in zoom-in">
                     {cartItemsCount}
                   </span>
                 )}
               </Link>
+            </div>
 
-              {/* Hamburger Menu with Animation */}
-              <button 
-                onClick={() => setIsMenuOpen(!isMenuOpen)}
-                className="p-1 hover:bg-teal-800 rounded transition"
-                aria-label="Menu"
-              >
-                <div className="w-6 h-5 flex flex-col justify-between relative">
-                  <span
-                    className={`h-0.5 w-full bg-white rounded-full transition-all duration-300 ${
-                      isMenuOpen ? "rotate-45 absolute top-1/2 -translate-y-1/2" : ""
-                    }`}
-                  />
-                  <span
-                    className={`h-0.5 w-full bg-white rounded-full transition-all duration-300 ${
-                      isMenuOpen ? "opacity-0" : ""
-                    }`}
-                  />
-                  <span
-                    className={`h-0.5 w-full bg-white rounded-full transition-all duration-300 ${
-                      isMenuOpen ? "-rotate-45 absolute top-1/2 -translate-y-1/2" : ""
-                    }`}
+            {/* Bottom: Search Bar */}
+            <div className="pb-4">
+              <div className="flex gap-2 bg-white/10 p-1 rounded-[1.25rem] border border-white/10 group focus-within:bg-white/15 transition-all">
+                <div className="basis-[75px] shrink-0">
+                  <CategoryDropdown
+                    isOpen={mobileOpen}
+                    setIsOpen={setMobileOpen}
+                    selectedCategory={selectedCategory}
+                    onSelect={handleCategorySelect}
+                    dropdownRef={mobileDropdownRef}
+                    rounded="rounded-xl"
+                    transparent
                   />
                 </div>
-              </button>
-            </div>
-          </div>
-
-          {/* MOBILE SEARCH */}
-          <div className="md:hidden pb-4">
-            <div className="flex gap-2 border rounded-xl overflow-hidden">
-              <div className="basis-[80px] shrink-0">
-                <CategoryDropdown
-                  isOpen={mobileOpen}
-                  setIsOpen={setMobileOpen}
-                  selectedCategory={selectedCategory}
-                  onSelect={handleCategorySelect}
-                  dropdownRef={mobileDropdownRef}
-                  rounded="rounded-l-xl"
-                />
-              </div>
-
-              <div className="relative flex-1">
-                <input
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search..."
-                  className="w-full h-11 px-3 pr-9 focus:outline-none bg-white text-neutral-900 placeholder:text-neutral-400 text-sm"
-                />
-                <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
+                <div className="relative flex-1">
+                  <input
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search elite nutrition..."
+                    className="w-full h-10 px-3 pr-10 bg-transparent text-white placeholder:text-white/40 text-xs font-bold focus:outline-none"
+                  />
+                  <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-teal-400" />
+                </div>
               </div>
             </div>
           </div>
         </div>
       </nav>
 
-      {/* MOBILE MENU MODAL */}
-      {isMenuOpen && (
-        <>
-          {/* Overlay */}
-          <div 
-            className="fixed inset-0 bg-black/50 z-40 md:hidden"
-            onClick={() => setIsMenuOpen(false)}
-            style={{ top: "64px" }}
-          />
+      {/* MOBILE DRAWER */}
+      <div className={`fixed inset-0 z-[100] lg:hidden transition-all duration-500 ${isMenuOpen ? "visible" : "invisible"}`}>
+        {/* Backdrop */}
+        <div
+          className={`absolute inset-0 bg-[#001A1D]/80 backdrop-blur-md transition-opacity duration-500 ${isMenuOpen ? "opacity-100" : "opacity-0"}`}
+          onClick={() => setIsMenuOpen(false)}
+        />
 
-          {/* Menu Panel */}
-          <div className="fixed left-0 right-0 top-16 bg-teal-800 z-40 md:hidden shadow-lg animate-in slide-in-from-top-2 duration-200">
-            <div className="max-w-[1400px] mx-auto px-4 py-4 space-y-1">
+        {/* Panel */}
+        <div className={`absolute left-0 top-0 bottom-0 w-[85%] max-w-[340px] bg-white shadow-2xl transition-transform duration-500 cubic-bezier(0.4, 0, 0.2, 1) ${isMenuOpen ? "translate-x-0" : "-translate-x-full"}`}>
+          <div className="flex flex-col h-full">
+            {/* Header */}
+            <div className="p-6 bg-[#003D45] text-white">
+              <div className="flex items-center justify-between mb-8">
+                <img src={saturnLogo} alt="Logo" className="h-10 w-10 ring-4 ring-white/10 rounded-full" />
+                <button
+                  onClick={() => setIsMenuOpen(false)}
+                  className="w-10 h-10 flex items-center justify-center bg-white/10 rounded-full active:rotate-90 transition-transform"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-60 mb-1">Welcome to</p>
+                <h3 className="text-xl font-black tracking-tighter uppercase italic">
+                  SATURN<span className="text-teal-400 not-italic">IMPORTS</span>
+                </h3>
+              </div>
+            </div>
+
+            {/* Links */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-2">
+              <p className="px-4 py-2 text-[10px] font-black text-[#003D45]/40 uppercase tracking-widest">Navigation</p>
+
               <button
                 onClick={() => handleMenuItemClick("/")}
-                className={`w-full text-left px-4 py-3 rounded-lg transition ${
-                  isActive("/")
-                    ? "bg-teal-700 text-white font-medium"
-                    : "text-white hover:bg-teal-700"
-                }`}
+                className={`w-full flex items-center justify-between px-4 py-4 rounded-2xl transition-all ${isActive("/") ? "bg-[#003D45] text-white shadow-lg" : "text-[#003D45] hover:bg-[#003D45]/5"}`}
               >
-                Home
+                <span className="font-black text-sm">Dashboard</span>
+                <ChevronRight className={`w-4 h-4 ${isActive("/") ? "text-teal-400" : "opacity-20"}`} />
               </button>
 
               <button
                 onClick={() => handleMenuItemClick("/products")}
-                className={`w-full text-left px-4 py-3 rounded-lg transition ${
-                  isActive("/products")
-                    ? "bg-teal-700 text-white font-medium"
-                    : "text-white hover:bg-teal-700"
-                }`}
+                className={`w-full flex items-center justify-between px-4 py-4 rounded-2xl transition-all ${isActive("/products") ? "bg-[#003D45] text-white shadow-lg" : "text-[#003D45] hover:bg-[#003D45]/5"}`}
               >
-                Products
+                <span className="font-black text-sm">Products</span>
+                <ChevronRight className={`w-4 h-4 ${isActive("/products") ? "text-teal-400" : "opacity-20"}`} />
               </button>
 
               {isAuthenticated && (
                 <button
                   onClick={() => handleMenuItemClick("/account")}
-                  className={`w-full text-left px-4 py-3 rounded-lg transition ${
-                    isActive("/account")
-                      ? "bg-teal-700 text-white font-medium"
-                      : "text-white hover:bg-teal-700"
-                  }`}
+                  className={`w-full flex items-center justify-between px-4 py-4 rounded-2xl transition-all ${isActive("/account") ? "bg-[#003D45] text-white shadow-lg" : "text-[#003D45] hover:bg-[#003D45]/5"}`}
                 >
-                  Orders
+                  <span className="font-black text-sm">Tracking & Orders</span>
+                  <ChevronRight className={`w-4 h-4 ${isActive("/account") ? "text-teal-400" : "opacity-20"}`} />
                 </button>
               )}
 
-              <div className="border-t border-teal-700 my-2 pt-2" />
+              <div className="h-px bg-neutral-100 my-4" />
+              <p className="px-4 py-2 text-[10px] font-black text-[#003D45]/40 uppercase tracking-widest">Account Profile</p>
 
               {isAuthenticated ? (
                 <>
                   <button
                     onClick={() => handleMenuItemClick("/account")}
-                    className={`w-full text-left px-4 py-3 rounded-lg transition flex items-center gap-3 ${
-                      isActive("/account")
-                        ? "bg-teal-700 text-white font-medium"
-                        : "text-white hover:bg-teal-700"
-                    }`}
+                    className="w-full flex items-center gap-4 px-4 py-4 rounded-2xl text-[#003D45] hover:bg-[#003D45]/5 transition-all"
                   >
-                    <User className="w-4 h-4" />
-                    My Account
+                    <div className="w-8 h-8 bg-teal-50 rounded-lg flex items-center justify-center">
+                      <User className="w-4 h-4 text-[#003D45]" />
+                    </div>
+                    <span className="font-black text-sm">Profile Details</span>
                   </button>
-
                   <button
-                    onClick={() => {
-                      logout();
-                      setIsMenuOpen(false);
-                      navigate("/");
-                    }}
-                    className="w-full text-left px-4 py-3 rounded-lg transition text-white hover:bg-teal-700 flex items-center gap-3"
+                    onClick={() => { logout(); setIsMenuOpen(false); navigate('/'); }}
+                    className="w-full flex items-center gap-4 px-4 py-4 rounded-2xl text-rose-500 hover:bg-rose-50 transition-all mt-4"
                   >
-                    <LogOut className="w-4 h-4" />
-                    Logout
+                    <div className="w-8 h-8 bg-rose-50 rounded-lg flex items-center justify-center">
+                      <LogOut className="w-4 h-4" />
+                    </div>
+                    <span className="font-black text-sm uppercase tracking-tighter">Secure Logout</span>
                   </button>
                 </>
               ) : (
                 <button
                   onClick={() => handleMenuItemClick("/login")}
-                  className={`w-full text-left px-4 py-3 rounded-lg transition flex items-center gap-3 ${
-                    isActive("/login")
-                      ? "bg-teal-700 text-white font-medium"
-                      : "text-white hover:bg-teal-700"
-                  }`}
+                  className="w-full flex items-center gap-4 px-4 py-4 rounded-2xl text-[#003D45] border-2 border-[#003D45]/10 hover:bg-[#003D45]/5 transition-all"
                 >
-                  <User className="w-4 h-4" />
-                  Login
+                  <div className="w-8 h-8 bg-teal-50 rounded-lg flex items-center justify-center">
+                    <User className="w-4 h-4 text-[#003D45]" />
+                  </div>
+                  <span className="font-black text-sm">Sign In / Join Now</span>
                 </button>
               )}
             </div>
+
+            {/* Footer */}
+            <div className="p-8 text-center bg-neutral-50 border-t border-neutral-100">
+              <p className="text-[9px] font-black text-[#003D45]/30 uppercase tracking-[0.3em]">Elite Supplement Gear</p>
+            </div>
           </div>
-        </>
-      )}
+        </div>
+      </div>
     </>
   );
 };

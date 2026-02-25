@@ -197,95 +197,95 @@ export const OrderDetail: React.FC = () => {
           })}
         </div>
 
-          {/* Order Summary */}
-          <div className="bg-white border rounded p-4 text-sm mb-6">
-            <p className="font-semibold mb-3">Order Summary</p>
+        {/* Order Summary */}
+        <div className="bg-white border rounded p-4 text-sm mb-6">
+          <p className="font-semibold mb-3">Order Summary</p>
 
-            {/* Totals */}
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <span>Subtotal</span>
-                <span>
-                  ₹{order.items
-                    .reduce((sum, i) => sum + i.price * i.quantity, 0)
-                    .toFixed(2)}
-                </span>
-              </div>
-
-              {order.discountAmount > 0 && (
-                <div className="flex justify-between text-green-600">
-                  <span>Discount</span>
-                  <span>- ₹{order.discountAmount.toFixed(2)}</span>
-                </div>
-              )}
-
-              <div className="border-t pt-2 flex justify-between font-semibold">
-                <span>Total</span>
-                <span>₹{order.totalAmount.toFixed(2)}</span>
-              </div>
+          {/* Totals */}
+          <div className="space-y-2">
+            <div className="flex justify-between">
+              <span>Subtotal</span>
+              <span>
+                ₹{order.items
+                  .reduce((sum, i) => sum + i.price * i.quantity, 0)
+                  .toFixed(2)}
+              </span>
             </div>
 
-            {/* Cancellation Action */}
-            {!cancellationRequest && order.status !== 'CANCELLED' && (
-              <>
-                <div className="mt-3 border-t" />
-                <button
-                  onClick={() => navigate(`/request-cancellation/${orderId}`)}
-                  className="mt-2 text-xs text-neutral-500 hover:text-neutral-700 hover:underline flex items-center gap-1 print:hidden"
-                >
-                  Request order cancellation →
-                </button>
-              </>
+            {order.discountAmount > 0 && (
+              <div className="flex justify-between text-green-600">
+                <span>Discount</span>
+                <span>- ₹{order.discountAmount.toFixed(2)}</span>
+              </div>
             )}
 
-            {/* Cancellation Status */}
-            {cancellationRequest && (
-              <>
-                <div className="mt-3 border-t" />
-                <div className="mt-3 bg-yellow-50 border rounded p-3 text-xs">
-                  <p className="font-medium text-yellow-900">
-                    Cancellation request submitted
-                  </p>
-                  <p className="text-yellow-700 mt-0.5">
-                    Status: <span className="font-semibold">{cancellationRequest.status}</span>
-                  </p>
-
-                  <button
-                    onClick={() => navigate(`/cancellation-ticket/${orderId}`)}
-                    className="flex items-center gap-1 text-blue-600 mt-2 hover:underline"
-                  >
-                    <FileText className="w-3 h-3" />
-                    View ticket
-                  </button>
-                </div>
-              </>
-            )}
+            <div className="border-t pt-2 flex justify-between font-semibold">
+              <span>Total</span>
+              <span>₹{order.totalAmount.toFixed(2)}</span>
+            </div>
           </div>
 
-          {/* Order Tracking Timeline */}
-          <OrderTrackingTimeline 
-            status={(order.status as 'PENDING' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED') || 'PENDING'} 
-            createdAt={order.createdAt}
-            shippedAt={order.shippedAt}
-            deliveredAt={order.deliveredAt}
-          />
-
-          {/* Footer */}
-          <div className="px-6 md:px-8 py-4 bg-neutral-100 border-t border-neutral-200 text-center text-xs text-neutral-600 max-w-4xl mx-auto">
-            <p>
-              Thank you for your order! For any queries, please{" "}
-              <a
-                href="/contact"
-                className="text-teal-700 font-semibold hover:underline"
+          {/* Cancellation Action */}
+          {!cancellationRequest && order.status !== 'CANCELLED' && (
+            <>
+              <div className="mt-3 border-t" />
+              <button
+                onClick={() => navigate(`/request-cancellation/${orderId}`)}
+                className="mt-2 text-xs text-neutral-500 hover:text-neutral-700 hover:underline flex items-center gap-1 print:hidden"
               >
-                contact us
-              </a>
-              .
-            </p>
+                Request order cancellation →
+              </button>
+            </>
+          )}
+
+          {/* Cancellation Status */}
+          {cancellationRequest && (
+            <>
+              <div className="mt-3 border-t" />
+              <div className="mt-3 bg-yellow-50 border rounded p-3 text-xs">
+                <p className="font-medium text-yellow-900">
+                  Cancellation request submitted
+                </p>
+                <p className="text-yellow-700 mt-0.5">
+                  Status: <span className="font-semibold">{cancellationRequest.status}</span>
+                </p>
+
+                <button
+                  onClick={() => navigate(`/cancellation-ticket/${orderId}`)}
+                  className="flex items-center gap-1 text-blue-600 mt-2 hover:underline"
+                >
+                  <FileText className="w-3 h-3" />
+                  View ticket
+                </button>
+              </div>
+            </>
+          )}
         </div>
 
-      </div>    
+        {/* Order Tracking Timeline */}
+        <OrderTrackingTimeline
+          status={(order.status as 'PENDING' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED') || 'PENDING'}
+          createdAt={order.createdAt}
+          shippedAt={order.shippedAt}
+          deliveredAt={order.deliveredAt}
+        />
+
+        {/* Footer */}
+        <div className="px-6 md:px-8 py-4 bg-neutral-100 border-t border-neutral-200 text-center text-xs text-neutral-600 max-w-4xl mx-auto">
+          <p>
+            Thank you for your order! For any queries, please{" "}
+            <a
+              href="/contact"
+              className="text-teal-700 font-semibold hover:underline"
+            >
+              contact us
+            </a>
+            .
+          </p>
+        </div>
+
+      </div>
     </div>
-    
+
   );
 };
