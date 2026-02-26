@@ -16,6 +16,7 @@ import { AdminOrders } from "../components/AdminOrders";
 import { AdminCancellationRequests } from "../components/AdminCancellationRequests";
 import { AdminRefundStatus } from "../components/AdminRefundStatus";
 import { AdminLayout } from "../components/AdminLayout";
+import { AdminCouponManagement } from "../components/AdminCoupon";
 import { OrderCancellationService } from "../../services/orderCancellationService";
 
 // Helper function to get full image URL
@@ -46,8 +47,8 @@ const EMPTY_FORM: Partial<Product> = {
 
 export const Admin: React.FC = () => {
   // Initialize activeTab from localStorage, default to "orders"
-  const [activeTabState, setActiveTabState] = useState<"products" | "orders" | "cancellations" | "cancelled-orders" | "refunds">(
-    (localStorage.getItem("adminActiveTab") as "products" | "orders" | "cancellations" | "cancelled-orders" | "refunds") || "orders"
+  const [activeTabState, setActiveTabState] = useState<"products" | "orders" | "cancellations" | "cancelled-orders" | "refunds" | "coupons">(
+    (localStorage.getItem("adminActiveTab") as "products" | "orders" | "cancellations" | "cancelled-orders" | "refunds" | "coupons") || "orders"
   );
   
   // Initialize cancellation type from localStorage, default to "all"
@@ -1153,6 +1154,13 @@ export const Admin: React.FC = () => {
       {activeTab === "refunds" && (
         <div>
           <AdminRefundStatus refreshTrigger={refundRefreshTrigger} />
+        </div>
+      )}
+
+      {/* COUPONS TAB */}
+      {activeTab === "coupons" && (
+        <div>
+          <AdminCouponManagement />
         </div>
       )}
     </AdminLayout>

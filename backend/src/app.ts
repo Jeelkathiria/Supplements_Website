@@ -11,6 +11,7 @@ import adminOrders from "./routes/adminOrders";
 import userRoutes from "./routes/user";
 import imageRoutes from "./routes/imageRoutes";
 import paymentRoutes from "./routes/payment";
+import couponRoutes from "./routes/couponRoutes";
 import orderCancellationRoutes from "./routes/orderCancellationRoutes";
 import refundRoutes from "./routes/refundRoutes";
 import testRoutes from "./routes/testRoutes";
@@ -212,6 +213,9 @@ app.use("/api/images", imageRoutes);
 
 // Payments
 app.use("/api/payment", paymentRoutes);
+
+// Coupons
+app.use("/api/coupons", couponRoutes);
 
 // Test Routes (for debugging - requires auth)
 app.use("/api/test", requireAuth, testRoutes);

@@ -175,6 +175,7 @@ exports.Prisma.OrderScalarFieldEnum = {
   discount: 'discount',
   paymentMethod: 'paymentMethod',
   addressId: 'addressId',
+  couponCode: 'couponCode',
   createdAt: 'createdAt',
   shippedAt: 'shippedAt',
   deliveredAt: 'deliveredAt',
@@ -253,6 +254,36 @@ exports.Prisma.UserScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.CouponScalarFieldEnum = {
+  id: 'id',
+  code: 'code',
+  trainerName: 'trainerName',
+  trainerId: 'trainerId',
+  discountPercent: 'discountPercent',
+  discountType: 'discountType',
+  isActive: 'isActive',
+  maxUses: 'maxUses',
+  usageCount: 'usageCount',
+  expiryDate: 'expiryDate',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  createdBy: 'createdBy'
+};
+
+exports.Prisma.AppliedCouponScalarFieldEnum = {
+  id: 'id',
+  couponId: 'couponId',
+  orderId: 'orderId',
+  userId: 'userId',
+  discountAmount: 'discountAmount',
+  trainerName: 'trainerName',
+  trainerId: 'trainerId',
+  appliedDate: 'appliedDate',
+  commissionNote: 'commissionNote',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -297,7 +328,9 @@ exports.Prisma.ModelName = {
   Address: 'Address',
   OrderCancellationRequest: 'OrderCancellationRequest',
   OrderRefund: 'OrderRefund',
-  User: 'User'
+  User: 'User',
+  Coupon: 'Coupon',
+  AppliedCoupon: 'AppliedCoupon'
 };
 
 /**

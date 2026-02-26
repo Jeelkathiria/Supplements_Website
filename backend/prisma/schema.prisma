@@ -103,6 +103,10 @@ model Order {
   addressId String?
   address   OrderAddress? @relation(fields: [addressId], references: [id])
 
+  // Coupon tracking
+  couponCode    String?         // Store the coupon code used
+  appliedCoupon AppliedCoupon?  // Link to applied coupon record
+  
   cancellationRequest OrderCancellationRequest?
   refund              OrderRefund?
 
@@ -112,6 +116,7 @@ model Order {
   updatedAt  DateTime  @updatedAt
 
   @@index([userId])
+  @@index([couponCode])
 }
 
 model OrderItem {
@@ -249,4 +254,87 @@ model User {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+/**
+ * ================= COUPON CODE SYSTEM =================
+ */
+
+/**
+ * Coupon Model - Stores coupon code definitions
+ * Created by admin with trainer/influencer name
+ * Can be used multiple times but tracks each usage
+ */
+model Coupon {
+  id              String  @id @default(uuid())
+  
+  // Coupon code (e.g., "TRAINER_JOHN_10" or "INFLUENCER_SARAH_10")
+  code            String  @unique
+  
+  // Trainer/Influencer name for identification
+  trainerName     String  // e.g., "John", "Sarah"
+  trainerId       String? // Optional: link to trainer account if available
+  
+  // Discount configuration
+  discountPercent Float   @default(10) // Fixed 10% or customizable
+  discountType    String  @default("percent") // "percent" or "fixed" for future use
+  
+  // Validity and status
+  isActive        Boolean @default(true)
+  maxUses         Int?    // Max times code can be used (null = unlimited)
+  usageCount      Int     @default(0) // Track current usage count
+  
+  expiryDate      DateTime? // Optional: code expiration date
+  
+  // Applied coupons
+  appliedCoupons  AppliedCoupon[]
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  createdBy       String  // Admin user ID who created this
+  
+  @@index([code])
+  @@index([isActive])
+  @@index([trainerName])
+}
+
+/**
+ * AppliedCoupon Model - Tracks each time a coupon is used
+ * Used for reporting and commission calculations
+ */
+model AppliedCoupon {
+  id              String  @id @default(uuid())
+  
+  // Link to coupon definition
+  couponId        String
+  coupon          Coupon  @relation(fields: [couponId], references: [id], onDelete: Cascade)
+  
+  // Link to order where coupon was applied
+  orderId         String  @unique
+  order           Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  
+  // User who applied the coupon
+  userId          String
+  
+  // Discount amount that was applied
+  discountAmount  Float   // Calculated: (order total * couponPercent) / 100
+  
+  // Trainer information for easy reporting
+  trainerName     String  // Copied from coupon for historical record
+  trainerId       String? // Optional: trainer ID
+  
+  // Application timestamp
+  appliedDate     DateTime @default(now())
+  
+  // For commission calculation (offline)
+  commissionNote  String? // e.g., "10% discount = $X commission"
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@index([couponId])
+  @@index([orderId])
+  @@index([userId])
+  @@index([trainerName])
+  @@index([appliedDate])
 }

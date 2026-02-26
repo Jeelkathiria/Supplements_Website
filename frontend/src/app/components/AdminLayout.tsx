@@ -6,10 +6,11 @@ import {
   ChevronRight,
   Video,
   RotateCcw,
+  Gift,
 } from "lucide-react";
 
 type OrderStatus = "pending" | "shipped" | "delivered" | "all" ;
-type AdminSection = "products" | "orders" | "cancellations" | "cancelled-orders" | "refunds";
+type AdminSection = "products" | "orders" | "cancellations" | "cancelled-orders" | "refunds" | "coupons";
 type CancellationType = "all" | "after-delivery" | "pre-delivery";
 
 interface AdminLayoutProps {
@@ -184,6 +185,15 @@ export function AdminLayout({
             collapsed={collapsed}
             active={activeSection === "refunds"}
             onClick={() => onSectionChange("refunds")}
+          />
+
+          {/* Coupons */}
+          <NavItem
+            icon={<Gift size={18} />}
+            label="Coupons"
+            collapsed={collapsed}
+            active={activeSection === "coupons"}
+            onClick={() => onSectionChange("coupons")}
           />
 
           {/* Products */}

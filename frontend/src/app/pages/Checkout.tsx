@@ -4,6 +4,7 @@ import { MapPin, Loader, AlertCircle, Check, Plus, HandHeart } from 'lucide-reac
 import { useCart } from '../components/context/CartContext';
 import { useAuth } from '../components/context/AuthContext';
 import { toast } from 'sonner';
+import { CheckoutCouponInput } from '../components/CheckoutCouponInput';
 
 import * as checkoutService from '../../services/checkoutService';
 import * as orderService from '../../services/orderService';
@@ -121,6 +122,8 @@ export const Checkout: React.FC = () => {
 
   // State management
   const [checkoutData, setCheckoutData] = useState<CheckoutData | null>(null);
+  const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
+  const [couponDiscount, setCouponDiscount] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -718,13 +721,31 @@ export const Checkout: React.FC = () => {
                         </div>
                       )}
 
-                      {/* Subtotal after discount */}
-                      <div className="flex justify-between font-semibold text-gray-900 border-t pt-2">
-                        <span>Subtotal</span>
-                        <span>
-                          ₹{checkoutData.cart.totals.subtotal.toFixed(2)}
-                        </span>
+                      {/* Coupon Discount */}
+                      {couponDiscount > 0 && (
+                        <div className="flex justify-between text-green-600 font-semibold">
+                          <span>Coupon Discount</span>
+                          <span>-₹{couponDiscount.toFixed(2)}</span>
+                        </div>
+                      )}
+
+                      {/* Coupon Input */}
+                      <div className="mt-4 pt-4 border-t border-gray-200">
+                        <CheckoutCouponInput
+                          cartTotal={checkoutData.cart.totals.subtotal}
+                          onCouponApplied={(couponData) => {
+                            setAppliedCoupon(couponData);
+                            setCouponDiscount(couponData.discountAmount);
+                            toast.success(`✅ Coupon applied: ${couponData.code}`);
+                          }}
+                          onCouponRemoved={() => {
+                            setAppliedCoupon(null);
+                            setCouponDiscount(0);
+                          }}
+                        />
                       </div>
+
+
                     </div>
                   )}
 
@@ -732,7 +753,7 @@ export const Checkout: React.FC = () => {
                   <div className="flex justify-between text-lg font-bold text-gray-900">
                     <span>Total Amount</span>
                     <span className="text-blue-600">
-                      ₹{checkoutData?.cart.totals.grandTotal.toFixed(2) ?? '0.00'}
+                      ₹{(checkoutData?.cart.totals.grandTotal - couponDiscount).toFixed(2) ?? '0.00'}
                     </span>
                   </div>
 
