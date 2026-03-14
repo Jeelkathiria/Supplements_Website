@@ -68,7 +68,7 @@ export const placeOrder = async (req: AuthRequest, res: Response) => {
       return res.status(401).json({ message: "User not authenticated" });
     }
 
-    const { addressId, paymentMethod } = req.body;
+    const { addressId, paymentMethod, couponCode, couponDiscount } = req.body;
 
     if (!addressId) {
       console.log("Address ID missing");
@@ -76,8 +76,15 @@ export const placeOrder = async (req: AuthRequest, res: Response) => {
     }
 
     console.log("Placing order for user:", userId, "with address:", addressId, "payment method:", paymentMethod);
+    console.log("Coupon Code:", couponCode, "Coupon Discount:", couponDiscount);
 
-    const order = await orderService.placeOrderFromCart(userId, addressId, paymentMethod || 'cod');
+    const order = await orderService.placeOrderFromCart(
+      userId,
+      addressId,
+      paymentMethod || 'cod',
+      couponCode,
+      couponDiscount
+    );
 
     if (!order) {
       return res.status(400).json({ error: "Failed to create order" });

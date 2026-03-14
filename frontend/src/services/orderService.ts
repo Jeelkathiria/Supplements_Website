@@ -8,6 +8,18 @@ export interface Order {
   gstAmount: number;
   discountAmount: number;
   paymentMethod?: string;
+  couponCode?: string;
+  appliedCoupon?: {
+    id: string;
+    couponId: string;
+    orderId: string;
+    userId: string;
+    discountAmount: number;
+    trainerName: string;
+    trainerId?: string;
+    appliedDate: string;
+    commissionNote?: string;
+  };
   items: Array<{
     id: string;
     productId: string;
@@ -17,6 +29,11 @@ export interface Order {
     size?: string;
     product: any;
     productName?: string;
+    // Product snapshot fields
+    productName: string;
+    basePrice: number;
+    discountPercent: number;
+    imageUrl?: string;
   }>;
   address: {
     id: string;
@@ -42,10 +59,19 @@ export interface Order {
  * Place an order from user's cart with selected address
  * Automatically clears the cart after successful order creation
  */
-export const placeOrder = async (addressId: string, paymentMethod: string = 'cod'): Promise<Order> => {
+export const placeOrder = async (
+  addressId: string,
+  paymentMethod: string = 'cod',
+  couponCode?: string,
+  couponDiscount?: number
+): Promise<Order> => {
+  const payload: any = { addressId, paymentMethod };
+  if (couponCode) payload.couponCode = couponCode;
+  if (couponDiscount) payload.couponDiscount = couponDiscount;
+  
   return apiCall<Order>('/orders/place', {
     method: 'POST',
-    body: JSON.stringify({ addressId, paymentMethod }),
+    body: JSON.stringify(payload),
   });
 };
 

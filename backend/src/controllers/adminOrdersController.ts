@@ -31,7 +31,8 @@ export const getAllOrders = async (_req: Request, res: Response) => {
             }
           }
         },
-        address: true
+        address: true,
+        appliedCoupon: true
       }
     });
 
@@ -95,7 +96,8 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
             }
           }
         },
-        address: true
+        address: true,
+        appliedCoupon: true
       }
     });
 

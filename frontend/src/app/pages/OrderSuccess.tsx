@@ -176,17 +176,18 @@ export const OrderSuccess: React.FC = () => {
                 const apiBaseUrl =
                   import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
                 const baseUrl = apiBaseUrl.replace('/api', '');
-                const imageUrl = item.product?.imageUrls?.[0]
-                  ? item.product.imageUrls[0].startsWith('http')
-                    ? item.product.imageUrls[0]
-                    : `${baseUrl}${item.product.imageUrls[0]}`
+                
+                // Use stored product snapshot data instead of fetching current product
+                const imageUrl = item.imageUrl
+                  ? item.imageUrl.startsWith('http')
+                    ? item.imageUrl
+                    : `${baseUrl}${item.imageUrl}`
                   : null;
 
                 const itemTotal = item.price * item.quantity;
-                const savings =
-                  item.product.discountPercent > 0
-                    ? (item.product.basePrice - item.price) * item.quantity
-                    : 0;
+                const savings = item.discountPercent > 0
+                  ? (item.basePrice - item.price) * item.quantity
+                  : 0;
 
                 return (
                   <div
@@ -197,14 +198,14 @@ export const OrderSuccess: React.FC = () => {
                     {imageUrl && (
                       <img
                         src={imageUrl}
-                        alt={item.product.name}
+                        alt={item.productName}
                         className="w-20 h-20 object-cover border rounded-md"
                       />
                     )}
 
                     {/* Product Details */}
                     <div className="flex-1 space-y-1">
-                      <p className="font-semibold text-gray-900">{item.product.name}</p>
+                      <p className="font-semibold text-gray-900">{item.productName}</p>
 
                       <div className="flex flex-wrap gap-2 text-xs text-gray-500">
                         <span>Qty: {item.quantity}</span>
@@ -234,15 +235,30 @@ export const OrderSuccess: React.FC = () => {
               })}
             </div>
 
-            {/* Total Section */}
-            <div className="mt-4 pt-4 border-t border-dashed border-gray-300 flex justify-between font-bold text-gray-900 text-sm">
-              <span>Total</span>
-              <span>
-                ₹
-                {order.items
-                  .reduce((sum, item) => sum + item.price * item.quantity, 0)
-                  .toFixed(0)}
-              </span>
+            {/* Price Breakdown Section */}
+            <div className="mt-4 pt-4 border-t border-dashed border-gray-300 space-y-2">
+              {/* Subtotal */}
+              <div className="flex justify-between text-gray-900 text-sm">
+                <span>Subtotal</span>
+                <span>
+                  ₹
+                  {(order.totalAmount + (order.discountAmount || 0)).toFixed(0)}
+                </span>
+              </div>
+
+              {/* Coupon Discount */}
+              {order.discountAmount > 0 && (
+                <div className="flex justify-between text-green-600 font-semibold text-sm">
+                  <span>Coupon Discount</span>
+                  <span>-₹{order.discountAmount.toFixed(0)}</span>
+                </div>
+              )}
+
+              {/* Final Total */}
+              <div className="flex justify-between font-bold text-gray-900 text-sm pt-2 border-t border-dashed border-gray-300">
+                <span>Total</span>
+                <span>₹{order.totalAmount.toFixed(0)}</span>
+              </div>
             </div>
 
             {/* Footer Note */}
@@ -285,12 +301,12 @@ export const OrderSuccess: React.FC = () => {
               <div className="space-y-3 pb-4 border-b mb-4">
                 <div className="flex justify-between text-gray-600">
                   <span>Subtotal</span>
-                  <span>₹{order.totalAmount.toFixed(0)}</span>
+                  <span>₹{(order.totalAmount + (order.discountAmount || 0)).toFixed(0)}</span>
                 </div>
 
                 {order.discountAmount > 0 && (
-                  <div className="flex justify-between text-green-600">
-                    <span>Discount</span>
+                  <div className="flex justify-between text-green-600 font-semibold">
+                    <span>Coupon Discount</span>
                     <span>-₹{order.discountAmount.toFixed(0)}</span>
                   </div>
                 )}

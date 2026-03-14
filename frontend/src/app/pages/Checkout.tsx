@@ -247,11 +247,18 @@ export const Checkout: React.FC = () => {
       // Handle payment based on selected method
       if (paymentMethod === 'cod') {
         // COD - Create order immediately (payment on delivery)
-        const createdOrder = await orderService.placeOrder(selectedAddressId, paymentMethod);
+        const createdOrder = await orderService.placeOrder(
+          selectedAddressId,
+          paymentMethod,
+          appliedCoupon?.code,
+          couponDiscount
+        );
         
         console.log('=== COD ORDER PLACEMENT ===');
         console.log('Created Order:', createdOrder);
         console.log('Order ID:', createdOrder?.id);
+        console.log('Coupon Code:', appliedCoupon?.code);
+        console.log('Coupon Discount:', couponDiscount);
 
         // COD - Show success toast and add delay for animation
         toast.success('Order placed successfully!');
@@ -275,12 +282,14 @@ export const Checkout: React.FC = () => {
           throw new Error('Authentication token not available');
         }
         
-        // Get total amount from checkout data
-        const totalAmount = checkoutData?.cart?.totals?.grandTotal || 0;
+        // Calculate total amount from cart items
+        const totalAmount = cartItems.reduce((sum, item) => {
+          const finalPrice = item.product.basePrice - (item.product.basePrice * (item.product.discountPercent || 0)) / 100;
+          return sum + finalPrice * item.quantity;
+        }, 0) - couponDiscount;
+        
         console.log('=== RAZORPAY PAYMENT DEBUG ===');
-        console.log('Checkout Data:', checkoutData);
-        console.log('Cart Items:', checkoutData?.cart?.items);
-        console.log('Cart Totals:', checkoutData?.cart?.totals);
+        console.log('Cart Items:', cartItems);
         console.log('Total Amount:', totalAmount);
         
         if (totalAmount <= 0) {
@@ -313,8 +322,15 @@ export const Checkout: React.FC = () => {
         console.log('Payment completed by user. Verifying payment...');
         
         // At this point, create the actual database order
-        const createdOrder = await orderService.placeOrder(selectedAddressId, paymentMethod);
+        const createdOrder = await orderService.placeOrder(
+          selectedAddressId,
+          paymentMethod,
+          appliedCoupon?.code,
+          couponDiscount
+        );
         console.log('Database order created after payment success:', createdOrder.id);
+        console.log('Coupon Code:', appliedCoupon?.code);
+        console.log('Coupon Discount:', couponDiscount);
 
         // Step 4: Verify payment with backend
         await paymentService.verifyRazorpayPayment(
@@ -634,13 +650,15 @@ export const Checkout: React.FC = () => {
                   </h2>
 
                   <div className="border-t border-b border-dashed border-gray-300 py-3 space-y-4">
-                    {checkoutData?.cart.items.map((item) => {
-                      const itemTotal = item.product.finalPrice * item.quantity;
-                      const saved =
-                        (item.product.basePrice - item.product.finalPrice) * item.quantity;
+                    {cartItems.map((item) => {
+                      const basePrice = item.product.basePrice;
+                      const discountPercent = item.product.discountPercent || 0;
+                      const finalPrice = basePrice - (basePrice * discountPercent) / 100;
+                      const itemTotal = finalPrice * item.quantity;
+                      const saved = (basePrice - finalPrice) * item.quantity;
 
                       return (
-                        <div key={item.productId} className="space-y-1 text-sm">
+                        <div key={`${item.product.id}-${item.selectedSize}-${item.selectedColor}`} className="space-y-1 text-sm">
                           {/* Product name */}
                           <div className="flex justify-between font-semibold text-gray-900">
                             <span className="truncate">{item.product.name}</span>
@@ -650,20 +668,20 @@ export const Checkout: React.FC = () => {
                           {/* Quantity & unit price */}
                           <div className="flex justify-between text-gray-500">
                             <span>
-                              {item.quantity} × ₹{item.product.finalPrice.toFixed(2)}
+                              {item.quantity} × ₹{finalPrice.toFixed(2)}
                             </span>
                           </div>
 
                           {/* Optional attributes */}
-                          {(item.flavor || item.size) && (
+                          {(item.selectedColor || item.selectedSize) && (
                             <div className="text-xs text-gray-400">
-                              {item.flavor && <span>Flavor: {item.flavor} </span>}
-                              {item.size && <span>• Size: {item.size}</span>}
+                              {item.selectedColor && <span>Flavor: {item.selectedColor} </span>}
+                              {item.selectedSize && <span>• Size: {item.selectedSize}</span>}
                             </div>
                           )}
 
                           {/* Savings */}
-                          {item.product.discountPercent > 0 && (
+                          {discountPercent > 0 && (
                             <div className="text-xs text-green-600">
                               Saved ₹{saved.toFixed(2)}
                             </div>
@@ -673,15 +691,47 @@ export const Checkout: React.FC = () => {
                     })}
                   </div>
 
-                  {/* Total Section */}
-                  <div className="mt-4 pt-4 border-t border-dashed border-gray-300 flex justify-between font-bold text-gray-900 text-sm">
-                    <span>Total</span>
-                    <span>
-                      ₹
-                      {checkoutData?.cart?.items
-                        .reduce((sum: number, item: any) => sum + item.product.finalPrice * item.quantity, 0)
-                        .toFixed(0)}
-                    </span>
+                  {/* Subtotal and Coupon Section */}
+                  <div className="mt-4 pt-4 border-t border-dashed border-gray-300 space-y-2">
+                    {/* Subtotal */}
+                    <div className="flex justify-between text-gray-900 text-sm">
+                      <span>Subtotal</span>
+                      <span>
+                        ₹
+                        {cartItems
+                          .reduce((sum, item) => {
+                            const basePrice = item.product.basePrice;
+                            const discountPercent = item.product.discountPercent || 0;
+                            const finalPrice = basePrice - (basePrice * discountPercent) / 100;
+                            return sum + finalPrice * item.quantity;
+                          }, 0)
+                          .toFixed(0)}
+                      </span>
+                    </div>
+
+                    {/* Coupon Discount - shown with strikethrough if applied */}
+                    {couponDiscount > 0 && (
+                      <div className="flex justify-between text-green-600 font-semibold text-sm">
+                        <span>Coupon Discount</span>
+                        <span>-₹{couponDiscount.toFixed(0)}</span>
+                      </div>
+                    )}
+
+                    {/* Final Total */}
+                    <div className="flex justify-between font-bold text-gray-900 text-sm pt-2 border-t border-dashed border-gray-300">
+                      <span>Total</span>
+                      <span>
+                        ₹
+                        {(cartItems
+                          .reduce((sum, item) => {
+                            const basePrice = item.product.basePrice;
+                            const discountPercent = item.product.discountPercent || 0;
+                            const finalPrice = basePrice - (basePrice * discountPercent) / 100;
+                            return sum + finalPrice * item.quantity;
+                          }, 0) - couponDiscount)
+                          .toFixed(0)}
+                      </span>
+                    </div>
                   </div>
 
                   {/* Footer note */}
@@ -697,29 +747,41 @@ export const Checkout: React.FC = () => {
                 <div className="bg-white rounded-lg shadow-md p-6 sticky top-4">
                   <h2 className="text-xl font-bold text-gray-900 mb-6">Price Summary</h2>
 
-                  {checkoutData && (
+                  {cartItems.length > 0 && (
                     <div className="space-y-3 mb-6 pb-6 border-b border-gray-200 text-sm">
-                      
-                      {/* Base Price */}
-                      <div className="flex justify-between text-gray-600">
-                        <span>Base Price</span>
-                        <span>
-                          ₹{(
-                            checkoutData.cart.totals.subtotal +
-                            (checkoutData.cart.totals.discount ?? 0)
-                          ).toFixed(2)}
-                        </span>
-                      </div>
+                      {/* Calculate totals from cart items */}
+                      {(() => {
+                        const baseTotal = cartItems.reduce((sum, item) => sum + item.product.basePrice * item.quantity, 0);
+                        const finalTotal = cartItems.reduce((sum, item) => {
+                          const finalPrice = item.product.basePrice - (item.product.basePrice * (item.product.discountPercent || 0)) / 100;
+                          return sum + finalPrice * item.quantity;
+                        }, 0);
+                        const discountAmount = baseTotal - finalTotal;
 
-                      {/* Discount */}
-                      {(checkoutData.cart.totals.discount ?? 0) > 0 && (
-                        <div className="flex justify-between text-green-600">
-                          <span>Discount</span>
-                          <span>
-                            -₹{(checkoutData.cart.totals.discount ?? 0).toFixed(2)}
-                          </span>
-                        </div>
-                      )}
+                        return (
+                          <>
+                            {/* Base Price */}
+                            <div className="flex justify-between text-gray-600">
+                              <span>Base Price ({cartItems.length} items)</span>
+                              <span>₹{baseTotal.toFixed(2)}</span>
+                            </div>
+
+                            {/* Discount */}
+                            {discountAmount > 0 && (
+                              <div className="flex justify-between text-green-600">
+                                <span>Discount</span>
+                                <span>-₹{discountAmount.toFixed(2)}</span>
+                              </div>
+                            )}
+
+                            {/* Subtotal */}
+                            <div className="flex justify-between font-semibold text-gray-900">
+                              <span>Subtotal</span>
+                              <span>₹{finalTotal.toFixed(2)}</span>
+                            </div>
+                          </>
+                        );
+                      })()}
 
                       {/* Coupon Discount */}
                       {couponDiscount > 0 && (
@@ -732,7 +794,10 @@ export const Checkout: React.FC = () => {
                       {/* Coupon Input */}
                       <div className="mt-4 pt-4 border-t border-gray-200">
                         <CheckoutCouponInput
-                          cartTotal={checkoutData.cart.totals.subtotal}
+                          cartTotal={cartItems.reduce((sum, item) => {
+                            const finalPrice = item.product.basePrice - (item.product.basePrice * (item.product.discountPercent || 0)) / 100;
+                            return sum + finalPrice * item.quantity;
+                          }, 0)}
                           onCouponApplied={(couponData) => {
                             setAppliedCoupon(couponData);
                             setCouponDiscount(couponData.discountAmount);
@@ -744,8 +809,6 @@ export const Checkout: React.FC = () => {
                           }}
                         />
                       </div>
-
-
                     </div>
                   )}
 
@@ -753,7 +816,12 @@ export const Checkout: React.FC = () => {
                   <div className="flex justify-between text-lg font-bold text-gray-900">
                     <span>Total Amount</span>
                     <span className="text-blue-600">
-                      ₹{(checkoutData?.cart.totals.grandTotal - couponDiscount).toFixed(2) ?? '0.00'}
+                      ₹{(
+                        cartItems.reduce((sum, item) => {
+                          const finalPrice = item.product.basePrice - (item.product.basePrice * (item.product.discountPercent || 0)) / 100;
+                          return sum + finalPrice * item.quantity;
+                        }, 0) - couponDiscount
+                      ).toFixed(2)}
                     </span>
                   </div>
 

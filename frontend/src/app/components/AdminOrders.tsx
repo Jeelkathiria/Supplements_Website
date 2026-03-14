@@ -414,7 +414,14 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({ filterStatus = "all" }
                             {/* TOTAL - Collapsed */}
                             {!isExpanded && (
                               <div className="px-4 py-3 bg-neutral-50 border-b border-neutral-200 flex items-center justify-between">
-                                <span className="text-lg font-bold text-neutral-900">₹{order.totalAmount.toFixed(2)}</span>
+                                <div className="flex items-center gap-3">
+                                  <span className="text-lg font-bold text-neutral-900">₹{order.totalAmount.toFixed(2)}</span>
+                                  {order.appliedCoupon && (
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-green-100 text-green-800 whitespace-nowrap">
+                                      🎟 {order.appliedCoupon.trainerName.length > 6 ? `${order.appliedCoupon.trainerName.substring(0, 6)}...` : order.appliedCoupon.trainerName}
+                                    </span>
+                                  )}
+                                </div>
                                 <div className="flex items-center gap-2">
                                   <button onClick={() => { setSelectedBillOrder(order); setIsBillModalOpen(true); }} className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-neutral-700 hover:text-neutral-900" title="View Bill">
                                     <FileText size={16} />
@@ -430,8 +437,26 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({ filterStatus = "all" }
                             {isExpanded && (
                               <div className="px-4 py-3 border-b border-neutral-200 bg-neutral-50 space-y-3">
                                 <div className="pb-3 border-b border-neutral-200">
-                                  <div className="flex justify-between items-baseline">
-                                    <span className="text-neutral-600 text-xs">Total Amount</span>
+                                  {/* Subtotal and Coupon Breakdown */}
+                                  {(order.discountAmount ?? 0) > 0 ? (
+                                    <>
+                                      <div className="flex justify-between items-baseline mb-2">
+                                        <span className="text-neutral-600 text-xs">Subtotal</span>
+                                        <span className="font-semibold text-neutral-900">₹{(order.totalAmount + (order.discountAmount || 0)).toFixed(2)}</span>
+                                      </div>
+                                      <div className="flex justify-between items-baseline mb-2 text-green-600">
+                                        <span className="text-xs font-semibold">Coupon Discount</span>
+                                        <span className="font-bold">-₹{(order.discountAmount || 0).toFixed(2)}</span>
+                                      </div>
+                                      {order.appliedCoupon && (
+                                        <div className="flex justify-between items-baseline mb-3 text-xs text-green-700">
+                                          <span>({order.couponCode})</span>
+                                        </div>
+                                      )}
+                                    </>
+                                  ) : null}
+                                  <div className="flex justify-between items-baseline border-t border-neutral-200 pt-2">
+                                    <span className="text-neutral-600 text-xs font-semibold">Total Amount</span>
                                     <span className="text-lg font-bold text-neutral-900">₹{order.totalAmount.toFixed(2)}</span>
                                   </div>
                                 </div>
@@ -440,6 +465,11 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({ filterStatus = "all" }
                                   <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-bold ${STATUS_COLORS[order.status] || "bg-neutral-100"}`}>
                                     {order.status}
                                   </span>
+                                  {order.appliedCoupon && (
+                                    <span className="inline-flex items-center rounded-full px-3 py-1 text-xs font-bold bg-green-100 text-green-800">
+                                      🎟 {order.appliedCoupon.trainerName.length > 6 ? `${order.appliedCoupon.trainerName.substring(0, 6)}...` : order.appliedCoupon.trainerName}
+                                    </span>
+                                  )}
                                   {cancellationRequests[order.id] && cancellationRequests[order.id].status === 'PENDING' && (
                                     <span className="inline-flex items-center rounded-full px-3 py-1 text-xs font-bold bg-orange-100 text-orange-800">
                                       Cancel: Req pending

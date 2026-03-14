@@ -189,7 +189,11 @@ exports.Prisma.OrderItemScalarFieldEnum = {
   quantity: 'quantity',
   price: 'price',
   flavor: 'flavor',
-  size: 'size'
+  size: 'size',
+  productName: 'productName',
+  basePrice: 'basePrice',
+  discountPercent: 'discountPercent',
+  imageUrl: 'imageUrl'
 };
 
 exports.Prisma.OrderAddressScalarFieldEnum = {
@@ -261,6 +265,7 @@ exports.Prisma.CouponScalarFieldEnum = {
   trainerId: 'trainerId',
   discountPercent: 'discountPercent',
   discountType: 'discountType',
+  minValue: 'minValue',
   isActive: 'isActive',
   maxUses: 'maxUses',
   usageCount: 'usageCount',

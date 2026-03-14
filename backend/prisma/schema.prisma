@@ -129,6 +129,12 @@ model OrderItem {
   flavor   String?
   size     String?
 
+  // Product snapshot - store product details at time of order
+  productName       String?  // Product name at order time
+  basePrice         Float?   // Original product price at order time
+  discountPercent   Float @default(0) // Discount % at order time
+  imageUrl          String? // Product image at order time
+
   order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
   product Product @relation(fields: [productId], references: [id])
 }

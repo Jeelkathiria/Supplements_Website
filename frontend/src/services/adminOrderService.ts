@@ -53,7 +53,20 @@ export interface Order {
   totalAmount: number;
   gstAmount: number;
   discount: number;
+  discountAmount?: number; // Alias for discount (coupon discount)
   paymentMethod?: string;
+  couponCode?: string;
+  appliedCoupon?: {
+    id: string;
+    couponId: string;
+    orderId: string;
+    userId: string;
+    discountAmount: number;
+    trainerName: string;
+    trainerId?: string;
+    appliedDate: string;
+    commissionNote?: string;
+  };
   items: OrderItem[];
   address: OrderAddress | null;
   createdAt: string;
@@ -66,6 +79,19 @@ export interface Order {
     reason: string;
   } | null;
 }
+
+// Helper function to transform order response
+const transformOrderResponse = (order: any): Order => {
+  return {
+    ...order,
+    discountAmount: order.discount
+  };
+};
+
+// Helper function to transform multiple orders
+const transformOrdersResponse = (orders: any[]): Order[] => {
+  return orders.map(transformOrderResponse);
+};
 
 // Admin endpoints
 export const getAllOrders = async (): Promise<Order[]> => {
@@ -86,7 +112,8 @@ export const getAllOrders = async (): Promise<Order[]> => {
       throw new Error("Failed to fetch orders");
     }
 
-    return await response.json();
+    const orders = await response.json();
+    return transformOrdersResponse(orders);
   } catch (error) {
     console.error("Error fetching orders:", error);
     throw error;
@@ -120,7 +147,8 @@ export const updateOrderStatus = async (
       throw new Error(error.message || "Failed to update order status");
     }
 
-    return await response.json();
+    const order = await response.json();
+    return transformOrderResponse(order);
   } catch (error) {
     console.error("Error updating order status:", error);
     throw error;

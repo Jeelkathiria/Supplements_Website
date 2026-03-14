@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Coupon" ADD COLUMN     "minValue" DOUBLE PRECISION NOT NULL DEFAULT 0;

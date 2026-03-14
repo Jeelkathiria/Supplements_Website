@@ -31,11 +31,12 @@ export interface CheckoutPayload {
 
 export const createOrder = async (payload: CheckoutPayload) => {
   try {
-    // Calculate totals
+    // Calculate totals and store product snapshots
     let totalAmount = 0;
     let totalDiscount = 0;
+    const productSnapshots: { [key: string]: any } = {};
 
-    // Verify all products exist
+    // Verify all products exist and store snapshots
     for (const item of payload.cartItems) {
       const product = await prisma.product.findUnique({
         where: { id: item.productId },
@@ -44,6 +45,8 @@ export const createOrder = async (payload: CheckoutPayload) => {
       if (!product) {
         throw new Error(`Product ${item.productId} not found`);
       }
+
+      productSnapshots[item.productId] = product;
 
       // Calculate amounts
       const basePrice = product.basePrice;
@@ -80,13 +83,21 @@ export const createOrder = async (payload: CheckoutPayload) => {
           status: OrderStatus.PENDING,
           addressId: orderAddress.id,
           items: {
-            create: payload.cartItems.map((item) => ({
-              productId: item.productId,
-              quantity: item.quantity,
-              price: item.price,
-              flavor: item.flavor || null,
-              size: item.size || null,
-            })),
+            create: payload.cartItems.map((item) => {
+              const product = productSnapshots[item.productId];
+              return {
+                productId: item.productId,
+                quantity: item.quantity,
+                price: item.price,
+                flavor: item.flavor || null,
+                size: item.size || null,
+                // Store product snapshot
+                productName: product.name,
+                basePrice: product.basePrice,
+                discountPercent: product.discountPercent || 0,
+                imageUrl: product.imageUrls?.[0] || null,
+              };
+            }),
           },
         },
       });
@@ -118,12 +129,20 @@ export const createOrder = async (payload: CheckoutPayload) => {
   }
 };
 
-export const placeOrderFromCart = async (userId: string, addressId: string, paymentMethod: string = 'cod') => {
+export const placeOrderFromCart = async (
+  userId: string,
+  addressId: string,
+  paymentMethod: string = 'cod',
+  couponCode?: string,
+  couponDiscount: number = 0
+) => {
   try {
     console.log("=== PLACE ORDER FROM CART ===");
     console.log("User ID:", userId);
     console.log("Address ID:", addressId);
     console.log("Payment Method:", paymentMethod);
+    console.log("Coupon Code:", couponCode);
+    console.log("Coupon Discount:", couponDiscount);
 
     // Verify address exists and belongs to user
     const address = await prisma.address.findUnique({
@@ -169,8 +188,13 @@ export const placeOrderFromCart = async (userId: string, addressId: string, paym
       totalDiscount += discountAmount * item.quantity;
     }
 
-    console.log("Total amount:", totalAmount);
-    console.log("Total discount:", totalDiscount);
+    // Apply coupon discount
+    const finalTotalAmount = Math.max(0, totalAmount - couponDiscount);
+
+    console.log("Total amount before coupon:", totalAmount);
+    console.log("Coupon discount:", couponDiscount);
+    console.log("Final total amount:", finalTotalAmount);
+    console.log("Total product discount:", totalDiscount);
 
     // Execute all operations in a transaction
     const order = await prisma.$transaction(async (tx) => {
@@ -196,8 +220,8 @@ export const placeOrderFromCart = async (userId: string, addressId: string, paym
         data: {
           id: customOrderId,
           userId,
-          totalAmount,
-          discount: totalDiscount,
+          totalAmount: finalTotalAmount,
+          discount: couponDiscount > 0 ? couponDiscount : totalDiscount,
           status: OrderStatus.PENDING,
           paymentMethod: paymentMethod,
           addressId: orderAddress.id,
@@ -213,7 +237,12 @@ export const placeOrderFromCart = async (userId: string, addressId: string, paym
                 quantity: item.quantity,
                 price: finalPrice,
                 flavor: item.flavor,
-                size: item.size
+                size: item.size,
+                // Store product snapshot
+                productName: product.name,
+                basePrice: basePrice,
+                discountPercent: product.discountPercent || 0,
+                imageUrl: product.imageUrls?.[0] || null,
               };
             })
           }
@@ -221,6 +250,8 @@ export const placeOrderFromCart = async (userId: string, addressId: string, paym
       });
 
       console.log("Order created:", newOrder.id);
+      console.log("Order totalAmount:", newOrder.totalAmount);
+      console.log("Order discount:", newOrder.discount);
 
       // Update OrderAddress with the order ID
       await tx.orderAddress.update({
@@ -230,6 +261,40 @@ export const placeOrderFromCart = async (userId: string, addressId: string, paym
 
       console.log("OrderAddress updated with orderId");
 
+      // If a coupon was applied, create AppliedCoupon record
+      if (couponCode && couponDiscount > 0) {
+        console.log("Creating AppliedCoupon record for code:", couponCode);
+        
+        // Find the coupon
+        const coupon = await tx.coupon.findUnique({
+          where: { code: couponCode }
+        });
+
+        if (coupon) {
+          const appliedCoupon = await tx.appliedCoupon.create({
+            data: {
+              couponId: coupon.id,
+              orderId: newOrder.id,
+              userId,
+              discountAmount: couponDiscount,
+              trainerName: coupon.trainerName,
+              trainerId: coupon.trainerId || undefined,
+              commissionNote: `${coupon.discountPercent}% discount = ₹${couponDiscount.toFixed(2)}`
+            }
+          });
+
+          console.log("AppliedCoupon created:", appliedCoupon.id);
+
+          // Update order with couponCode
+          await tx.order.update({
+            where: { id: newOrder.id },
+            data: { couponCode }
+          });
+
+          console.log("Order updated with couponCode");
+        }
+      }
+
       // Fetch the complete order with relations
       const completeOrder = await tx.order.findUnique({
         where: { id: newOrder.id },
@@ -237,7 +302,8 @@ export const placeOrderFromCart = async (userId: string, addressId: string, paym
           items: {
             include: { product: true }
           },
-          address: true
+          address: true,
+          appliedCoupon: true
         }
       });
 
@@ -312,7 +378,14 @@ export const placeOrderFromCart = async (userId: string, addressId: string, paym
     }
 
     console.log("=== PLACE ORDER FROM CART SUCCESS ===");
-    return order;
+    
+    // Transform order response: map 'discount' to 'discountAmount' for API compatibility
+    const transformedOrder = {
+      ...order,
+      discountAmount: order.discount
+    };
+    
+    return transformedOrder;
   } catch (error) {
     console.error("=== PLACE ORDER FROM CART ERROR ===");
     console.error("Error type:", error instanceof Error ? "Error" : typeof error);
@@ -325,18 +398,34 @@ export const placeOrderFromCart = async (userId: string, addressId: string, paym
   }
 };
 
+// Helper function to transform order response
+const transformOrderResponse = (order: any): any => {
+  if (!order) return order;
+  return {
+    ...order,
+    discountAmount: order.discount
+  };
+};
+
+// Helper function to transform multiple orders
+const transformOrdersResponse = (orders: any[]): any[] => {
+  return orders.map(transformOrderResponse);
+};
+
 export const getUserOrders = async (userId: string) => {
   try {
-    return await prisma.order.findMany({
+    const orders = await prisma.order.findMany({
       where: { userId },
       include: {
         items: {
           include: { product: true },
         },
         address: true,
+        appliedCoupon: true,
       },
       orderBy: { createdAt: "desc" },
     });
+    return transformOrdersResponse(orders);
   } catch (error) {
     console.error("Error fetching user orders:", error);
     throw error;
@@ -345,7 +434,7 @@ export const getUserOrders = async (userId: string) => {
 
 export const getOrderById = async (orderId: string) => {
   try {
-    return await prisma.order.findUnique({
+    const order = await prisma.order.findUnique({
       where: { id: orderId },
       include: {
         items: {
@@ -353,8 +442,10 @@ export const getOrderById = async (orderId: string) => {
         },
         address: true,
         cancellationRequest: true,
+        appliedCoupon: true,
       },
     });
+    return transformOrderResponse(order);
   } catch (error) {
     console.error("Error fetching order:", error);
     throw error;
@@ -364,7 +455,7 @@ export const getOrderById = async (orderId: string) => {
 export const getAllOrders = async (status?: OrderStatusType) => {
   try {
     const whereClause = status ? { status } : {};
-    return await prisma.order.findMany({
+    const orders = await prisma.order.findMany({
       where: whereClause,
       include: {
         items: {
@@ -372,9 +463,11 @@ export const getAllOrders = async (status?: OrderStatusType) => {
         },
         address: true,
         cancellationRequest: true,
+        appliedCoupon: true,
       },
       orderBy: { createdAt: "desc" },
     });
+    return transformOrdersResponse(orders);
   } catch (error) {
     console.error("Error fetching orders:", error);
     throw error;

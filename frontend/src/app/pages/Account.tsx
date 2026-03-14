@@ -913,7 +913,14 @@ export const Account: React.FC = () => {
                               </div>
                               <div className="min-w-[60px]">
                                 <p className="uppercase font-bold tracking-wider mb-0.5">Total</p>
-                                <p className="text-[12px] md:text-[13px] font-medium text-neutral-900">₹{order.totalAmount.toFixed(2)}</p>
+                                <div className="flex items-center gap-2">
+                                  <p className="text-[12px] md:text-[13px] font-medium text-neutral-900">₹{order.totalAmount.toFixed(2)}</p>
+                                  {order.appliedCoupon && (
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold bg-green-100 text-green-800 whitespace-nowrap">
+                                      🎟 {order.appliedCoupon.trainerName}
+                                    </span>
+                                  )}
+                                </div>
                               </div>
                               <div className="relative group">
                                 <p className="uppercase font-bold tracking-wider mb-0.5">Ship To</p>

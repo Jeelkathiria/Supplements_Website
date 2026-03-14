@@ -8143,11 +8143,15 @@ export namespace Prisma {
   export type OrderItemAvgAggregateOutputType = {
     quantity: number | null
     price: number | null
+    basePrice: number | null
+    discountPercent: number | null
   }
 
   export type OrderItemSumAggregateOutputType = {
     quantity: number | null
     price: number | null
+    basePrice: number | null
+    discountPercent: number | null
   }
 
   export type OrderItemMinAggregateOutputType = {
@@ -8158,6 +8162,10 @@ export namespace Prisma {
     price: number | null
     flavor: string | null
     size: string | null
+    productName: string | null
+    basePrice: number | null
+    discountPercent: number | null
+    imageUrl: string | null
   }
 
   export type OrderItemMaxAggregateOutputType = {
@@ -8168,6 +8176,10 @@ export namespace Prisma {
     price: number | null
     flavor: string | null
     size: string | null
+    productName: string | null
+    basePrice: number | null
+    discountPercent: number | null
+    imageUrl: string | null
   }
 
   export type OrderItemCountAggregateOutputType = {
@@ -8178,6 +8190,10 @@ export namespace Prisma {
     price: number
     flavor: number
     size: number
+    productName: number
+    basePrice: number
+    discountPercent: number
+    imageUrl: number
     _all: number
   }
 
@@ -8185,11 +8201,15 @@ export namespace Prisma {
   export type OrderItemAvgAggregateInputType = {
     quantity?: true
     price?: true
+    basePrice?: true
+    discountPercent?: true
   }
 
   export type OrderItemSumAggregateInputType = {
     quantity?: true
     price?: true
+    basePrice?: true
+    discountPercent?: true
   }
 
   export type OrderItemMinAggregateInputType = {
@@ -8200,6 +8220,10 @@ export namespace Prisma {
     price?: true
     flavor?: true
     size?: true
+    productName?: true
+    basePrice?: true
+    discountPercent?: true
+    imageUrl?: true
   }
 
   export type OrderItemMaxAggregateInputType = {
@@ -8210,6 +8234,10 @@ export namespace Prisma {
     price?: true
     flavor?: true
     size?: true
+    productName?: true
+    basePrice?: true
+    discountPercent?: true
+    imageUrl?: true
   }
 
   export type OrderItemCountAggregateInputType = {
@@ -8220,6 +8248,10 @@ export namespace Prisma {
     price?: true
     flavor?: true
     size?: true
+    productName?: true
+    basePrice?: true
+    discountPercent?: true
+    imageUrl?: true
     _all?: true
   }
 
@@ -8317,6 +8349,10 @@ export namespace Prisma {
     price: number
     flavor: string | null
     size: string | null
+    productName: string | null
+    basePrice: number | null
+    discountPercent: number
+    imageUrl: string | null
     _count: OrderItemCountAggregateOutputType | null
     _avg: OrderItemAvgAggregateOutputType | null
     _sum: OrderItemSumAggregateOutputType | null
@@ -8346,6 +8382,10 @@ export namespace Prisma {
     price?: boolean
     flavor?: boolean
     size?: boolean
+    productName?: boolean
+    basePrice?: boolean
+    discountPercent?: boolean
+    imageUrl?: boolean
     order?: boolean | OrderDefaultArgs<ExtArgs>
     product?: boolean | ProductDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["orderItem"]>
@@ -8358,6 +8398,10 @@ export namespace Prisma {
     price?: boolean
     flavor?: boolean
     size?: boolean
+    productName?: boolean
+    basePrice?: boolean
+    discountPercent?: boolean
+    imageUrl?: boolean
     order?: boolean | OrderDefaultArgs<ExtArgs>
     product?: boolean | ProductDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["orderItem"]>
@@ -8370,6 +8414,10 @@ export namespace Prisma {
     price?: boolean
     flavor?: boolean
     size?: boolean
+    productName?: boolean
+    basePrice?: boolean
+    discountPercent?: boolean
+    imageUrl?: boolean
     order?: boolean | OrderDefaultArgs<ExtArgs>
     product?: boolean | ProductDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["orderItem"]>
@@ -8382,9 +8430,13 @@ export namespace Prisma {
     price?: boolean
     flavor?: boolean
     size?: boolean
+    productName?: boolean
+    basePrice?: boolean
+    discountPercent?: boolean
+    imageUrl?: boolean
   }
 
-  export type OrderItemOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "orderId" | "productId" | "quantity" | "price" | "flavor" | "size", ExtArgs["result"]["orderItem"]>
+  export type OrderItemOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "orderId" | "productId" | "quantity" | "price" | "flavor" | "size" | "productName" | "basePrice" | "discountPercent" | "imageUrl", ExtArgs["result"]["orderItem"]>
   export type OrderItemInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     order?: boolean | OrderDefaultArgs<ExtArgs>
     product?: boolean | ProductDefaultArgs<ExtArgs>
@@ -8412,6 +8464,10 @@ export namespace Prisma {
       price: number
       flavor: string | null
       size: string | null
+      productName: string | null
+      basePrice: number | null
+      discountPercent: number
+      imageUrl: string | null
     }, ExtArgs["result"]["orderItem"]>
     composites: {}
   }
@@ -8844,6 +8900,10 @@ export namespace Prisma {
     readonly price: FieldRef<"OrderItem", 'Float'>
     readonly flavor: FieldRef<"OrderItem", 'String'>
     readonly size: FieldRef<"OrderItem", 'String'>
+    readonly productName: FieldRef<"OrderItem", 'String'>
+    readonly basePrice: FieldRef<"OrderItem", 'Float'>
+    readonly discountPercent: FieldRef<"OrderItem", 'Float'>
+    readonly imageUrl: FieldRef<"OrderItem", 'String'>
   }
     
 
@@ -14906,12 +14966,14 @@ export namespace Prisma {
 
   export type CouponAvgAggregateOutputType = {
     discountPercent: number | null
+    minValue: number | null
     maxUses: number | null
     usageCount: number | null
   }
 
   export type CouponSumAggregateOutputType = {
     discountPercent: number | null
+    minValue: number | null
     maxUses: number | null
     usageCount: number | null
   }
@@ -14923,6 +14985,7 @@ export namespace Prisma {
     trainerId: string | null
     discountPercent: number | null
     discountType: string | null
+    minValue: number | null
     isActive: boolean | null
     maxUses: number | null
     usageCount: number | null
@@ -14939,6 +15002,7 @@ export namespace Prisma {
     trainerId: string | null
     discountPercent: number | null
     discountType: string | null
+    minValue: number | null
     isActive: boolean | null
     maxUses: number | null
     usageCount: number | null
@@ -14955,6 +15019,7 @@ export namespace Prisma {
     trainerId: number
     discountPercent: number
     discountType: number
+    minValue: number
     isActive: number
     maxUses: number
     usageCount: number
@@ -14968,12 +15033,14 @@ export namespace Prisma {
 
   export type CouponAvgAggregateInputType = {
     discountPercent?: true
+    minValue?: true
     maxUses?: true
     usageCount?: true
   }
 
   export type CouponSumAggregateInputType = {
     discountPercent?: true
+    minValue?: true
     maxUses?: true
     usageCount?: true
   }
@@ -14985,6 +15052,7 @@ export namespace Prisma {
     trainerId?: true
     discountPercent?: true
     discountType?: true
+    minValue?: true
     isActive?: true
     maxUses?: true
     usageCount?: true
@@ -15001,6 +15069,7 @@ export namespace Prisma {
     trainerId?: true
     discountPercent?: true
     discountType?: true
+    minValue?: true
     isActive?: true
     maxUses?: true
     usageCount?: true
@@ -15017,6 +15086,7 @@ export namespace Prisma {
     trainerId?: true
     discountPercent?: true
     discountType?: true
+    minValue?: true
     isActive?: true
     maxUses?: true
     usageCount?: true
@@ -15120,6 +15190,7 @@ export namespace Prisma {
     trainerId: string | null
     discountPercent: number
     discountType: string
+    minValue: number
     isActive: boolean
     maxUses: number | null
     usageCount: number
@@ -15155,6 +15226,7 @@ export namespace Prisma {
     trainerId?: boolean
     discountPercent?: boolean
     discountType?: boolean
+    minValue?: boolean
     isActive?: boolean
     maxUses?: boolean
     usageCount?: boolean
@@ -15173,6 +15245,7 @@ export namespace Prisma {
     trainerId?: boolean
     discountPercent?: boolean
     discountType?: boolean
+    minValue?: boolean
     isActive?: boolean
     maxUses?: boolean
     usageCount?: boolean
@@ -15189,6 +15262,7 @@ export namespace Prisma {
     trainerId?: boolean
     discountPercent?: boolean
     discountType?: boolean
+    minValue?: boolean
     isActive?: boolean
     maxUses?: boolean
     usageCount?: boolean
@@ -15205,6 +15279,7 @@ export namespace Prisma {
     trainerId?: boolean
     discountPercent?: boolean
     discountType?: boolean
+    minValue?: boolean
     isActive?: boolean
     maxUses?: boolean
     usageCount?: boolean
@@ -15214,7 +15289,7 @@ export namespace Prisma {
     createdBy?: boolean
   }
 
-  export type CouponOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "code" | "trainerName" | "trainerId" | "discountPercent" | "discountType" | "isActive" | "maxUses" | "usageCount" | "expiryDate" | "createdAt" | "updatedAt" | "createdBy", ExtArgs["result"]["coupon"]>
+  export type CouponOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "code" | "trainerName" | "trainerId" | "discountPercent" | "discountType" | "minValue" | "isActive" | "maxUses" | "usageCount" | "expiryDate" | "createdAt" | "updatedAt" | "createdBy", ExtArgs["result"]["coupon"]>
   export type CouponInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     appliedCoupons?: boolean | Coupon$appliedCouponsArgs<ExtArgs>
     _count?: boolean | CouponCountOutputTypeDefaultArgs<ExtArgs>
@@ -15234,6 +15309,7 @@ export namespace Prisma {
       trainerId: string | null
       discountPercent: number
       discountType: string
+      minValue: number
       isActive: boolean
       maxUses: number | null
       usageCount: number
@@ -15671,6 +15747,7 @@ export namespace Prisma {
     readonly trainerId: FieldRef<"Coupon", 'String'>
     readonly discountPercent: FieldRef<"Coupon", 'Float'>
     readonly discountType: FieldRef<"Coupon", 'String'>
+    readonly minValue: FieldRef<"Coupon", 'Float'>
     readonly isActive: FieldRef<"Coupon", 'Boolean'>
     readonly maxUses: FieldRef<"Coupon", 'Int'>
     readonly usageCount: FieldRef<"Coupon", 'Int'>
@@ -17383,7 +17460,11 @@ export namespace Prisma {
     quantity: 'quantity',
     price: 'price',
     flavor: 'flavor',
-    size: 'size'
+    size: 'size',
+    productName: 'productName',
+    basePrice: 'basePrice',
+    discountPercent: 'discountPercent',
+    imageUrl: 'imageUrl'
   };
 
   export type OrderItemScalarFieldEnum = (typeof OrderItemScalarFieldEnum)[keyof typeof OrderItemScalarFieldEnum]
@@ -17473,6 +17554,7 @@ export namespace Prisma {
     trainerId: 'trainerId',
     discountPercent: 'discountPercent',
     discountType: 'discountType',
+    minValue: 'minValue',
     isActive: 'isActive',
     maxUses: 'maxUses',
     usageCount: 'usageCount',
@@ -18058,6 +18140,10 @@ export namespace Prisma {
     price?: FloatFilter<"OrderItem"> | number
     flavor?: StringNullableFilter<"OrderItem"> | string | null
     size?: StringNullableFilter<"OrderItem"> | string | null
+    productName?: StringNullableFilter<"OrderItem"> | string | null
+    basePrice?: FloatNullableFilter<"OrderItem"> | number | null
+    discountPercent?: FloatFilter<"OrderItem"> | number
+    imageUrl?: StringNullableFilter<"OrderItem"> | string | null
     order?: XOR<OrderScalarRelationFilter, OrderWhereInput>
     product?: XOR<ProductScalarRelationFilter, ProductWhereInput>
   }
@@ -18070,6 +18156,10 @@ export namespace Prisma {
     price?: SortOrder
     flavor?: SortOrderInput | SortOrder
     size?: SortOrderInput | SortOrder
+    productName?: SortOrderInput | SortOrder
+    basePrice?: SortOrderInput | SortOrder
+    discountPercent?: SortOrder
+    imageUrl?: SortOrderInput | SortOrder
     order?: OrderOrderByWithRelationInput
     product?: ProductOrderByWithRelationInput
   }
@@ -18085,6 +18175,10 @@ export namespace Prisma {
     price?: FloatFilter<"OrderItem"> | number
     flavor?: StringNullableFilter<"OrderItem"> | string | null
     size?: StringNullableFilter<"OrderItem"> | string | null
+    productName?: StringNullableFilter<"OrderItem"> | string | null
+    basePrice?: FloatNullableFilter<"OrderItem"> | number | null
+    discountPercent?: FloatFilter<"OrderItem"> | number
+    imageUrl?: StringNullableFilter<"OrderItem"> | string | null
     order?: XOR<OrderScalarRelationFilter, OrderWhereInput>
     product?: XOR<ProductScalarRelationFilter, ProductWhereInput>
   }, "id">
@@ -18097,6 +18191,10 @@ export namespace Prisma {
     price?: SortOrder
     flavor?: SortOrderInput | SortOrder
     size?: SortOrderInput | SortOrder
+    productName?: SortOrderInput | SortOrder
+    basePrice?: SortOrderInput | SortOrder
+    discountPercent?: SortOrder
+    imageUrl?: SortOrderInput | SortOrder
     _count?: OrderItemCountOrderByAggregateInput
     _avg?: OrderItemAvgOrderByAggregateInput
     _max?: OrderItemMaxOrderByAggregateInput
@@ -18115,6 +18213,10 @@ export namespace Prisma {
     price?: FloatWithAggregatesFilter<"OrderItem"> | number
     flavor?: StringNullableWithAggregatesFilter<"OrderItem"> | string | null
     size?: StringNullableWithAggregatesFilter<"OrderItem"> | string | null
+    productName?: StringNullableWithAggregatesFilter<"OrderItem"> | string | null
+    basePrice?: FloatNullableWithAggregatesFilter<"OrderItem"> | number | null
+    discountPercent?: FloatWithAggregatesFilter<"OrderItem"> | number
+    imageUrl?: StringNullableWithAggregatesFilter<"OrderItem"> | string | null
   }
 
   export type OrderAddressWhereInput = {
@@ -18514,6 +18616,7 @@ export namespace Prisma {
     trainerId?: StringNullableFilter<"Coupon"> | string | null
     discountPercent?: FloatFilter<"Coupon"> | number
     discountType?: StringFilter<"Coupon"> | string
+    minValue?: FloatFilter<"Coupon"> | number
     isActive?: BoolFilter<"Coupon"> | boolean
     maxUses?: IntNullableFilter<"Coupon"> | number | null
     usageCount?: IntFilter<"Coupon"> | number
@@ -18531,6 +18634,7 @@ export namespace Prisma {
     trainerId?: SortOrderInput | SortOrder
     discountPercent?: SortOrder
     discountType?: SortOrder
+    minValue?: SortOrder
     isActive?: SortOrder
     maxUses?: SortOrderInput | SortOrder
     usageCount?: SortOrder
@@ -18551,6 +18655,7 @@ export namespace Prisma {
     trainerId?: StringNullableFilter<"Coupon"> | string | null
     discountPercent?: FloatFilter<"Coupon"> | number
     discountType?: StringFilter<"Coupon"> | string
+    minValue?: FloatFilter<"Coupon"> | number
     isActive?: BoolFilter<"Coupon"> | boolean
     maxUses?: IntNullableFilter<"Coupon"> | number | null
     usageCount?: IntFilter<"Coupon"> | number
@@ -18568,6 +18673,7 @@ export namespace Prisma {
     trainerId?: SortOrderInput | SortOrder
     discountPercent?: SortOrder
     discountType?: SortOrder
+    minValue?: SortOrder
     isActive?: SortOrder
     maxUses?: SortOrderInput | SortOrder
     usageCount?: SortOrder
@@ -18592,6 +18698,7 @@ export namespace Prisma {
     trainerId?: StringNullableWithAggregatesFilter<"Coupon"> | string | null
     discountPercent?: FloatWithAggregatesFilter<"Coupon"> | number
     discountType?: StringWithAggregatesFilter<"Coupon"> | string
+    minValue?: FloatWithAggregatesFilter<"Coupon"> | number
     isActive?: BoolWithAggregatesFilter<"Coupon"> | boolean
     maxUses?: IntNullableWithAggregatesFilter<"Coupon"> | number | null
     usageCount?: IntWithAggregatesFilter<"Coupon"> | number
@@ -19152,6 +19259,10 @@ export namespace Prisma {
     price: number
     flavor?: string | null
     size?: string | null
+    productName?: string | null
+    basePrice?: number | null
+    discountPercent?: number
+    imageUrl?: string | null
     order: OrderCreateNestedOneWithoutItemsInput
     product: ProductCreateNestedOneWithoutOrderItemsInput
   }
@@ -19164,6 +19275,10 @@ export namespace Prisma {
     price: number
     flavor?: string | null
     size?: string | null
+    productName?: string | null
+    basePrice?: number | null
+    discountPercent?: number
+    imageUrl?: string | null
   }
 
   export type OrderItemUpdateInput = {
@@ -19172,6 +19287,10 @@ export namespace Prisma {
     price?: FloatFieldUpdateOperationsInput | number
     flavor?: NullableStringFieldUpdateOperationsInput | string | null
     size?: NullableStringFieldUpdateOperationsInput | string | null
+    productName?: NullableStringFieldUpdateOperationsInput | string | null
+    basePrice?: NullableFloatFieldUpdateOperationsInput | number | null
+    discountPercent?: FloatFieldUpdateOperationsInput | number
+    imageUrl?: NullableStringFieldUpdateOperationsInput | string | null
     order?: OrderUpdateOneRequiredWithoutItemsNestedInput
     product?: ProductUpdateOneRequiredWithoutOrderItemsNestedInput
   }
@@ -19184,6 +19303,10 @@ export namespace Prisma {
     price?: FloatFieldUpdateOperationsInput | number
     flavor?: NullableStringFieldUpdateOperationsInput | string | null
     size?: NullableStringFieldUpdateOperationsInput | string | null
+    productName?: NullableStringFieldUpdateOperationsInput | string | null
+    basePrice?: NullableFloatFieldUpdateOperationsInput | number | null
+    discountPercent?: FloatFieldUpdateOperationsInput | number
+    imageUrl?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type OrderItemCreateManyInput = {
@@ -19194,6 +19317,10 @@ export namespace Prisma {
     price: number
     flavor?: string | null
     size?: string | null
+    productName?: string | null
+    basePrice?: number | null
+    discountPercent?: number
+    imageUrl?: string | null
   }
 
   export type OrderItemUpdateManyMutationInput = {
@@ -19202,6 +19329,10 @@ export namespace Prisma {
     price?: FloatFieldUpdateOperationsInput | number
     flavor?: NullableStringFieldUpdateOperationsInput | string | null
     size?: NullableStringFieldUpdateOperationsInput | string | null
+    productName?: NullableStringFieldUpdateOperationsInput | string | null
+    basePrice?: NullableFloatFieldUpdateOperationsInput | number | null
+    discountPercent?: FloatFieldUpdateOperationsInput | number
+    imageUrl?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type OrderItemUncheckedUpdateManyInput = {
@@ -19212,6 +19343,10 @@ export namespace Prisma {
     price?: FloatFieldUpdateOperationsInput | number
     flavor?: NullableStringFieldUpdateOperationsInput | string | null
     size?: NullableStringFieldUpdateOperationsInput | string | null
+    productName?: NullableStringFieldUpdateOperationsInput | string | null
+    basePrice?: NullableFloatFieldUpdateOperationsInput | number | null
+    discountPercent?: FloatFieldUpdateOperationsInput | number
+    imageUrl?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type OrderAddressCreateInput = {
@@ -19660,6 +19795,7 @@ export namespace Prisma {
     trainerId?: string | null
     discountPercent?: number
     discountType?: string
+    minValue?: number
     isActive?: boolean
     maxUses?: number | null
     usageCount?: number
@@ -19677,6 +19813,7 @@ export namespace Prisma {
     trainerId?: string | null
     discountPercent?: number
     discountType?: string
+    minValue?: number
     isActive?: boolean
     maxUses?: number | null
     usageCount?: number
@@ -19694,6 +19831,7 @@ export namespace Prisma {
     trainerId?: NullableStringFieldUpdateOperationsInput | string | null
     discountPercent?: FloatFieldUpdateOperationsInput | number
     discountType?: StringFieldUpdateOperationsInput | string
+    minValue?: FloatFieldUpdateOperationsInput | number
     isActive?: BoolFieldUpdateOperationsInput | boolean
     maxUses?: NullableIntFieldUpdateOperationsInput | number | null
     usageCount?: IntFieldUpdateOperationsInput | number
@@ -19711,6 +19849,7 @@ export namespace Prisma {
     trainerId?: NullableStringFieldUpdateOperationsInput | string | null
     discountPercent?: FloatFieldUpdateOperationsInput | number
     discountType?: StringFieldUpdateOperationsInput | string
+    minValue?: FloatFieldUpdateOperationsInput | number
     isActive?: BoolFieldUpdateOperationsInput | boolean
     maxUses?: NullableIntFieldUpdateOperationsInput | number | null
     usageCount?: IntFieldUpdateOperationsInput | number
@@ -19728,6 +19867,7 @@ export namespace Prisma {
     trainerId?: string | null
     discountPercent?: number
     discountType?: string
+    minValue?: number
     isActive?: boolean
     maxUses?: number | null
     usageCount?: number
@@ -19744,6 +19884,7 @@ export namespace Prisma {
     trainerId?: NullableStringFieldUpdateOperationsInput | string | null
     discountPercent?: FloatFieldUpdateOperationsInput | number
     discountType?: StringFieldUpdateOperationsInput | string
+    minValue?: FloatFieldUpdateOperationsInput | number
     isActive?: BoolFieldUpdateOperationsInput | boolean
     maxUses?: NullableIntFieldUpdateOperationsInput | number | null
     usageCount?: IntFieldUpdateOperationsInput | number
@@ -19760,6 +19901,7 @@ export namespace Prisma {
     trainerId?: NullableStringFieldUpdateOperationsInput | string | null
     discountPercent?: FloatFieldUpdateOperationsInput | number
     discountType?: StringFieldUpdateOperationsInput | string
+    minValue?: FloatFieldUpdateOperationsInput | number
     isActive?: BoolFieldUpdateOperationsInput | boolean
     maxUses?: NullableIntFieldUpdateOperationsInput | number | null
     usageCount?: IntFieldUpdateOperationsInput | number
@@ -20357,6 +20499,17 @@ export namespace Prisma {
     _max?: NestedDateTimeNullableFilter<$PrismaModel>
   }
 
+  export type FloatNullableFilter<$PrismaModel = never> = {
+    equals?: number | FloatFieldRefInput<$PrismaModel> | null
+    in?: number[] | ListFloatFieldRefInput<$PrismaModel> | null
+    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel> | null
+    lt?: number | FloatFieldRefInput<$PrismaModel>
+    lte?: number | FloatFieldRefInput<$PrismaModel>
+    gt?: number | FloatFieldRefInput<$PrismaModel>
+    gte?: number | FloatFieldRefInput<$PrismaModel>
+    not?: NestedFloatNullableFilter<$PrismaModel> | number | null
+  }
+
   export type OrderScalarRelationFilter = {
     is?: OrderWhereInput
     isNot?: OrderWhereInput
@@ -20370,11 +20523,17 @@ export namespace Prisma {
     price?: SortOrder
     flavor?: SortOrder
     size?: SortOrder
+    productName?: SortOrder
+    basePrice?: SortOrder
+    discountPercent?: SortOrder
+    imageUrl?: SortOrder
   }
 
   export type OrderItemAvgOrderByAggregateInput = {
     quantity?: SortOrder
     price?: SortOrder
+    basePrice?: SortOrder
+    discountPercent?: SortOrder
   }
 
   export type OrderItemMaxOrderByAggregateInput = {
@@ -20385,6 +20544,10 @@ export namespace Prisma {
     price?: SortOrder
     flavor?: SortOrder
     size?: SortOrder
+    productName?: SortOrder
+    basePrice?: SortOrder
+    discountPercent?: SortOrder
+    imageUrl?: SortOrder
   }
 
   export type OrderItemMinOrderByAggregateInput = {
@@ -20395,11 +20558,33 @@ export namespace Prisma {
     price?: SortOrder
     flavor?: SortOrder
     size?: SortOrder
+    productName?: SortOrder
+    basePrice?: SortOrder
+    discountPercent?: SortOrder
+    imageUrl?: SortOrder
   }
 
   export type OrderItemSumOrderByAggregateInput = {
     quantity?: SortOrder
     price?: SortOrder
+    basePrice?: SortOrder
+    discountPercent?: SortOrder
+  }
+
+  export type FloatNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: number | FloatFieldRefInput<$PrismaModel> | null
+    in?: number[] | ListFloatFieldRefInput<$PrismaModel> | null
+    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel> | null
+    lt?: number | FloatFieldRefInput<$PrismaModel>
+    lte?: number | FloatFieldRefInput<$PrismaModel>
+    gt?: number | FloatFieldRefInput<$PrismaModel>
+    gte?: number | FloatFieldRefInput<$PrismaModel>
+    not?: NestedFloatNullableWithAggregatesFilter<$PrismaModel> | number | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _avg?: NestedFloatNullableFilter<$PrismaModel>
+    _sum?: NestedFloatNullableFilter<$PrismaModel>
+    _min?: NestedFloatNullableFilter<$PrismaModel>
+    _max?: NestedFloatNullableFilter<$PrismaModel>
   }
 
   export type OrderListRelationFilter = {
@@ -20683,6 +20868,7 @@ export namespace Prisma {
     trainerId?: SortOrder
     discountPercent?: SortOrder
     discountType?: SortOrder
+    minValue?: SortOrder
     isActive?: SortOrder
     maxUses?: SortOrder
     usageCount?: SortOrder
@@ -20694,6 +20880,7 @@ export namespace Prisma {
 
   export type CouponAvgOrderByAggregateInput = {
     discountPercent?: SortOrder
+    minValue?: SortOrder
     maxUses?: SortOrder
     usageCount?: SortOrder
   }
@@ -20705,6 +20892,7 @@ export namespace Prisma {
     trainerId?: SortOrder
     discountPercent?: SortOrder
     discountType?: SortOrder
+    minValue?: SortOrder
     isActive?: SortOrder
     maxUses?: SortOrder
     usageCount?: SortOrder
@@ -20721,6 +20909,7 @@ export namespace Prisma {
     trainerId?: SortOrder
     discountPercent?: SortOrder
     discountType?: SortOrder
+    minValue?: SortOrder
     isActive?: SortOrder
     maxUses?: SortOrder
     usageCount?: SortOrder
@@ -20732,6 +20921,7 @@ export namespace Prisma {
 
   export type CouponSumOrderByAggregateInput = {
     discountPercent?: SortOrder
+    minValue?: SortOrder
     maxUses?: SortOrder
     usageCount?: SortOrder
   }
@@ -21252,6 +21442,14 @@ export namespace Prisma {
     connect?: ProductWhereUniqueInput
   }
 
+  export type NullableFloatFieldUpdateOperationsInput = {
+    set?: number | null
+    increment?: number
+    decrement?: number
+    multiply?: number
+    divide?: number
+  }
+
   export type OrderUpdateOneRequiredWithoutItemsNestedInput = {
     create?: XOR<OrderCreateWithoutItemsInput, OrderUncheckedCreateWithoutItemsInput>
     connectOrCreate?: OrderCreateOrConnectWithoutItemsInput
@@ -21687,6 +21885,33 @@ export namespace Prisma {
     _max?: NestedDateTimeNullableFilter<$PrismaModel>
   }
 
+  export type NestedFloatNullableFilter<$PrismaModel = never> = {
+    equals?: number | FloatFieldRefInput<$PrismaModel> | null
+    in?: number[] | ListFloatFieldRefInput<$PrismaModel> | null
+    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel> | null
+    lt?: number | FloatFieldRefInput<$PrismaModel>
+    lte?: number | FloatFieldRefInput<$PrismaModel>
+    gt?: number | FloatFieldRefInput<$PrismaModel>
+    gte?: number | FloatFieldRefInput<$PrismaModel>
+    not?: NestedFloatNullableFilter<$PrismaModel> | number | null
+  }
+
+  export type NestedFloatNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: number | FloatFieldRefInput<$PrismaModel> | null
+    in?: number[] | ListFloatFieldRefInput<$PrismaModel> | null
+    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel> | null
+    lt?: number | FloatFieldRefInput<$PrismaModel>
+    lte?: number | FloatFieldRefInput<$PrismaModel>
+    gt?: number | FloatFieldRefInput<$PrismaModel>
+    gte?: number | FloatFieldRefInput<$PrismaModel>
+    not?: NestedFloatNullableWithAggregatesFilter<$PrismaModel> | number | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _avg?: NestedFloatNullableFilter<$PrismaModel>
+    _sum?: NestedFloatNullableFilter<$PrismaModel>
+    _min?: NestedFloatNullableFilter<$PrismaModel>
+    _max?: NestedFloatNullableFilter<$PrismaModel>
+  }
+
   export type NestedEnumCancellationRequestStatusFilter<$PrismaModel = never> = {
     equals?: $Enums.CancellationRequestStatus | EnumCancellationRequestStatusFieldRefInput<$PrismaModel>
     in?: $Enums.CancellationRequestStatus[] | ListEnumCancellationRequestStatusFieldRefInput<$PrismaModel>
@@ -21735,17 +21960,6 @@ export namespace Prisma {
     _sum?: NestedIntNullableFilter<$PrismaModel>
     _min?: NestedIntNullableFilter<$PrismaModel>
     _max?: NestedIntNullableFilter<$PrismaModel>
-  }
-
-  export type NestedFloatNullableFilter<$PrismaModel = never> = {
-    equals?: number | FloatFieldRefInput<$PrismaModel> | null
-    in?: number[] | ListFloatFieldRefInput<$PrismaModel> | null
-    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel> | null
-    lt?: number | FloatFieldRefInput<$PrismaModel>
-    lte?: number | FloatFieldRefInput<$PrismaModel>
-    gt?: number | FloatFieldRefInput<$PrismaModel>
-    gte?: number | FloatFieldRefInput<$PrismaModel>
-    not?: NestedFloatNullableFilter<$PrismaModel> | number | null
   }
 
   export type ProductCreateWithoutCategoryInput = {
@@ -21897,6 +22111,10 @@ export namespace Prisma {
     price: number
     flavor?: string | null
     size?: string | null
+    productName?: string | null
+    basePrice?: number | null
+    discountPercent?: number
+    imageUrl?: string | null
     order: OrderCreateNestedOneWithoutItemsInput
   }
 
@@ -21907,6 +22125,10 @@ export namespace Prisma {
     price: number
     flavor?: string | null
     size?: string | null
+    productName?: string | null
+    basePrice?: number | null
+    discountPercent?: number
+    imageUrl?: string | null
   }
 
   export type OrderItemCreateOrConnectWithoutProductInput = {
@@ -22001,6 +22223,10 @@ export namespace Prisma {
     price?: FloatFilter<"OrderItem"> | number
     flavor?: StringNullableFilter<"OrderItem"> | string | null
     size?: StringNullableFilter<"OrderItem"> | string | null
+    productName?: StringNullableFilter<"OrderItem"> | string | null
+    basePrice?: FloatNullableFilter<"OrderItem"> | number | null
+    discountPercent?: FloatFilter<"OrderItem"> | number
+    imageUrl?: StringNullableFilter<"OrderItem"> | string | null
   }
 
   export type CartItemCreateWithoutCartInput = {
@@ -22203,6 +22429,10 @@ export namespace Prisma {
     price: number
     flavor?: string | null
     size?: string | null
+    productName?: string | null
+    basePrice?: number | null
+    discountPercent?: number
+    imageUrl?: string | null
     product: ProductCreateNestedOneWithoutOrderItemsInput
   }
 
@@ -22213,6 +22443,10 @@ export namespace Prisma {
     price: number
     flavor?: string | null
     size?: string | null
+    productName?: string | null
+    basePrice?: number | null
+    discountPercent?: number
+    imageUrl?: string | null
   }
 
   export type OrderItemCreateOrConnectWithoutOrderInput = {
@@ -23150,6 +23384,7 @@ export namespace Prisma {
     trainerId?: string | null
     discountPercent?: number
     discountType?: string
+    minValue?: number
     isActive?: boolean
     maxUses?: number | null
     usageCount?: number
@@ -23166,6 +23401,7 @@ export namespace Prisma {
     trainerId?: string | null
     discountPercent?: number
     discountType?: string
+    minValue?: number
     isActive?: boolean
     maxUses?: number | null
     usageCount?: number
@@ -23239,6 +23475,7 @@ export namespace Prisma {
     trainerId?: NullableStringFieldUpdateOperationsInput | string | null
     discountPercent?: FloatFieldUpdateOperationsInput | number
     discountType?: StringFieldUpdateOperationsInput | string
+    minValue?: FloatFieldUpdateOperationsInput | number
     isActive?: BoolFieldUpdateOperationsInput | boolean
     maxUses?: NullableIntFieldUpdateOperationsInput | number | null
     usageCount?: IntFieldUpdateOperationsInput | number
@@ -23255,6 +23492,7 @@ export namespace Prisma {
     trainerId?: NullableStringFieldUpdateOperationsInput | string | null
     discountPercent?: FloatFieldUpdateOperationsInput | number
     discountType?: StringFieldUpdateOperationsInput | string
+    minValue?: FloatFieldUpdateOperationsInput | number
     isActive?: BoolFieldUpdateOperationsInput | boolean
     maxUses?: NullableIntFieldUpdateOperationsInput | number | null
     usageCount?: IntFieldUpdateOperationsInput | number
@@ -23412,6 +23650,10 @@ export namespace Prisma {
     price: number
     flavor?: string | null
     size?: string | null
+    productName?: string | null
+    basePrice?: number | null
+    discountPercent?: number
+    imageUrl?: string | null
   }
 
   export type CartItemUpdateWithoutProductInput = {
@@ -23450,6 +23692,10 @@ export namespace Prisma {
     price?: FloatFieldUpdateOperationsInput | number
     flavor?: NullableStringFieldUpdateOperationsInput | string | null
     size?: NullableStringFieldUpdateOperationsInput | string | null
+    productName?: NullableStringFieldUpdateOperationsInput | string | null
+    basePrice?: NullableFloatFieldUpdateOperationsInput | number | null
+    discountPercent?: FloatFieldUpdateOperationsInput | number
+    imageUrl?: NullableStringFieldUpdateOperationsInput | string | null
     order?: OrderUpdateOneRequiredWithoutItemsNestedInput
   }
 
@@ -23460,6 +23706,10 @@ export namespace Prisma {
     price?: FloatFieldUpdateOperationsInput | number
     flavor?: NullableStringFieldUpdateOperationsInput | string | null
     size?: NullableStringFieldUpdateOperationsInput | string | null
+    productName?: NullableStringFieldUpdateOperationsInput | string | null
+    basePrice?: NullableFloatFieldUpdateOperationsInput | number | null
+    discountPercent?: FloatFieldUpdateOperationsInput | number
+    imageUrl?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type OrderItemUncheckedUpdateManyWithoutProductInput = {
@@ -23469,6 +23719,10 @@ export namespace Prisma {
     price?: FloatFieldUpdateOperationsInput | number
     flavor?: NullableStringFieldUpdateOperationsInput | string | null
     size?: NullableStringFieldUpdateOperationsInput | string | null
+    productName?: NullableStringFieldUpdateOperationsInput | string | null
+    basePrice?: NullableFloatFieldUpdateOperationsInput | number | null
+    discountPercent?: FloatFieldUpdateOperationsInput | number
+    imageUrl?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type CartItemCreateManyCartInput = {
@@ -23518,6 +23772,10 @@ export namespace Prisma {
     price: number
     flavor?: string | null
     size?: string | null
+    productName?: string | null
+    basePrice?: number | null
+    discountPercent?: number
+    imageUrl?: string | null
   }
 
   export type OrderItemUpdateWithoutOrderInput = {
@@ -23526,6 +23784,10 @@ export namespace Prisma {
     price?: FloatFieldUpdateOperationsInput | number
     flavor?: NullableStringFieldUpdateOperationsInput | string | null
     size?: NullableStringFieldUpdateOperationsInput | string | null
+    productName?: NullableStringFieldUpdateOperationsInput | string | null
+    basePrice?: NullableFloatFieldUpdateOperationsInput | number | null
+    discountPercent?: FloatFieldUpdateOperationsInput | number
+    imageUrl?: NullableStringFieldUpdateOperationsInput | string | null
     product?: ProductUpdateOneRequiredWithoutOrderItemsNestedInput
   }
 
@@ -23536,6 +23798,10 @@ export namespace Prisma {
     price?: FloatFieldUpdateOperationsInput | number
     flavor?: NullableStringFieldUpdateOperationsInput | string | null
     size?: NullableStringFieldUpdateOperationsInput | string | null
+    productName?: NullableStringFieldUpdateOperationsInput | string | null
+    basePrice?: NullableFloatFieldUpdateOperationsInput | number | null
+    discountPercent?: FloatFieldUpdateOperationsInput | number
+    imageUrl?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type OrderItemUncheckedUpdateManyWithoutOrderInput = {
@@ -23545,6 +23811,10 @@ export namespace Prisma {
     price?: FloatFieldUpdateOperationsInput | number
     flavor?: NullableStringFieldUpdateOperationsInput | string | null
     size?: NullableStringFieldUpdateOperationsInput | string | null
+    productName?: NullableStringFieldUpdateOperationsInput | string | null
+    basePrice?: NullableFloatFieldUpdateOperationsInput | number | null
+    discountPercent?: FloatFieldUpdateOperationsInput | number
+    imageUrl?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type OrderCreateManyAddressInput = {

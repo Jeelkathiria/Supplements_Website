@@ -351,77 +351,122 @@ export const Cart: React.FC = () => {
           )}
 
           {/* Cart Items List */}
-          <div className="space-y-6">
+          <div className="space-y-5">
             {cartItems.map((item) => {
-              const finalPrice = calculateFinalPrice(item.product.basePrice, item.product.discountPercent || 0);
+              const basePrice = item.product.basePrice;
+              const discountPercent = item.product.discountPercent || 0;
+              const finalPrice = calculateFinalPrice(basePrice, discountPercent);
+              const itemTotal = finalPrice * item.quantity;
+              const baseItemTotal = basePrice * item.quantity;
+              const itemSavings = baseItemTotal - itemTotal;
               const isUpdating = updatingItems.has(item.product.id);
               const isRemoving = removingItems.has(item.product.id);
 
               return (
                 <div
                   key={`${item.product.id}-${item.selectedSize}-${item.selectedColor}`}
-                  className={`relative group transition-all duration-300 ${isRemoving ? 'opacity-30 scale-95' : ''}`}
+                  className={`relative group transition-all duration-300 bg-white border border-neutral-200 rounded-xl overflow-hidden shadow-sm hover:shadow-md ${isRemoving ? 'opacity-30 scale-95' : ''}`}
                 >
-                  <div className="flex gap-4">
-                    {/* Premium Image Container */}
-                    <div className="w-28 h-28 bg-neutral-50 rounded-2xl overflow-hidden flex-shrink-0 border border-neutral-100 shadow-sm relative">
-                      <img
-                        src={getFullImageUrl(item.product.imageUrls?.[0] || '')}
-                        alt={item.product.name}
-                        className="w-full h-full object-contain p-2 mix-blend-multiply"
-                      />
-                      {isUpdating && (
-                        <div className="absolute inset-0 bg-white/60 backdrop-blur-[2px] flex items-center justify-center">
-                          <Loader className="w-6 h-6 text-[#003D45] animate-spin" />
-                        </div>
-                      )}
+                  {/* Discount Badge */}
+                  {discountPercent > 0 && (
+                    <div className="absolute top-3 right-3 z-10 bg-gradient-to-r from-rose-500 to-rose-600 text-white px-3 py-1 rounded-full text-[11px] font-bold shadow-lg">
+                      {discountPercent}% OFF
                     </div>
+                  )}
 
-                    {/* Item Details */}
-                    <div className="flex-1 min-w-0 flex flex-col justify-between py-1">
-                      <div>
-                        <div className="flex items-start justify-between gap-2">
-                          <h3 className="text-sm font-bold text-[#003D45] line-clamp-2 leading-tight flex-1">
-                            {item.product.name}
-                          </h3>
-                          <button
-                            onClick={() => handleRemoveItem(item.product.id, item.selectedSize, item.selectedColor)}
-                            className="p-1.5 text-neutral-300 hover:text-rose-500 active:scale-90 transition-all"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-
-                        <div className="flex flex-wrap gap-2 mt-2">
-                          {item.selectedSize && (
-                            <span className="text-[10px] font-bold text-[#003D45]/40 bg-neutral-100 px-2 py-0.5 rounded-md uppercase tracking-wider">{item.selectedSize}</span>
-                          )}
-                          {item.selectedColor && (
-                            <span className="text-[10px] font-bold text-[#003D45]/40 bg-neutral-100 px-2 py-0.5 rounded-md uppercase tracking-wider">{item.selectedColor}</span>
-                          )}
-                        </div>
+                  <div className="p-4">
+                    <div className="flex gap-4">
+                      {/* Premium Image Container */}
+                      <div className="w-28 h-28 bg-gradient-to-br from-neutral-50 to-neutral-100 rounded-xl overflow-hidden flex-shrink-0 border border-neutral-200 shadow-sm relative flex items-center justify-center">
+                        <img
+                          src={getFullImageUrl(item.product.imageUrls?.[0] || '')}
+                          alt={item.product.name}
+                          className="w-full h-full object-contain p-2 mix-blend-multiply"
+                        />
+                        {isUpdating && (
+                          <div className="absolute inset-0 bg-white/60 backdrop-blur-[2px] flex items-center justify-center">
+                            <Loader className="w-6 h-6 text-[#003D45] animate-spin" />
+                          </div>
+                        )}
                       </div>
 
-                      <div className="flex items-center justify-between mt-4">
-                        <span className="text-lg font-black text-[#003D45]">₹{finalPrice.toFixed(0)}</span>
+                      {/* Item Details */}
+                      <div className="flex-1 min-w-0 flex flex-col justify-between">
+                        <div>
+                          <div className="flex items-start justify-between gap-2 mb-2">
+                            <h3 className="text-sm font-bold text-[#003D45] line-clamp-2 leading-tight flex-1">
+                              {item.product.name}
+                            </h3>
+                            <button
+                              onClick={() => handleRemoveItem(item.product.id, item.selectedSize, item.selectedColor)}
+                              className="p-1.5 text-neutral-300 hover:text-rose-500 active:scale-90 transition-all flex-shrink-0"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
 
-                        {/* Mobile Quantity Controls */}
-                        <div className="flex items-center bg-neutral-50 rounded-xl h-10 px-0.5 shadow-inner border border-neutral-100">
-                          <button
-                            onClick={() => handleUpdateQuantity(item.product.id, item.quantity - 1, item.selectedSize, item.selectedColor)}
-                            disabled={isUpdating || item.quantity <= 1}
-                            className="w-8 h-8 flex items-center justify-center text-[#003D45] text-lg font-black disabled:opacity-20"
-                          >
-                            −
-                          </button>
-                          <span className="w-6 text-center font-black text-[#003D45] text-xs">{item.quantity}</span>
-                          <button
-                            onClick={() => handleUpdateQuantity(item.product.id, item.quantity + 1, item.selectedSize, item.selectedColor)}
-                            disabled={isUpdating}
-                            className="w-8 h-8 flex items-center justify-center text-[#003D45] text-lg font-black disabled:opacity-20"
-                          >
-                            +
-                          </button>
+                          {/* Product Details Badges */}
+                          <div className="flex flex-wrap gap-1.5 mb-3">
+                            {item.selectedSize && (
+                              <span className="text-[10px] font-bold text-[#003D45]/70 bg-blue-50 border border-blue-200 px-2.5 py-1 rounded-md uppercase tracking-wide">Size: {item.selectedSize}</span>
+                            )}
+                            {item.selectedColor && (
+                              <span className="text-[10px] font-bold text-[#003D45]/70 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-md uppercase tracking-wide">Flavor: {item.selectedColor}</span>
+                            )}
+                          </div>
+
+                          {/* Price Details */}
+                          <div className="space-y-1.5 bg-neutral-50 rounded-lg p-2.5 border border-neutral-150">
+                            <div className="flex items-baseline gap-2 justify-between">
+                              <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider">Price per unit</span>
+                              <div className="flex items-baseline gap-2">
+                                {discountPercent > 0 && (
+                                  <span className="text-xs font-bold text-neutral-400 line-through">₹{basePrice.toFixed(0)}</span>
+                                )}
+                                <span className="text-sm font-bold text-[#003D45]">₹{finalPrice.toFixed(0)}</span>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center justify-between pt-1.5 border-t border-neutral-200">
+                              <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider">Total for {item.quantity}x</span>
+                              <span className="text-base font-black text-[#003D45]">₹{itemTotal.toFixed(0)}</span>
+                            </div>
+
+                            {itemSavings > 0 && (
+                              <div className="flex items-center justify-between pt-1.5 border-t border-neutral-200 text-green-600">
+                                <span className="text-[10px] font-bold uppercase tracking-wider">You Save</span>
+                                <span className="text-sm font-bold">₹{itemSavings.toFixed(0)}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Controls */}
+                        <div className="flex items-center justify-between mt-4 pt-3 border-t border-neutral-100">
+                          {/* Mobile Quantity Controls */}
+                          <div className="flex items-center bg-neutral-100 rounded-xl h-10 px-1 border border-neutral-200">
+                            <button
+                              onClick={() => handleUpdateQuantity(item.product.id, item.quantity - 1, item.selectedSize, item.selectedColor)}
+                              disabled={isUpdating || item.quantity <= 1}
+                              className="w-8 h-8 flex items-center justify-center text-[#003D45] text-lg font-bold disabled:opacity-20 hover:bg-white rounded-lg transition-colors"
+                            >
+                              −
+                            </button>
+                            <span className="w-8 text-center font-bold text-[#003D45] text-sm">{item.quantity}</span>
+                            <button
+                              onClick={() => handleUpdateQuantity(item.product.id, item.quantity + 1, item.selectedSize, item.selectedColor)}
+                              disabled={isUpdating}
+                              className="w-8 h-8 flex items-center justify-center text-[#003D45] text-lg font-bold disabled:opacity-20 hover:bg-white rounded-lg transition-colors"
+                            >
+                              +
+                            </button>
+                          </div>
+
+                          {/* Status Badge */}
+                          <div className="text-right">
+                            <p className="text-[10px] text-neutral-500 uppercase font-bold tracking-wider">Subtotal</p>
+                            <p className="text-lg font-black text-[#003D45]">₹{itemTotal.toFixed(0)}</p>
+                          </div>
                         </div>
                       </div>
                     </div>

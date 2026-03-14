@@ -13,9 +13,7 @@ export const BillModal: React.FC<BillModalProps> = ({ order, isOpen, onClose }) 
 
   // Safe value extraction with defaults
   const totalAmount = order.totalAmount || 0;
-  const gstAmount = order.gstAmount || 0;
   const discountAmount = order.discountAmount || 0;
-  const subtotal = totalAmount - gstAmount + discountAmount;
 
   const handlePrint = () => {
     window.print();
@@ -39,27 +37,40 @@ export const BillModal: React.FC<BillModalProps> = ({ order, isOpen, onClose }) 
         {/* Header */}
         <div className="sticky top-0 bg-white border-b border-neutral-200 px-6 py-4 flex items-center justify-between">
           <h2 className="text-lg font-bold text-neutral-900">Order Bill</h2>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handlePrint}
-              className="p-2 rounded-lg hover:bg-neutral-100 transition text-neutral-600"
-              title="Print Bill"
-            >
-              <Printer className="w-5 h-5" />
-            </button>
-            <button
-              onClick={handleDownload}
-              className="p-2 rounded-lg hover:bg-neutral-100 transition text-neutral-600"
-              title="Download Bill"
-            >
-              <Download className="w-5 h-5" />
-            </button>
-            <button
-              onClick={onClose}
-              className="text-neutral-500 hover:text-neutral-700"
-            >
-              <X className="w-5 h-5" />
-            </button>
+          <div className="flex items-center gap-3">
+            {/* Coupon Badge - Show if coupon was applied */}
+            {order.couponCode && (
+              <div className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-lg px-3 py-2">
+                <div className="text-sm">
+                  {order.appliedCoupon?.trainerName && (
+                    <p className="font-semibold text-green-800">🎟 {order.appliedCoupon.trainerName}</p>
+                  )}
+                  <p className="text-xs text-green-700">Code: {order.couponCode}</p>
+                </div>
+              </div>
+            )}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handlePrint}
+                className="p-2 rounded-lg hover:bg-neutral-100 transition text-neutral-600"
+                title="Print Bill"
+              >
+                <Printer className="w-5 h-5" />
+              </button>
+              <button
+                onClick={handleDownload}
+                className="p-2 rounded-lg hover:bg-neutral-100 transition text-neutral-600"
+                title="Download Bill"
+              >
+                <Download className="w-5 h-5" />
+              </button>
+              <button
+                onClick={onClose}
+                className="text-neutral-500 hover:text-neutral-700"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
           </div>
         </div>
 
@@ -143,7 +154,14 @@ export const BillModal: React.FC<BillModalProps> = ({ order, isOpen, onClose }) 
                             {variant || "N/A"}
                           </td>
                           <td className="py-3 px-2 text-right text-neutral-900 font-semibold">
-                            ₹{itemPrice.toFixed(2)}
+                            {item.discountPercent > 0 || discountAmount > 0 ? (
+                              <div>
+                                <span className="line-through text-neutral-500">{item.basePrice?.toFixed(2)}</span>
+                                <span className="ml-2 text-neutral-900">₹{itemPrice.toFixed(2)}</span>
+                              </div>
+                            ) : (
+                              <span>₹{itemPrice.toFixed(2)}</span>
+                            )}
                           </td>
                           <td className="py-3 px-2 text-right text-neutral-900 font-bold">
                             ₹{itemTotal.toFixed(2)}
@@ -167,19 +185,42 @@ export const BillModal: React.FC<BillModalProps> = ({ order, isOpen, onClose }) 
           <div className="border-t border-neutral-200 pt-4 space-y-2">
             <div className="flex justify-end gap-8">
               <div className="w-64">
+                {/* Subtotal (before any discounts) */}
                 <div className="flex justify-between py-2 border-b border-neutral-100">
                   <span className="text-neutral-600">Subtotal:</span>
                   <span className="font-semibold text-neutral-900">
-                    ₹{subtotal.toFixed(2)}
+                    ₹{(totalAmount + discountAmount).toFixed(2)}
                   </span>
                 </div>
-                {discountAmount > 0 && (
-                  <div className="flex justify-between py-2 border-b border-neutral-100 text-green-600">
-                    <span>Discount:</span>
-                    <span className="font-semibold">-₹{discountAmount.toFixed(2)}</span>
+
+                {/* Product Discount */}
+                {(order.items?.some(item => item.discountPercent > 0) ?? false) && (
+                  <div className="flex justify-between py-2 border-b border-neutral-100 text-orange-600">
+                    <span className="text-sm">Product Discount:</span>
+                    <span className="font-semibold">-₹{(order.items
+                      ?.reduce((sum, item) => {
+                        const itemSavings = (item.basePrice - item.price) * item.quantity;
+                        return sum + itemSavings;
+                      }, 0) ?? 0).toFixed(2)}</span>
                   </div>
                 )}
-                <div className="flex justify-between py-3 text-lg font-bold text-neutral-900 bg-neutral-50 px-2 rounded mt-2">
+
+                {/* Coupon Discount */}
+                {discountAmount > 0 && (
+                  <div className="flex justify-between py-2 border-b border-neutral-100 text-green-600">
+                    <div>
+                      <span className="text-sm font-semibold block">Coupon Discount</span>
+                      <span className="text-xs text-green-600 block">({order.couponCode})</span>
+                      {order.appliedCoupon?.trainerName && (
+                        <span className="text-xs text-green-700 block font-semibold">{order.appliedCoupon.trainerName}</span>
+                      )}
+                    </div>
+                    <span className="font-bold">-₹{discountAmount.toFixed(2)}</span>
+                  </div>
+                )}
+
+                {/* Final Total */}
+                <div className="flex justify-between py-3 text-lg font-bold text-neutral-900 bg-green-50 px-2 rounded mt-2 border border-green-200">
                   <span>Total:</span>
                   <span>₹{totalAmount.toFixed(2)}</span>
                 </div>

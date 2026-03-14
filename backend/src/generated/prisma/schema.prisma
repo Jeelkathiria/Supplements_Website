@@ -129,6 +129,12 @@ model OrderItem {
   flavor   String?
   size     String?
 
+  // Product snapshot - store product details at time of order
+  productName     String? // Product name at order time
+  basePrice       Float? // Original product price at order time
+  discountPercent Float   @default(0) // Discount % at order time
+  imageUrl        String? // Product image at order time
+
   order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
   product Product @relation(fields: [productId], references: [id])
 }
@@ -278,6 +284,9 @@ model Coupon {
   // Discount configuration
   discountPercent Float  @default(10) // Fixed 10% or customizable
   discountType    String @default("percent") // "percent" or "fixed" for future use
+
+  // Minimum order value to apply coupon
+  minValue Float @default(0) // Minimum cart total required to use coupon
 
   // Validity and status
   isActive   Boolean @default(true)
