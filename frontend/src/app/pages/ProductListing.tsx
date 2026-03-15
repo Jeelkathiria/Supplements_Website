@@ -265,7 +265,7 @@ export const ProductListing: React.FC = () => {
           {/* PRODUCTS — RIGHT */}
           <div className="flex-1">
             <div className="mb-8">
-              <h1 className="text-3xl font-bold mb-1">
+              <h1 className="text-3xl font-bold mb-1 pl-4 border-l-4 border-yellow-500">
                 All Products
               </h1>
               <p className="text-neutral-600">

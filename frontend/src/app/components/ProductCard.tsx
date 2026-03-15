@@ -57,12 +57,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         `}
       >
         {/* Product Image */}
-        <div className="relative h-48 md:h-64 bg-neutral-100 overflow-hidden flex items-center justify-center">
+        <div className="relative h-32 md:h-40 bg-neutral-100 overflow-hidden flex items-center justify-center">
           {!imageError ? (
             <img
               src={displayImage}
               alt={product.name}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+              className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300"
               onError={() => setImageError(true)}
             />
           ) : (
@@ -74,10 +74,16 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             </div>
           )}
 
-          {/* Discount Badge */}
+          {/* Discount Ribbon Strip */}
           {discount > 0 && (
-            <div className="absolute top-3 left-3 bg-red-600 text-white px-3 py-1 rounded-full text-sm font-bold">
-              {discount}% OFF
+            <div className="absolute -top-1 -left-1 flex items-center justify-center">
+              <div className="relative w-20 h-10 bg-red-600 text-white flex items-center justify-center font-bold text-[11px] shadow-lg"
+                style={{
+                  clipPath: 'polygon(0 0, 85% 0, 100% 50%, 85% 100%, 0 100%, 15% 50%)',
+                  boxShadow: 'inset -2px -2px 5px rgba(0,0,0,0.3)'
+                }}>
+                {discount}% OFF
+              </div>
             </div>
           )}
 
@@ -96,10 +102,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         </div>
 
         {/* Product Info */}
-        <div className="p-4">
+        <div className="p-3">
           {/* Category */}
           <div
-            className={`text-xs uppercase tracking-widest font-semibold mb-1 ${isDiscount ? 'text-white/70' : 'text-neutral-500'
+            className={`text-[12px] uppercase tracking-wide font-semibold mb-0.5 ${isDiscount ? 'text-white/70' : 'text-neutral-500'
               }`}
           >
             {product.categoryName || (typeof product.category === 'object' ? product.category?.name : product.category) || 'Product'}
@@ -107,7 +113,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
           {/* Product Name */}
           <h3
-            className={`font-bold mb-2 line-clamp-2 transition-colors text-sm ${isDiscount
+            className={`font-medium mb-1.5 line-clamp-2 transition-colors text-base leading-tight ${isDiscount
               ? 'text-white'
               : 'text-neutral-900 group-hover:text-neutral-600'
               }`}
@@ -115,55 +121,53 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             {product.name}
           </h3>
 
-          {/* Price Section */}
-          <div className="mb-3">
-            {/* Final Price */}
-            <div className={`text-2xl font-bold mb-1 ${isDiscount ? 'text-white' : 'text-neutral-900'}`}>
-              ₹{finalPrice.toFixed(0)}
+          {/* Price Section - Compact */}
+          <div className="mb-2 h-14">
+            {/* Price with Offer */}
+            <div className={`text-x ${isDiscount ? 'text-white/90' : 'text-neutral-600'}`}>
+              <span className={`italic text-lg font-bold ${isDiscount ? 'text-white' : 'text-neutral-900'}`}>
+                ₹{finalPrice.toFixed(0)}
+              </span>
+              {discount > 0 && (
+                <>
+                  <span className="ml-1 text-xs line-through">
+                    ₹{basePrice.toFixed(0)}
+                  </span>
+                  <span className={`ml-1 text-xs font-bold ${isDiscount ? 'text-yellow-300' : 'text-green-600'}`}>
+                    {discount}% off
+                  </span>
+                </>
+              )}
             </div>
 
-            {/* MRP Section */}
-            {discount > 0 && (
-              <div className="flex items-center gap-2">
-                <span className={`text-xs font-semibold ${isDiscount ? 'text-white/90' : 'text-neutral-600'}`}>MRP</span>
-                <div className={`px-2 py-1 rounded ${isDiscount ? 'bg-white/20' : 'bg-red-100'}`}>
-                  <span className={`text-sm line-through ${isDiscount ? 'text-white/80' : 'text-neutral-600'}`}>
-                    ₹{basePrice.toFixed(2)}
-                  </span>
-                </div>
-              </div>
-            )}
+            {discount === 0 && <div className="h-3"></div>}
           </div>
 
           {/* Two Info Lines */}
-          <div className="mb-3 space-y-1">
-            <p className={`text-xs ${isDiscount ? 'text-white/90' : 'text-neutral-600'}`}>
+          <div className="mb-2 space-y-0.5">
+            <p className={`text-[10px] ${isDiscount ? 'text-white/90' : 'text-neutral-600'}`}>
               {isOutOfStock ? 'Out of Stock' : 'In Stock'}
             </p>
-            <p className={`text-xs font-medium ${isDiscount ? 'text-yellow-200' : 'text-green-600'}`}>
-              {isDiscount ? '⭐ Limited Time Deal' : '✓ Verified Authentic Product'}
+            <p className={`text-[10px] font-medium ${isDiscount ? 'text-yellow-200' : 'text-green-600'}`}>
+              {isDiscount ? 'Limited Time Deal' : '✓ Verified Authentic Product'}
             </p>
           </div>
 
-          {/* Quick Buy Button - Fantastic Style */}
+          {/* Quick Buy Button */}
           <button
             onClick={handleQuickBuy}
             disabled={isOutOfStock}
             className={`
-              w-full mt-2 py-3 px-4 rounded-lg font-bold transition-all 
-              relative overflow-hidden group/btn text-sm tracking-wide 
+              w-full mt-2 py-2 px-3 rounded-lg font-bold transition-all text-xs
               ${isOutOfStock
                 ? 'bg-neutral-300 text-neutral-500 cursor-not-allowed'
                 : isDiscount
-                  ? 'bg-white text-neutral-900 hover:bg-neutral-100 shadow-lg hover:shadow-xl hover:scale-110 active:scale-95 font-black'
-                  : 'bg-teal-800 text-white hover:bg-teal-900 shadow-lg hover:shadow-xl hover:scale-105 active:scale-95'
+                  ? 'bg-white text-neutral-900 hover:bg-neutral-100 active:scale-95'
+                  : 'bg-teal-800 text-white hover:bg-teal-900 active:scale-95'
               }
             `}
           >
-            <span className="flex items-center justify-center gap-2 ">
-              <Zap className="w-4 h-4 " />
-              QUICK BUY
-            </span>
+            QUICK BUY
           </button>
         </div>
       </div>

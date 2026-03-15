@@ -16,7 +16,7 @@ import {
 import { useCart } from "./context/CartContext";
 import { useAuth } from "./context/AuthContext";
 import { CategoryDropdown } from "./CategoryDropdown";
-import saturnLogo from "../../images/Gemini_Generated_Image_p3uqyop3uqyop3uq.png";
+import saturnLogo from "../../images/LOGO.png";
 
 export const Navbar: React.FC = () => {
   const { cartItems } = useCart();
@@ -114,22 +114,37 @@ export const Navbar: React.FC = () => {
   return (
     <>
       <nav className="sticky top-0 z-50 transition-all duration-300">
-        {/* DESKTOP NAV - UNTOUCHED */}
+        {/* TOP BANNER */}
+        <div className="hidden lg:block bg-teal-950 border-b">
+          <div className="max-w-[1400px] mx-auto px-8">
+            <div className="flex items-center justify-center gap-8 h-10 text-xs text-gray-200">
+              <span>Free Shipping above ₹999</span>
+              <span className="text-gray-500">|</span>
+              <Link to="/account" className="hover:text-white transition">Track Order</Link>
+              <span className="text-gray-500">|</span>
+              <Link to="/contact" className="hover:text-white transition">Support</Link>
+            </div>
+          </div>
+        </div>
+
+        {/* MAIN NAVBAR */}
         <div className="hidden lg:block bg-teal-900 border-b shadow-sm">
           <div className="max-w-[1400px] mx-auto px-8">
-            <div className="flex items-center justify-between h-16 gap-2">
+            <div className="flex items-center justify-between h-16 gap-4">
+              {/* Logo */}
               <Link to="/" className="flex items-center flex-shrink-0 hover:opacity-90 transition">
                 <img
                   src={saturnLogo}
-                  alt="Saturn Imports"
-                  className="h-12 w-12 object-contain"
+                  alt="Logo"
+                  className="h-38 w-40 object-contain mt-3"
                 />
               </Link>
 
-              {/* DESKTOP SEARCH */}
-              <div className="flex flex-1 mx-8 max-w-[760px]">
-                <div className="flex w-full border border-white/20 rounded-2xl overflow-hidden">
-                  <div className="basis-[120px] shrink-0">
+              {/* Combined Category Dropdown + Search Bar (Amazon Style) */}
+              <div className="flex-1 max-w-[700px]">
+                <div className="flex w-full bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition">
+                  {/* Category Dropdown (Left) */}
+                  <div className="w-40 border-r border-gray-200 shrink-0">
                     <CategoryDropdown
                       isOpen={desktopOpen}
                       setIsOpen={setDesktopOpen}
@@ -139,52 +154,86 @@ export const Navbar: React.FC = () => {
                     />
                   </div>
 
-                  <div className="relative flex-1 bg-white">
+                  {/* Search Input (Middle) */}
+                  <div className="relative flex-1">
                     <input
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       placeholder="Search supplements..."
-                      className="w-full h-11 px-4 pr-10 focus:outline-none text-neutral-900 placeholder:text-neutral-400"
+                      className="w-full h-11 px-4 pr-10 focus:outline-none text-neutral-900 placeholder:text-neutral-500 text-sm"
                     />
-                    <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
+                    {/* Search Icon (Right) */}
+                    <button 
+                      onClick={() => {
+                        if (searchQuery.trim()) {
+                          navigate(`/products?search=${searchQuery.trim()}`);
+                        }
+                      }}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition"
+                    >
+                      <Search className="w-5 h-5" />
+                    </button>
                   </div>
                 </div>
               </div>
 
-              {/* DESKTOP LINKS */}
-              <div className="flex items-center gap-6">
-                <Link to="/" className={navLinkClass("/")}>Home</Link>
-                <Link to="/products" className={navLinkClass("/products")}>Products</Link>
-                {isAuthenticated && <Link to="/account" className={navLinkClass("/account")}>Orders</Link>}
-                {isAdmin && <Link to="/admin" className={navLinkClass("/admin")}>Admin</Link>}
-
-                <Link to="/cart" className="relative text-white hover:text-neutral-200 transition">
+              {/* Right: Products | Admin | Orders | Cart | Login */}
+              <div className="flex items-center gap-8 text-white">
+                <Link to="/products" className="text-sm font-semibold hover:text-gray-200 transition">
+                  Products
+                </Link>
+                
+                {isAdmin && (
+                  <Link to="/admin" className="text-sm font-semibold hover:text-gray-200 transition">
+                    Admin
+                  </Link>
+                )}
+                
+                {isAuthenticated && (
+                  <Link to="/account" className="text-sm font-semibold hover:text-gray-200 transition">
+                    Orders
+                  </Link>
+                )}
+                
+                   <Link to="/cart" className="relative hover:text-gray-200 transition">
                   <ShoppingCart className="w-5 h-5" />
                   {cartItemsCount > 0 && (
-                    <span className="absolute -top-2 -right-2 bg-black text-white text-[10px] rounded-full px-1.5 py-0.5">
+                    <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] font-black rounded-full w-5 h-5 flex items-center justify-center">
                       {cartItemsCount}
                     </span>
                   )}
                 </Link>
 
                 {isAuthenticated ? (
-                  <div className="flex items-center gap-4">
-                    <Link to="/account" title="My Account" className="text-white hover:text-neutral-200 transition">
-                      <User className="w-5 h-5" />
-                    </Link>
-                    <button
-                      onClick={() => { logout(); navigate('/'); }}
-                      className="text-white hover:text-neutral-200 transition"
-                    >
-                      <LogOut className="w-5 h-5" />
-                    </button>
-                  </div>
+                  <button
+                    onClick={() => { logout(); navigate('/'); }}
+                    className="text-sm font-semibold hover:text-gray-200 transition"
+                  >
+                    Logout
+                  </button>
                 ) : (
-                  <Link to="/login" className="text-white hover:text-neutral-200 transition">
-                    <User className="w-5 h-5" />
+                  <Link to="/login" className="text-sm font-semibold hover:text-gray-200 transition">
+                    Login
                   </Link>
                 )}
               </div>
+            </div>
+          </div>
+        </div>
+
+        {/* CATEGORY LINKS ROW */}
+        <div className="hidden lg:block bg-teal-900 border-b border-white/10">
+          <div className="max-w-[1400px] mx-auto px-8">
+            <div className="flex items-center gap-8 h-12 overflow-x-auto">
+              {['Protein', 'Creatine', 'Pre Workout', 'Mass Gainer', 'Vitamins', 'Fat Burner', 'Accessories', 'Deals'].map((category) => (
+                <Link
+                  key={category}
+                  to={category === 'Deals' ? '/#deals-section' : `/products?category=${category.toLowerCase().replace(/\s+/g, '-')}`}
+                  className="text-sm font-medium text-white hover:text-gray-200 transition whitespace-nowrap"
+                >
+                  {category}
+                </Link>
+              ))}
             </div>
           </div>
         </div>
@@ -208,7 +257,7 @@ export const Navbar: React.FC = () => {
 
               {/* Center: Logo */}
               <Link to="/" className="flex items-center gap-2">
-                <img src={saturnLogo} alt="Logo" className="h-9 w-9 object-contain" />
+                <img src={saturnLogo} alt="Logo" className="h-12 w-12 object-contain" />
                 <span className="text-white font-black text-sm tracking-tighter uppercase italic">
                   SATURN<span className="text-teal-400 not-italic">IMPORTS</span>
                 </span>
@@ -271,7 +320,7 @@ export const Navbar: React.FC = () => {
             {/* Header */}
             <div className="p-6 bg-[#003D45] text-white">
               <div className="flex items-center justify-between mb-8">
-                <img src={saturnLogo} alt="Logo" className="h-10 w-10 ring-4 ring-white/10 rounded-full" />
+                <img src={saturnLogo} alt="Logo" className="h-14 w-14 ring-4 ring-white/10 rounded-full" />
                 <button
                   onClick={() => setIsMenuOpen(false)}
                   className="w-10 h-10 flex items-center justify-center bg-white/10 rounded-full active:rotate-90 transition-transform"

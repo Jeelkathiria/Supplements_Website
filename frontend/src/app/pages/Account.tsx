@@ -1006,7 +1006,7 @@ export const Account: React.FC = () => {
                                           >
                                             Buy it again
                                           </button>
-                                          <button className="text-xs text-neutral-600 hover:text-orange-700 underline font-medium">View your item</button>
+                                          <button onClick={() => navigate(`/account/order/${order.id}`)} className="text-xs text-neutral-600 hover:text-orange-700 underline font-medium">View your item</button>
                                         </div>
                                       </div>
                                     </div>
@@ -1022,16 +1022,16 @@ export const Account: React.FC = () => {
                                 >
                                   Track package
                                 </button>
-                                <button className="w-full py-2 bg-neutral-100 border border-neutral-300 rounded-lg text-sm font-medium hover:bg-neutral-200 transition-colors shadow-sm">
+                                <button
+                                  onClick={() => navigate(`/request-cancellation/${order.id}`)}
+                                  className="w-full py-2 bg-neutral-100 border border-neutral-300 rounded-lg text-sm font-medium hover:bg-neutral-200 transition-colors shadow-sm"
+                                >
                                   Return or replace items
                                 </button>
-                                <button className="w-full py-2 bg-neutral-100 border border-neutral-300 rounded-lg text-sm font-medium hover:bg-neutral-200 transition-colors shadow-sm">
-                                  Share gift receipt
-                                </button>
-                                <button className="w-full py-2 bg-neutral-100 border border-neutral-300 rounded-lg text-sm font-medium hover:bg-neutral-200 transition-colors shadow-sm">
-                                  Leave delivery feedback
-                                </button>
-                                <button className="w-full py-2 bg-neutral-100 border border-neutral-300 rounded-lg text-sm font-medium hover:bg-neutral-200 transition-colors shadow-sm">
+                                <button
+                                  onClick={() => navigate('/contact')}
+                                  className="w-full py-2 bg-neutral-100 border border-neutral-300 rounded-lg text-sm font-medium hover:bg-neutral-200 transition-colors shadow-sm"
+                                >
                                   Write a product review
                                 </button>
                               </div>

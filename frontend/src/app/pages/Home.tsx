@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { Dumbbell, ChevronDown, CheckCircle2, Zap, Users, ChevronLeft, ChevronRight } from "lucide-react";
 
 import { ProductCard } from "../components/ProductCard";
@@ -27,9 +27,25 @@ const HERO_IMAGES = [
 ];
 
 export const Home: React.FC = () => {
+  const location = useLocation();
   const [currentSlide, setCurrentSlide] = useState(0);
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
   const [discountedProducts, setDiscountedProducts] = useState<Product[]>([]);
+  const [highlightDeals, setHighlightDeals] = useState(false);
+
+  // Detect hash and scroll to deals section with highlight
+  useEffect(() => {
+    if (location.hash === '#deals-section') {
+      const dealsSection = document.getElementById('deals-section');
+      if (dealsSection) {
+        setTimeout(() => {
+          dealsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          setHighlightDeals(true);
+          setTimeout(() => setHighlightDeals(false), 1000);
+        }, 100);
+      }
+    }
+  }, [location.hash]);
 
   // Function to load products
   const loadProducts = async () => {
@@ -232,7 +248,7 @@ export const Home: React.FC = () => {
       <section className="py-8 md:py-14 bg-neutral-50 w-full">
         <div className="max-w-[1400px] mx-auto px-4 md:px-12">
           <div className="mb-6 md:mb-8">
-            <h2 className="text-xl md:text-2xl font-bold mb-1 md:mb-2">
+            <h2 className="text-xl md:text-4xl font-bold mb-1 md:mb-2 pl-4 border-l-4 border-yellow-500">
               Shop by Category
             </h2>
             <p className="text-xs md:text-sm text-neutral-600">
@@ -273,7 +289,7 @@ export const Home: React.FC = () => {
       <section className="py-8 md:py-14 bg-white w-full">
         <div className="max-w-[1400px] mx-auto px-4 md:px-12">
           <div className="mb-6 md:mb-8">
-            <h2 className="text-xl md:text-2xl font-bold mb-1 md:mb-2">
+            <h2 className="text-xl md:text-4xl font-bold mb-1 md:mb-2 pl-4 border-l-4 border-yellow-500">
               Featured Products
             </h2>
             <p className="text-xs md:text-sm text-neutral-600">
@@ -302,7 +318,7 @@ export const Home: React.FC = () => {
       </section>
 
       {/* DISCOUNT DEALS SECTION */}
-      <section className="relative py-16 md:py-28 overflow-hidden">
+      <section id="deals-section" className={`relative py-16 md:py-28 overflow-hidden transition-all duration-1000 ${highlightDeals ? 'ring-2 ring-teal-400 ring-opacity-75' : ''}`}>
         {/* Professional Background Image with Overlay */}
         <div className="absolute inset-0 z-0">
           <img
