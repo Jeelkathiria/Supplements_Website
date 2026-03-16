@@ -401,7 +401,7 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({ filterStatus = "all" }
                                       <p className="text-xs text-neutral-700 mt-0.5">{item.quantity}× ₹{item.price}</p>
                                     </div>
                                     <div className="text-right flex-shrink-0">
-                                      <p className="font-bold text-neutral-900 text-xs">₹{(item.quantity * item.price).toFixed(2)}</p>
+                                      <p className="font-bold text-neutral-900 text-xs">₹{(item.quantity * item.price).toFixed(0)}</p>
                                     </div>
                                   </div>
                                 ))}
@@ -415,7 +415,7 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({ filterStatus = "all" }
                             {!isExpanded && (
                               <div className="px-4 py-3 bg-neutral-50 border-b border-neutral-200 flex items-center justify-between">
                                 <div className="flex items-center gap-3">
-                                  <span className="text-lg font-bold text-neutral-900">₹{order.totalAmount.toFixed(2)}</span>
+                                  <span className="text-lg font-bold text-neutral-900">₹{order.totalAmount.toFixed(0)}</span>
                                   {order.appliedCoupon && (
                                     <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-green-100 text-green-800 whitespace-nowrap">
                                       🎟 {order.appliedCoupon.trainerName.length > 6 ? `${order.appliedCoupon.trainerName.substring(0, 6)}...` : order.appliedCoupon.trainerName}
@@ -442,11 +442,11 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({ filterStatus = "all" }
                                     <>
                                       <div className="flex justify-between items-baseline mb-2">
                                         <span className="text-neutral-600 text-xs">Subtotal</span>
-                                        <span className="font-semibold text-neutral-900">₹{(order.totalAmount + (order.discountAmount || 0)).toFixed(2)}</span>
+                                        <span className="font-semibold text-neutral-900">₹{(order.totalAmount + (order.discountAmount || 0)).toFixed(0)}</span>
                                       </div>
                                       <div className="flex justify-between items-baseline mb-2 text-green-600">
                                         <span className="text-xs font-semibold">Coupon Discount</span>
-                                        <span className="font-bold">-₹{(order.discountAmount || 0).toFixed(2)}</span>
+                                        <span className="font-bold">-₹{(order.discountAmount || 0).toFixed(0)}</span>
                                       </div>
                                       {order.appliedCoupon && (
                                         <div className="flex justify-between items-baseline mb-3 text-xs text-green-700">
@@ -457,7 +457,7 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({ filterStatus = "all" }
                                   ) : null}
                                   <div className="flex justify-between items-baseline border-t border-neutral-200 pt-2">
                                     <span className="text-neutral-600 text-xs font-semibold">Total Amount</span>
-                                    <span className="text-lg font-bold text-neutral-900">₹{order.totalAmount.toFixed(2)}</span>
+                                    <span className="text-lg font-bold text-neutral-900">₹{order.totalAmount.toFixed(0)}</span>
                                   </div>
                                 </div>
 
@@ -674,11 +674,11 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({ filterStatus = "all" }
                           {item.flavor && <span><span className="font-bold">Flavor:</span> {item.flavor}</span>}
                           {item.size && <span><span className="font-bold">Size:</span> {item.size}</span>}
                         </div>
-                        <p className="text-sm text-neutral-700 mt-1">₹{item.price.toFixed(2)}</p>
+                        <p className="text-sm text-neutral-700 mt-1">₹{item.price.toFixed(0)}</p>
                       </div>
                       <div className="text-right min-w-[110px]">
                         <p className="text-sm text-neutral-700"><span className="font-bold">Qty:</span> {item.quantity}</p>
-                        <p className="font-bold text-neutral-900 mt-1">₹{(item.quantity * item.price).toFixed(2)}</p>
+                        <p className="font-bold text-neutral-900 mt-1">₹{(item.quantity * item.price).toFixed(0)}</p>
                       </div>
                     </div>
                   ))}
@@ -698,11 +698,11 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({ filterStatus = "all" }
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span className="text-neutral-600">Subtotal:</span>
-                    <span className="font-semibold text-neutral-900">₹{selectedOrderForModal.totalAmount.toFixed(2)}</span>
+                    <span className="font-semibold text-neutral-900">₹{selectedOrderForModal.totalAmount.toFixed(0)}</span>
                   </div>
                   <div className="border-t border-neutral-200 pt-2 flex justify-between">
                     <span className="font-bold text-neutral-900">Total:</span>
-                    <span className="text-lg font-bold text-neutral-900">₹{selectedOrderForModal.totalAmount.toFixed(2)}</span>
+                    <span className="text-lg font-bold text-neutral-900">₹{selectedOrderForModal.totalAmount.toFixed(0)}</span>
                   </div>
                 </div>
               </div>

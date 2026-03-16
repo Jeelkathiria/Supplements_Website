@@ -54,8 +54,24 @@ model Product {
 
   cartItems  CartItem[] // cartItems
   orderItems OrderItem[] //order Items
+  favorites  Favorite[] // favorite items
   createdAt  DateTime    @default(now())
   updatedAt  DateTime    @updatedAt
+}
+
+/**
+ * ================= FAVORITES =================
+ */
+model Favorite {
+  id        String  @id @default(uuid())
+  userId    String  // Firebase UID
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, productId])
+  @@index([userId])
 }
 
 /**

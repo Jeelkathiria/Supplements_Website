@@ -14,6 +14,7 @@ import paymentRoutes from "./routes/payment";
 import couponRoutes from "./routes/couponRoutes";
 import orderCancellationRoutes from "./routes/orderCancellationRoutes";
 import refundRoutes from "./routes/refundRoutes";
+import favoritesRoutes from "./routes/favoritesRoutes";
 import testRoutes from "./routes/testRoutes";
 import { 
   sendOrderConfirmationEmail,
@@ -216,6 +217,9 @@ app.use("/api/payment", paymentRoutes);
 
 // Coupons
 app.use("/api/coupons", couponRoutes);
+
+// Favorites
+app.use("/api/favorites", favoritesRoutes);
 
 // Test Routes (for debugging - requires auth)
 app.use("/api/test", requireAuth, testRoutes);

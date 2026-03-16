@@ -118,11 +118,11 @@ export const Navbar: React.FC = () => {
         <div className="hidden lg:block bg-teal-950 border-b">
           <div className="max-w-[1400px] mx-auto px-8">
             <div className="flex items-center justify-center gap-8 h-10 text-xs text-gray-200">
-              <span>Free Shipping above ₹999</span>
+              <span>Same Day Dispatch Before 4PM</span>
               <span className="text-gray-500">|</span>
-              <Link to="/account" className="hover:text-white transition">Track Order</Link>
+              <Link to="/account" className="hover:text-white transition">100% Authentic Products</Link>
               <span className="text-gray-500">|</span>
-              <Link to="/contact" className="hover:text-white transition">Support</Link>
+              <Link to="/contact" className="hover:text-white transition">Easy Returns</Link>
             </div>
           </div>
         </div>
@@ -163,7 +163,7 @@ export const Navbar: React.FC = () => {
                       className="w-full h-11 px-4 pr-10 focus:outline-none text-neutral-900 placeholder:text-neutral-500 text-sm"
                     />
                     {/* Search Icon (Right) */}
-                    <button 
+                    <button
                       onClick={() => {
                         if (searchQuery.trim()) {
                           navigate(`/products?search=${searchQuery.trim()}`);
@@ -182,20 +182,20 @@ export const Navbar: React.FC = () => {
                 <Link to="/products" className="text-sm font-semibold hover:text-gray-200 transition">
                   Products
                 </Link>
-                
+
                 {isAdmin && (
                   <Link to="/admin" className="text-sm font-semibold hover:text-gray-200 transition">
                     Admin
                   </Link>
                 )}
-                
+
                 {isAuthenticated && (
                   <Link to="/account" className="text-sm font-semibold hover:text-gray-200 transition">
                     Orders
                   </Link>
                 )}
-                
-                   <Link to="/cart" className="relative hover:text-gray-200 transition">
+
+                <Link to="/cart" className="relative hover:text-gray-200 transition">
                   <ShoppingCart className="w-5 h-5" />
                   {cartItemsCount > 0 && (
                     <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] font-black rounded-full w-5 h-5 flex items-center justify-center">

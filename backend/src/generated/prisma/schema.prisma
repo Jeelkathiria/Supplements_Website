@@ -54,8 +54,24 @@ model Product {
 
   cartItems  CartItem[] // cartItems
   orderItems OrderItem[] //order Items
+  favorites  Favorite[] // favorite items
   createdAt  DateTime    @default(now())
   updatedAt  DateTime    @updatedAt
+}
+
+/**
+ * ================= FAVORITES =================
+ */
+model Favorite {
+  id        String  @id @default(uuid())
+  userId    String // Firebase UID
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, productId])
+  @@index([userId])
 }
 
 /**
@@ -284,9 +300,6 @@ model Coupon {
   // Discount configuration
   discountPercent Float  @default(10) // Fixed 10% or customizable
   discountType    String @default("percent") // "percent" or "fixed" for future use
-
-  // Minimum order value to apply coupon
-  minValue Float @default(0) // Minimum cart total required to use coupon
 
   // Validity and status
   isActive   Boolean @default(true)

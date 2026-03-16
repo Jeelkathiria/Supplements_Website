@@ -347,7 +347,7 @@ export const AdminRefundStatus: React.FC<{refreshTrigger?: number}> = ({refreshT
                           {refund.orderId}
                         </td>
                         <td className="px-6 py-4 text-sm text-neutral-700">
-                          ₹{refund.refundAmount.toFixed(2)}
+                          ₹{refund.refundAmount.toFixed(0)}
                         </td>
                         <td className="px-6 py-4 text-sm font-mono text-neutral-700">
                           {refund.upiId ? (

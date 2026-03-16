@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ShoppingCart, Zap } from 'lucide-react';
+import { ShoppingCart, Zap, Eye, Heart } from 'lucide-react';
+import { useCart } from './context/CartContext';
+import { useFavorites } from './context/FavoritesContext';
+import { toast } from 'sonner';
 import { Product } from '../types';
 import { calculateFinalPrice } from '../data/products';
 
@@ -14,7 +17,20 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   variant = 'featured',
 }) => {
   const navigate = useNavigate();
+  const { addToCart } = useCart();
+  const { favorites, addFavorite, removeFavorite } = useFavorites();
   const [imageError, setImageError] = useState(false);
+
+  const isProductFavorited = favorites.some((fav) => fav.id === product.id);
+
+  const handleToggleFavorite = async (e: React.MouseEvent) => {
+    e.preventDefault(); // Prevent navigating to product detail
+    if (isProductFavorited) {
+      await removeFavorite(product.id);
+    } else {
+      await addFavorite(product.id);
+    }
+  };
 
   // Price calculation - handle both old and new field names
   const basePrice = product.basePrice || 0;
@@ -38,9 +54,24 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   // Filter out base64 images that might be too large, use placeholder if none available
   const displayImage = images.length > 0 ? getFullImageUrl(images[0]) : '/placeholder.png';
 
-  const handleQuickBuy = (e: React.MouseEvent) => {
+  const handleView = (e: React.MouseEvent) => {
     e.preventDefault();
     navigate(`/product/${product.id}`);
+  };
+
+  const handleQuickBuy = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (product.isOutOfStock) {
+      toast.error('This product is out of stock');
+      return;
+    }
+
+    // Auto-select 1st size and 1st flavor if available
+    const selectedSize = product.sizes?.[0];
+    const selectedFlavor = (product.flavors || product.colors)?.[0];
+
+    addToCart(product, 1, selectedSize, selectedFlavor);
+    toast.success(`${product.name} added to cart`);
   };
 
   const isDiscount = variant === 'discount';
@@ -87,18 +118,18 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             </div>
           )}
 
-          {/* Veg/Non-Veg Badge */}
-          <div className="absolute top-3 right-3">
-            {product.isVegetarian ? (
-              <div className="w-8 h-8 border-2 border-green-600 rounded-sm flex items-center justify-center bg-white">
-                <div className="w-2 h-2 bg-green-600 rounded-full"></div>
-              </div>
-            ) : (
-              <div className="w-8 h-8 border-2 border-red-600 rounded-sm flex items-center justify-center bg-white">
-                <div className="w-2 h-2 bg-red-600 rounded-full"></div>
-              </div>
-            )}
-          </div>
+          {/* Favorite Button */}
+          <button
+            onClick={handleToggleFavorite}
+            className="absolute top-3 right-3 bg-white/80 backdrop-blur-sm rounded-full p-2 shadow-sm hover:shadow-md transition-all z-10"
+          >
+            <Heart
+              className={`w-4 h-4 transition-colors ${isProductFavorited
+                ? 'fill-red-500 text-red-500'
+                : 'text-neutral-600 hover:text-red-500'
+                }`}
+            />
+          </button>
         </div>
 
         {/* Product Info */}
@@ -139,9 +170,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                 </>
               )}
             </div>
-
+            <p className="text-[11px] text-neutral-400 mt-2">
+              Inclusive of all taxes
+            </p>
             {discount === 0 && <div className="h-3"></div>}
+
           </div>
+
 
           {/* Two Info Lines */}
           <div className="mb-2 space-y-0.5">
@@ -153,22 +188,43 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             </p>
           </div>
 
-          {/* Quick Buy Button */}
-          <button
-            onClick={handleQuickBuy}
-            disabled={isOutOfStock}
-            className={`
-              w-full mt-2 py-2 px-3 rounded-lg font-bold transition-all text-xs
-              ${isOutOfStock
-                ? 'bg-neutral-300 text-neutral-500 cursor-not-allowed'
-                : isDiscount
-                  ? 'bg-white text-neutral-900 hover:bg-neutral-100 active:scale-95'
-                  : 'bg-teal-800 text-white hover:bg-teal-900 active:scale-95'
-              }
-            `}
-          >
-            QUICK BUY
-          </button>
+          {/* View and Add to Cart Buttons */}
+          <div className="flex gap-2 mt-2">
+            {/* View Button */}
+            <button
+              onClick={handleView}
+              className={`
+                flex-1 py-2 px-3 rounded-lg font-bold transition-all text-xs flex items-center justify-center gap-1
+                ${isDiscount
+                  ? 'bg-neutral-200 text-neutral-800 hover:bg-neutral-300 active:scale-95'
+                  : 'bg-neutral-200 text-neutral-800 hover:bg-neutral-300 active:scale-95'
+                }
+              `}
+            >
+              <Eye size={14} />
+              VIEW
+            </button>
+
+            {/* Add to Cart Button */}
+            <button
+              onClick={handleQuickBuy}
+              disabled={isOutOfStock}
+              className={`
+                flex-1 py-2 px-3 rounded-lg font-bold transition-all text-xs flex items-center justify-center gap-1
+                ${isOutOfStock
+                  ? 'bg-neutral-300 text-neutral-500 cursor-not-allowed'
+                  : isDiscount
+                    ? 'bg-white text-neutral-900 hover:bg-neutral-100 active:scale-95'
+                    : 'bg-teal-800 text-white hover:bg-teal-900 active:scale-95'
+                }
+              `}
+            >
+              <ShoppingCart size={14} />
+              ADD
+            </button>
+          </div>
+
+
         </div>
       </div>
     </Link>

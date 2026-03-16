@@ -431,7 +431,7 @@ export const AdminCancellationRequests: React.FC<AdminCancellationRequestsProps>
                         {/* Refund Amount */}
                         <div>
                           <p className="text-xs text-neutral-500 font-semibold">Refund Amount</p>
-                          <p className="text-base font-bold text-emerald-600">₹{refundAmount.toFixed(2)}</p>
+                          <p className="text-base font-bold text-emerald-600">₹{refundAmount.toFixed(0)}</p>
                         </div>
 
                         {/* Status Badge */}
@@ -578,7 +578,7 @@ export const AdminCancellationRequests: React.FC<AdminCancellationRequestsProps>
                           {/* Refund Amount */}
                           <div>
                             <p className="text-neutral-500 font-mono">Refund Amount</p>
-                            <p className="font-bold text-green-600">₹{request.order?.totalAmount.toFixed(2) || "0.00"}</p>
+                            <p className="font-bold text-green-600">₹{request.order?.totalAmount.toFixed(0) || "0.00"}</p>
                           </div>
                         </div>
 
@@ -777,7 +777,7 @@ export const AdminCancellationRequests: React.FC<AdminCancellationRequestsProps>
                             {/* Refund Amount */}
                             <div>
                               <p className="text-xs text-neutral-500 font-semibold">Refund Amount</p>
-                              <p className="text-base font-bold text-emerald-600">₹{(request.order?.totalAmount || 0).toFixed(2)}</p>
+                              <p className="text-base font-bold text-emerald-600">₹{(request.order?.totalAmount || 0).toFixed(0)}</p>
                             </div>
 
                             {/* Date */}
@@ -1088,7 +1088,7 @@ export const AdminCancellationRequests: React.FC<AdminCancellationRequestsProps>
               The refund for order <span className="font-mono font-semibold">{refundInitiatedInfo.orderId}</span> has been initiated.
             </p>
             <div className="bg-blue-50 border border-blue-200 rounded p-4 mb-6">
-              <p className="text-sm text-neutral-600"><span className="font-semibold">Refund Amount:</span> ₹{refundInitiatedInfo.amount.toFixed(2)}</p>
+              <p className="text-sm text-neutral-600"><span className="font-semibold">Refund Amount:</span> ₹{refundInitiatedInfo.amount.toFixed(0)}</p>
               <p className="text-sm text-neutral-600 mt-2"><span className="font-semibold">Refund ID:</span> <span className="font-mono text-xs">{refundInitiatedInfo.refundId}</span></p>
             </div>
             <button

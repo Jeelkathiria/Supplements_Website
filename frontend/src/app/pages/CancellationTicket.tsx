@@ -242,7 +242,7 @@ export const CancellationTicket: React.FC = () => {
               <div>
                 <p className="text-xs text-neutral-500 mb-0.5">Amount</p>
                 <p className="font-medium">
-                  ₹{order.totalAmount.toFixed(2)}
+                  ₹{order.totalAmount.toFixed(0)}
                 </p>
               </div>
 

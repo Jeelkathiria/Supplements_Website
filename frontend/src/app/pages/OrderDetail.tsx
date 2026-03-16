@@ -150,7 +150,7 @@ export const OrderDetail: React.FC = () => {
             </div>
             <div>
               <p className="text-neutral-500">Total</p>
-              <p className="font-semibold">₹{order.totalAmount.toFixed(2)}</p>
+              <p className="font-semibold">₹{order.totalAmount.toFixed(0)}</p>
             </div>
           </div>
         </div>
@@ -178,7 +178,7 @@ export const OrderDetail: React.FC = () => {
                     {item.product?.name || item.productName}
                   </p>
                   <p className="text-neutral-500 text-xs">
-                    {item.quantity} × ₹{item.price.toFixed(2)}
+                    {item.quantity} × ₹{item.price.toFixed(0)}
                   </p>
 
                   {(item.flavor || item.size) && (
@@ -190,7 +190,7 @@ export const OrderDetail: React.FC = () => {
                 </div>
 
                 <p className="font-medium">
-                  ₹{(item.quantity * item.price).toFixed(2)}
+                  ₹{(item.quantity * item.price).toFixed(0)}
                 </p>
               </div>
             );
@@ -208,20 +208,20 @@ export const OrderDetail: React.FC = () => {
               <span>
                 ₹{order.items
                   .reduce((sum, i) => sum + i.price * i.quantity, 0)
-                  .toFixed(2)}
+                  .toFixed(0)}
               </span>
             </div>
 
             {order.discountAmount > 0 && (
               <div className="flex justify-between text-green-600">
                 <span>Discount</span>
-                <span>- ₹{order.discountAmount.toFixed(2)}</span>
+                <span>- ₹{order.discountAmount.toFixed(0)}</span>
               </div>
             )}
 
             <div className="border-t pt-2 flex justify-between font-semibold">
               <span>Total</span>
-              <span>₹{order.totalAmount.toFixed(2)}</span>
+              <span>₹{order.totalAmount.toFixed(0)}</span>
             </div>
           </div>
 

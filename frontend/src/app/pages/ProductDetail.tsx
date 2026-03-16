@@ -9,6 +9,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { useCart } from "../components/context/CartContext";
+import { useFavorites } from "../components/context/FavoritesContext";
 import { toast } from "sonner";
 import { Breadcrumb } from "../components/Breadcrumb";
 import { fetchProducts } from "../../services/productService";
@@ -19,6 +20,7 @@ export const ProductDetail: React.FC = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { addToCart } = useCart();
+  const { favorites, addFavorite, removeFavorite } = useFavorites();
 
   const [product, setProduct] = useState<Product | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -31,10 +33,6 @@ export const ProductDetail: React.FC = () => {
 
   const [isHovering, setIsHovering] = useState(false);
   const [zoomPos, setZoomPos] = useState({ x: 50, y: 50 });
-
-  const carouselRef = useRef<HTMLDivElement>(null);
-  const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(true);
 
   // Fetch product
   useEffect(() => {
@@ -58,6 +56,9 @@ export const ProductDetail: React.FC = () => {
 
     loadProduct();
   }, [id]);
+
+  // Check if product is favorited whenever favorites change
+  const isProductFavorited = product ? favorites.some(fav => fav.id === product.id) : false;
 
   if (isLoading) {
     return (
@@ -119,16 +120,22 @@ export const ProductDetail: React.FC = () => {
       toast.error('This product is out of stock');
       return;
     }
+
+    // Auto-select size if not selected and sizes exist
+    let finalSize = selectedSize;
     if ((product.sizes || [])?.length && !selectedSize) {
-      toast.error("Please select a size");
-      return;
-    }
-    if ((product.flavors || product.colors || [])?.length && !selectedColor) {
-      toast.error("Please select a flavor");
-      return;
+      finalSize = product.sizes![0];
+      setSelectedSize(finalSize);
     }
 
-    addToCart(product, quantity, selectedSize, selectedColor);
+    // Auto-select flavor if not selected and flavors exist
+    let finalColor = selectedColor;
+    if ((product.flavors || product.colors || [])?.length && !selectedColor) {
+      finalColor = (product.flavors || product.colors)![0];
+      setSelectedColor(finalColor);
+    }
+
+    addToCart(product, quantity, finalSize, finalColor);
     toast.success(
       `${quantity} × ${product.name} added to cart`,
     );
@@ -139,26 +146,37 @@ export const ProductDetail: React.FC = () => {
       toast.error('This product is out of stock');
       return;
     }
-    // Check size selection if sizes exist
+
+    // Auto-select size if not selected and sizes exist
+    let finalSize = selectedSize;
     if ((product.sizes || [])?.length && !selectedSize) {
-      toast.error("Please select a size");
-      return;
+      finalSize = product.sizes![0];
+      setSelectedSize(finalSize);
     }
 
-    // Check flavor selection if flavors exist
+    // Auto-select flavor if not selected and flavors exist
+    let finalColor = selectedColor;
     if ((product.flavors || product.colors || [])?.length && !selectedColor) {
-      toast.error("Please select a flavor");
-      return;
+      finalColor = (product.flavors || product.colors)![0];
+      setSelectedColor(finalColor);
     }
 
     // Add to cart
-    addToCart(product, quantity, selectedSize, selectedColor);
+    addToCart(product, quantity, finalSize, finalColor);
 
     // Success toast
     toast.success(`${quantity} × ${product.name} added to cart`);
 
     // Navigate to cart page
     navigate("/cart");
+  };
+
+  const handleToggleFavorite = async () => {
+    if (isProductFavorited) {
+      await removeFavorite(product!.id);
+    } else {
+      await addFavorite(product!.id);
+    }
   };
 
 
@@ -177,98 +195,83 @@ export const ProductDetail: React.FC = () => {
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 mt-6">
             {/* IMAGE */}
-            <div>
-              <div
-                ref={imageRef}
-                className="relative bg-neutral-100 rounded-xl overflow-hidden"
-                onMouseEnter={() => setIsHovering(true)}
-                onMouseLeave={() => setIsHovering(false)}
-                onMouseMove={handleMouseMove}
-              >
-                <img
-                  src={getFullImageUrl((product.imageUrls || product.images)?.[selectedImage] || '')}
-                  alt={product.name}
-                  className="w-full aspect-square object-cover"
-                />
-
-                {isHovering && (
-                  <div
-                    className="absolute inset-0 pointer-events-none"
-                    style={{
-                      backgroundImage: `url(${getFullImageUrl((product.imageUrls || product.images)?.[selectedImage] || '')})`,
-                      backgroundRepeat: "no-repeat",
-                      backgroundSize: "220%",
-                      backgroundPosition: `${zoomPos.x}% ${zoomPos.y}%`,
-                    }}
-                  />
-                )}
-              </div>
-
-              <div className="mt-4">
-                <div className="relative">
-                  {/* Carousel Container */}
-                  <div
-                    ref={carouselRef}
-                    className="flex gap-3 overflow-x-auto scroll-smooth"
-                    style={{
-                      scrollBehavior: 'smooth',
-                      scrollbarWidth: 'none',
-                      msOverflowStyle: 'none',
-                    }}
-                    onScroll={(e) => {
-                      const target = e.currentTarget;
-                      setCanScrollLeft(target.scrollLeft > 0);
-                      setCanScrollRight(
-                        target.scrollLeft < target.scrollWidth - target.clientWidth - 10
-                      );
-                    }}
-                  >
-                    {images.map((img, index) => (
-                      <button
-                        key={index}
-                        onClick={() => setSelectedImage(index)}
-                        className={`flex-shrink-0 w-24 h-24 md:w-28 md:h-28 border-2 rounded-lg overflow-hidden transition ${selectedImage === index
-                          ? "border-neutral-900"
-                          : "border-neutral-300 hover:border-neutral-400"
-                          }`}
-                      >
-                        <img
-                          src={getFullImageUrl(img)}
-                          className="w-full h-full object-cover"
-                        />
-                      </button>
-                    ))}
-                  </div>
-
-                  {/* Left Button */}
-                  {canScrollLeft && (
+            <div className="flex gap-4">
+              {/* Left Sidebar - Vertical Thumbnails */}
+              {images.length > 1 && (
+                <div className="flex flex-col gap-2 overflow-y-auto" style={{ maxHeight: '600px', scrollbarWidth: 'thin' }}>
+                  {images.map((img, index) => (
                     <button
-                      onClick={() => {
-                        if (carouselRef.current) {
-                          carouselRef.current.scrollBy({
-                            left: -100,
-                            behavior: 'smooth',
-                          });
-                        }
+                      key={index}
+                      onClick={() => setSelectedImage(index)}
+                      className={`flex-shrink-0 w-20 h-20 border-2 rounded-lg overflow-hidden transition ${selectedImage === index
+                        ? "border-neutral-900"
+                        : "border-neutral-300 hover:border-neutral-400"
+                        }`}
+                    >
+                      <img
+                        src={getFullImageUrl(img)}
+                        className="w-full h-full object-cover"
+                      />
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Main Image - Right Side */}
+              <div className="flex-1">
+                <div
+                  ref={imageRef}
+                  className="relative bg-neutral-100 rounded-xl overflow-hidden group"
+                  onMouseEnter={() => setIsHovering(true)}
+                  onMouseLeave={() => setIsHovering(false)}
+                  onMouseMove={handleMouseMove}
+                >
+                  <img
+                    src={getFullImageUrl((product.imageUrls || product.images)?.[selectedImage] || '')}
+                    alt={product.name}
+                    className="w-full aspect-square object-cover"
+                  />
+
+                  {isHovering && (
+                    <div
+                      className="absolute inset-0 pointer-events-none"
+                      style={{
+                        backgroundImage: `url(${getFullImageUrl((product.imageUrls || product.images)?.[selectedImage] || '')})`,
+                        backgroundRepeat: "no-repeat",
+                        backgroundSize: "220%",
+                        backgroundPosition: `${zoomPos.x}% ${zoomPos.y}%`,
                       }}
-                      className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 md:-translate-x-6 bg-white rounded-full p-2 shadow-md hover:shadow-lg z-10"
+                    />
+                  )}
+
+                  {/* Heart Icon - Top Right */}
+                  <button
+                    onClick={handleToggleFavorite}
+                    className="absolute top-4 right-4 bg-white rounded-full p-2 shadow-md hover:shadow-lg transition z-10"
+                  >
+                    <Heart
+                      className={`w-6 h-6 transition ${isProductFavorited
+                        ? 'fill-red-500 text-red-500'
+                        : 'text-gray-600 hover:text-red-500'
+                        }`}
+                    />
+                  </button>
+
+                  {/* Left Navigation Arrow */}
+                  {selectedImage > 0 && (
+                    <button
+                      onClick={() => setSelectedImage(selectedImage - 1)}
+                      className="absolute left-4 top-1/2 -translate-y-1/2 bg-white rounded-full p-2 shadow-md hover:shadow-lg z-10 opacity-0 group-hover:opacity-100 transition"
                     >
                       <ChevronLeft className="w-5 h-5 text-neutral-700" />
                     </button>
                   )}
 
-                  {/* Right Button */}
-                  {canScrollRight && (
+                  {/* Right Navigation Arrow */}
+                  {selectedImage < images.length - 1 && (
                     <button
-                      onClick={() => {
-                        if (carouselRef.current) {
-                          carouselRef.current.scrollBy({
-                            left: 100,
-                            behavior: 'smooth',
-                          });
-                        }
-                      }}
-                      className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 md:translate-x-6 bg-white rounded-full p-2 shadow-md hover:shadow-lg z-10"
+                      onClick={() => setSelectedImage(selectedImage + 1)}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 bg-white rounded-full p-2 shadow-md hover:shadow-lg z-10 opacity-0 group-hover:opacity-100 transition"
                     >
                       <ChevronRight className="w-5 h-5 text-neutral-700" />
                     </button>
@@ -298,25 +301,38 @@ export const ProductDetail: React.FC = () => {
               </h1>
 
               <div className="mt-5 border-b pb-5">
-                <div className="space-y-2">
-                  <div>
+                <div className="space-y-1">
+
+                  {/* Price + Discount */}
+                  <div className="flex items-center gap-2">
                     <span className="text-4xl font-bold">
                       ₹{finalPrice.toFixed(0)}
                     </span>
+
+                    {(product.discountPercent || 0) > 0 && (
+                      <span className="text-red-600 font-semibold text-lg">
+                        ({product.discountPercent}% OFF)
+                      </span>
+                    )}
                   </div>
 
+                  {/* MRP */}
                   {(product.discountPercent || 0) > 0 && (
-                    <div className="flex items-center gap-3 flex-wrap">
-                      <span className="text-lg line-through text-neutral-500">
-                        MRP ₹{product.basePrice.toFixed(0)}
-                      </span>
-                      <span className="text-lg font-medium text-green-600">
-                        Save ₹{(product.basePrice - finalPrice).toFixed(0)} ({product.discountPercent}%)
+                    <div className="text-sm text-neutral-500">
+                      MRP{" "}
+                      <span className="line-through">
+                        ₹{product.basePrice.toFixed(0)}
                       </span>
                     </div>
                   )}
 
-                  <div className="flex items-center gap-4 mt-3 flex-wrap">
+                  {/* Tax text */}
+                  <div className="text-sm text-neutral-600">
+                    Inclusive of all taxes
+                  </div>
+
+                  {/* Stock */}
+                  <div className="mt-3">
                     {product.isOutOfStock ? (
                       <span className="text-sm font-medium text-red-600">
                         Out of stock
@@ -327,6 +343,7 @@ export const ProductDetail: React.FC = () => {
                       </span>
                     )}
                   </div>
+
                 </div>
               </div>
 
@@ -564,14 +581,14 @@ export const ProductDetail: React.FC = () => {
 
               {/* Final Price */}
               <span className="text-3xl font-bold text-[#111]">
-                ₹{finalPrice.toFixed(2)}
+                ₹{finalPrice.toFixed(0)}
               </span>
 
               {/* Original Price */}
               {(product.discountPercent || 0) > 0 && (
                 <>
                   <span className="text-base text-neutral-400 line-through">
-                    ₹{product.basePrice.toFixed(2)}
+                    ₹{product.basePrice.toFixed(0)}
                   </span>
 
                   {/* Save Badge */}
@@ -609,8 +626,16 @@ export const ProductDetail: React.FC = () => {
             {product.isOutOfStock ? "OUT OF STOCK" : "ADD TO BASKET"}
           </button>
 
-          <button className="w-14 flex items-center justify-center border border-neutral-200 rounded-xl bg-white">
-            <Heart className="w-5 h-5 text-[#003D45]" />
+          <button
+            onClick={handleToggleFavorite}
+            className="w-14 flex items-center justify-center border border-neutral-200 rounded-xl bg-white hover:border-[#003D45] transition"
+          >
+            <Heart
+              className={`w-5 h-5 transition ${isProductFavorited
+                ? 'fill-red-500 text-red-500'
+                : 'text-[#003D45]'
+                }`}
+            />
           </button>
         </div>
       </div>

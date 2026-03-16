@@ -97,7 +97,7 @@ export const CheckoutCouponInput: React.FC<CouponInputProps> = ({
 
       // ✅ Show success message
       toast.success(
-        `✅ Coupon applied! ${coupon.discountPercent}% off (₹${discountAmount.toFixed(2)} saved)`
+        `✅ Coupon applied! ${coupon.discountPercent}% off (₹${discountAmount.toFixed(0)} saved)`
       );
     } catch (error) {
       console.error("Error validating coupon:", error);
@@ -157,7 +157,7 @@ export const CheckoutCouponInput: React.FC<CouponInputProps> = ({
                   <span className="font-medium">{appliedCoupon.discountPercent}% off</span>
                 </p>
                 <p className="text-sm text-green-700 mt-1">
-                  Discount: <span className="font-bold text-lg">₹{appliedCoupon.discountAmount.toFixed(2)}</span>
+                  Discount: <span className="font-bold text-lg">₹{appliedCoupon.discountAmount.toFixed(0)}</span>
                 </p>
               </div>
             </div>

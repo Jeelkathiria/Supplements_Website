@@ -85,13 +85,14 @@ export const Cart: React.FC = () => {
             ]}
           />
           <div className="flex items-center justify-center min-h-[60vh]">
-            <div className="text-center">
-              <ShoppingBag className="w-20 h-20 mx-auto text-neutral-300 mb-8" />
-              <h2 className="text-2xl font-bold mb-2">Your Cart is Empty</h2>
-              <p className="text-neutral-600 mb-6">Start adding some products!</p>
+            {/* Card wrapper */}
+            <div className="bg-white rounded-2xl shadow-sm border border-neutral-200 p-10 md:p-14 text-center max-w-sm w-full mx-auto">
+              <ShoppingBag className="w-16 h-16 mx-auto text-neutral-300 mb-6" />
+              <h2 className="text-xl font-bold mb-3">Your Cart is Empty</h2>
+              <p className="text-neutral-500 mb-8 text-sm">Start adding some products!</p>
               <Link
                 to="/products"
-                className="inline-block bg-neutral-900 text-white px-8 py-3 rounded-lg hover:bg-neutral-800 transition"
+                className="inline-block bg-neutral-900 text-white px-8 py-3 rounded-lg hover:bg-neutral-800 transition font-medium w-full"
               >
                 Shop Now
               </Link>
@@ -122,7 +123,7 @@ export const Cart: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-neutral-50 pb-24 md:pb-0">
-      {/* LAPTOP VIEW - UNTOUCHED */}
+      {/* LAPTOP VIEW */}
       <div className="hidden md:block py-20">
         <div className="max-w-[1400px] mx-auto px-6 md:px-12">
           <Breadcrumb
@@ -147,9 +148,8 @@ export const Cart: React.FC = () => {
             {/* Cart Items */}
             <div className="lg:col-span-2 space-y-4">
               {cartItems.map((item) => {
-                const basePrice = item.product.basePrice;
+                const basePrice = item.product.basePrice || 0;
                 const discountPercent = item.product.discountPercent || 0;
-
                 const finalPrice = calculateFinalPrice(basePrice, discountPercent);
                 const itemTotal = finalPrice * item.quantity;
                 const isUpdating = updatingItems.has(item.product.id);
@@ -158,62 +158,81 @@ export const Cart: React.FC = () => {
                 return (
                   <div
                     key={`${item.product.id}-${item.selectedSize}-${item.selectedColor}`}
-                    className={`bg-white rounded-xl border border-neutral-200 p-5 hover:shadow-md transition ${isRemoving ? 'opacity-50' : ''
-                      }`}
+                    className={`bg-white rounded-xl border border-neutral-200 p-5 hover:shadow-lg hover:-translate-y-[2px] transition ${isRemoving ? "opacity-50" : ""}`}
                   >
                     <div className="flex flex-col sm:flex-row gap-5">
-                      {/* Image and Basic Info Row */}
-                      <div className="flex gap-4 sm:gap-5">
-                        {/* Image */}
-                        <div className="flex-shrink-0">
-                          <Link to={`/product/${item.product.id}`}>
-                            <img
-                              src={getFullImageUrl(item.product.imageUrls?.[0] || '')}
-                              alt={item.product.name}
-                              className="w-20 h-20 sm:w-24 sm:h-24 object-cover rounded-lg border border-neutral-200 hover:shadow-md transition cursor-pointer"
-                            />
-                          </Link>
-                        </div>
+
+                      {/* Left Section */}
+                      <div className="flex gap-5 flex-1">
+
+                        {/* Product Image */}
+                        <Link to={`/product/${item.product.id}`}>
+                          <img
+                            src={getFullImageUrl(item.product.imageUrls?.[0] || "")}
+                            alt={item.product.name}
+                            className="w-24 h-24 object-cover rounded-lg border border-neutral-200 hover:shadow-md transition"
+                          />
+                        </Link>
 
                         {/* Product Info */}
-                        <div className="flex-1 min-w-0">
-                          <Link
-                            to={`/product/${item.product.id}`}
-                            className="font-bold text-base sm:text-lg text-neutral-900 hover:text-neutral-600 transition line-clamp-2 leading-tight"
-                          >
-                            {item.product.name}
-                          </Link>
+                        <div className="flex flex-col justify-between flex-1 min-w-0">
 
-                          <div className="mt-2 space-y-0.5 text-xs sm:text-sm">
-                            {item.selectedSize && (
-                              <p className="text-neutral-500">
-                                <span className="font-medium">Size:</span> {item.selectedSize}
+                          <div>
+                            <Link
+                              to={`/product/${item.product.id}`}
+                              className="font-semibold text-lg text-neutral-900 hover:text-neutral-600 transition line-clamp-2"
+                            >
+                              {item.product.name}
+                            </Link>
+
+                            {/* Price */}
+                            <div className="flex items-center gap-2 mt-2 text-sm">
+                              <span className="font-bold text-neutral-900 text-base">
+                                ₹{finalPrice.toFixed(0)}
+                              </span>
+
+                              {discountPercent > 0 && (
+                                <>
+                                  <span className="text-neutral-400 line-through">
+                                    ₹{basePrice.toFixed(0)}
+                                  </span>
+                                  <span className="text-green-600 font-semibold">
+                                    {discountPercent}% OFF
+                                  </span>
+                                </>
+                              )}
+                            </div>
+
+                            {/* Savings */}
+                            {discountPercent > 0 && (
+                              <p className="text-xs text-green-600 font-medium">
+                                You save ₹{(basePrice - finalPrice).toFixed(0)}
                               </p>
                             )}
-                            {item.selectedColor && (
-                              <p className="text-neutral-500">
-                                <span className="font-medium">Flavor:</span> {item.selectedColor}
-                              </p>
-                            )}
-                          </div>
 
-                          <div className="mt-2 font-bold text-teal-800 sm:hidden">
-                            ₹{itemTotal.toFixed(0)}
+                            {/* Meta */}
+                            <div className="mt-2 text-xs text-neutral-500 space-y-0.5">
+                              {item.selectedSize && (
+                                <p>
+                                  <span className="font-medium">Size:</span> {item.selectedSize}
+                                </p>
+                              )}
+                              {item.selectedColor && (
+                                <p>
+                                  <span className="font-medium">Flavor:</span>{" "}
+                                  {item.selectedColor}
+                                </p>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </div>
 
-                      {/* Price & Actions container */}
-                      <div className="flex-1 flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-between gap-3 pt-3 sm:pt-0 border-t sm:border-t-0 border-neutral-100">
+                      {/* Right Section */}
+                      <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between gap-4 border-t sm:border-0 pt-4 sm:pt-0">
 
-                        <div className="hidden sm:block mt-3 space-y-1 text-sm bg-neutral-50 p-3 rounded w-full max-w-[200px]">
-                          <div className="flex justify-between">
-                            <span className="text-neutral-600 font-medium text-[10px] uppercase tracking-wider">Subtotal</span>
-                            <span className="font-bold">₹{itemTotal.toFixed(0)}</span>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-1.5 bg-neutral-100 rounded-xl p-1">
+                        {/* Quantity */}
+                        <div className="flex items-center gap-1 bg-white border border-neutral-200 rounded-lg p-1 shadow-sm">
                           <button
                             onClick={() =>
                               handleUpdateQuantity(
@@ -224,11 +243,15 @@ export const Cart: React.FC = () => {
                               )
                             }
                             disabled={isUpdating || item.quantity <= 1}
-                            className="w-8 h-8 rounded-lg bg-white border border-neutral-200 hover:bg-neutral-50 disabled:opacity-30 disabled:hover:bg-white flex items-center justify-center transition shadow-sm"
+                            className="w-8 h-8 rounded-md hover:bg-neutral-100 flex items-center justify-center"
                           >
                             <Minus className="w-3.5 h-3.5" />
                           </button>
-                          <span className="w-6 text-center font-bold text-sm">{item.quantity}</span>
+
+                          <span className="w-8 text-center font-semibold">
+                            {item.quantity}
+                          </span>
+
                           <button
                             onClick={() =>
                               handleUpdateQuantity(
@@ -239,19 +262,28 @@ export const Cart: React.FC = () => {
                               )
                             }
                             disabled={isUpdating}
-                            className="w-8 h-8 rounded-lg bg-white border border-neutral-200 hover:bg-neutral-50 disabled:opacity-30 disabled:hover:bg-white flex items-center justify-center transition shadow-sm"
+                            className="w-8 h-8 rounded-md hover:bg-neutral-100 flex items-center justify-center"
                           >
                             <Plus className="w-3.5 h-3.5" />
                           </button>
                         </div>
 
+                        {/* Subtotal */}
+                        <div className="font-bold text-neutral-900 text-base">
+                          ₹{itemTotal.toFixed(0)}
+                        </div>
+
+                        {/* Remove */}
                         <button
                           onClick={() =>
-                            handleRemoveItem(item.product.id, item.selectedSize, item.selectedColor)
+                            handleRemoveItem(
+                              item.product.id,
+                              item.selectedSize,
+                              item.selectedColor
+                            )
                           }
                           disabled={isRemoving}
-                          className="p-2 text-red-500 hover:bg-red-50 rounded-full transition-colors disabled:opacity-50"
-                          title="Remove item"
+                          className="p-2 text-red-500 hover:bg-red-50 rounded-full transition"
                         >
                           <Trash2 className="w-5 h-5" />
                         </button>
@@ -277,7 +309,7 @@ export const Cart: React.FC = () => {
                       Base Price ({cartItems.length} items)
                     </span>
                     <span className="font-medium">
-                      ₹{baseSubtotal.toFixed(2)}
+                      ₹{baseSubtotal.toFixed(0)}
                     </span>
                   </div>
 
@@ -285,21 +317,21 @@ export const Cart: React.FC = () => {
                   {discountAmount > 0 && (
                     <div className="flex justify-between text-green-600">
                       <span>Discount</span>
-                      <span>-₹{discountAmount.toFixed(2)}</span>
+                      <span>-₹{discountAmount.toFixed(0)}</span>
                     </div>
                   )}
 
                   {/* Subtotal after discount */}
                   <div className="flex justify-between font-semibold">
                     <span className="text-neutral-800">Subtotal</span>
-                    <span>₹{finalSubtotal.toFixed(2)}</span>
+                    <span>₹{finalSubtotal.toFixed(0)}</span>
                   </div>
                 </div>
 
                 {/* Total */}
                 <div className="flex justify-between font-bold text-lg mb-6 pb-6 border-b border-neutral-200">
                   <span>Total</span>
-                  <span className="text-xl">₹{total.toFixed(2)}</span>
+                  <span className="text-xl">₹{total.toFixed(0)}</span>
                 </div>
 
                 {/* CTA */}
@@ -333,6 +365,7 @@ export const Cart: React.FC = () => {
           </div>
         </div>
       </div>
+
 
       {/* MOBILE VIEW - PREMIUM REDESIGN */}
       <div className="block md:hidden bg-white min-h-screen">

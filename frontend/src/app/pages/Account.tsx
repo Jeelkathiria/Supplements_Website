@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, User, MapPin, Package, AlertCircle, Trash2, Plus, Check, ChevronLeft, ChevronsLeft, ChevronsRight, Menu, X, ChevronDown } from 'lucide-react';
+import { LogOut, User, MapPin, Package, AlertCircle, Trash2, Plus, Check, ChevronLeft, ChevronsLeft, ChevronsRight, Menu, X, ChevronDown, Heart } from 'lucide-react';
 import { useAuth } from '../components/context/AuthContext';
 import { useCart } from '../components/context/CartContext';
+import { useFavorites } from '../components/context/FavoritesContext';
 import { BillModal } from '../components/BillModal';
 import { toast } from 'sonner';
 import * as userService from '../../services/userService';
@@ -11,7 +12,7 @@ import * as productService from '../../services/productService';
 import type { Address } from '../../services/userService';
 import type { Order } from '../../services/orderService';
 
-type TabType = 'profile' | 'addresses' | 'orders';
+type TabType = 'profile' | 'addresses' | 'orders' | 'favorites';
 
 // Indian States and Union Territories
 const INDIAN_STATES = [
@@ -118,6 +119,7 @@ const validateAddressForm = (form: AddressFormData): ValidationErrors => {
 export const Account: React.FC = () => {
   const { user, isAuthenticated, logout, updateUser } = useAuth();
   const { addToCart } = useCart();
+  const { favorites } = useFavorites();
   const navigate = useNavigate();
 
   // Initialize activeTab from localStorage, default to 'profile'
@@ -415,6 +417,7 @@ export const Account: React.FC = () => {
                   { id: 'profile', label: 'Profile', icon: User },
                   { id: 'addresses', label: 'Addresses', icon: MapPin },
                   { id: 'orders', label: 'Orders', icon: Package, badge: orders.length },
+                  { id: 'favorites', label: 'Favorites', icon: Heart, badge: favorites.length },
                 ].map((item) => {
                   const Icon = item.icon;
                   const isActive = activeTab === item.id;
@@ -506,6 +509,7 @@ export const Account: React.FC = () => {
                       { id: 'profile', label: 'Profile', icon: User },
                       { id: 'addresses', label: 'Addresses', icon: MapPin },
                       { id: 'orders', label: 'Orders', icon: Package, badge: orders.length },
+                      { id: 'favorites', label: 'Favorites', icon: Heart, badge: favorites.length },
                     ].map((item) => {
                       const Icon = item.icon;
                       const isActive = activeTab === item.id;
@@ -914,7 +918,7 @@ export const Account: React.FC = () => {
                               <div className="min-w-[60px]">
                                 <p className="uppercase font-bold tracking-wider mb-0.5">Total</p>
                                 <div className="flex items-center gap-2">
-                                  <p className="text-[12px] md:text-[13px] font-medium text-neutral-900">₹{order.totalAmount.toFixed(2)}</p>
+                                  <p className="text-[12px] md:text-[13px] font-medium text-neutral-900">₹{order.totalAmount.toFixed(0)}</p>
                                   {order.appliedCoupon && (
                                     <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold bg-green-100 text-green-800 whitespace-nowrap">
                                       🎟 {order.appliedCoupon.trainerName}
@@ -1084,6 +1088,133 @@ export const Account: React.FC = () => {
                       className="bg-teal-900 text-white px-6 py-2 rounded-lg hover:bg-teal-800 transition font-medium"
                     >
                       Continue Shopping
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* FAVORITES TAB */}
+            {activeTab === 'favorites' && (
+              <div className="space-y-6">
+                <div>
+                  <h2 className="text-2xl font-bold text-neutral-900">Your Favorites</h2>
+                  <p className="text-neutral-600 mt-2">Items you've saved for later</p>
+                </div>
+
+                {favorites.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {favorites.map((product) => {
+                      const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+                      const baseUrl = apiBaseUrl.replace('/api', '');
+                      let imageUrl = null;
+                      if (Array.isArray(product.imageUrls) && product.imageUrls.length > 0) {
+                        const imgPath = product.imageUrls[0];
+                        imageUrl = imgPath.startsWith('http') ? imgPath : `${baseUrl}${imgPath}`;
+                      }
+
+                      return (
+                        <div
+                          key={product.id}
+                          className="bg-white rounded-xl shadow-sm border border-neutral-200 overflow-hidden hover:shadow-md hover:border-neutral-300 transition-all"
+                        >
+                          {/* Image */}
+                          <div className="relative pt-[100%] bg-neutral-50 cursor-pointer group" onClick={() => navigate(`/product/${product.id}`)}>
+                            {imageUrl && (
+                              <img
+                                src={imageUrl}
+                                alt={product.name}
+                                className="absolute inset-0 w-full h-full object-contain group-hover:scale-105 transition-transform"
+                              />
+                            )}
+                          </div>
+
+                          {/* Content */}
+                          <div className="p-4 space-y-3">
+                            {/* Category & Stock */}
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-xs text-neutral-500 font-medium">
+                                {product.categoryName || 'Supplement'}
+                              </span>
+                              {product.isOutOfStock ? (
+                                <span className="text-xs font-bold text-red-600 bg-red-50 px-2 py-1 rounded">
+                                  Out of Stock
+                                </span>
+                              ) : (
+                                <span className="text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded">
+                                  In Stock
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Name */}
+                            <h3
+                              onClick={() => navigate(`/product/${product.id}`)}
+                              className="font-bold text-neutral-900 line-clamp-2 hover:text-teal-700 cursor-pointer transition-colors"
+                            >
+                              {product.name}
+                            </h3>
+
+                            {/* Price */}
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-lg font-bold text-neutral-900">
+                                ₹{(product.basePrice - (product.basePrice * (product.discountPercent || 0) / 100)).toFixed(0)}
+                              </span>
+                              {(product.discountPercent || 0) > 0 && (
+                                <>
+                                  <span className="text-sm text-neutral-500 line-through">
+                                    ₹{product.basePrice.toFixed(0)}
+                                  </span>
+                                  <span className="text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded">
+                                    {product.discountPercent}% OFF
+                                  </span>
+                                </>
+                              )}
+                            </div>
+
+                            {/* Actions */}
+                            <div className="flex gap-2 pt-3 border-t border-neutral-100">
+                              <button
+                                onClick={() => {
+                                  navigate(`/product/${product.id}`);
+                                }}
+                                className="flex-1 py-2 px-3 bg-teal-900 hover:bg-teal-800 text-white rounded-lg font-medium text-sm transition-colors"
+                              >
+                                View
+                              </button>
+                              <button
+                                onClick={() => {
+                                  // Auto-select 1st flavor and 1st size if available
+                                  const selectedSize = product.sizes?.[0];
+                                  const selectedFlavor = (product.flavors || product.colors)?.[0];
+                                  addToCart(product, 1, selectedSize, selectedFlavor);
+                                  toast.success(`${product.name} added to cart`);
+                                }}
+                                disabled={product.isOutOfStock}
+                                className={`flex-1 py-2 px-3 border rounded-lg font-medium text-sm transition-colors ${
+                                  product.isOutOfStock
+                                    ? 'border-neutral-300 text-neutral-400 cursor-not-allowed'
+                                    : 'border-teal-900 text-teal-900 hover:bg-teal-50'
+                                }`}
+                              >
+                                Add to Cart
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="bg-white rounded-xl shadow-md p-12 text-center border border-neutral-200">
+                    <Heart className="w-16 h-16 text-neutral-300 mx-auto mb-4" />
+                    <p className="text-neutral-700 font-medium mb-2">No favorites yet</p>
+                    <p className="text-neutral-500 text-sm mb-6">Start adding your favorite products</p>
+                    <button
+                      onClick={() => navigate('/products')}
+                      className="bg-teal-900 text-white px-6 py-2 rounded-lg hover:bg-teal-800 transition font-medium"
+                    >
+                      Explore Products
                     </button>
                   </div>
                 )}

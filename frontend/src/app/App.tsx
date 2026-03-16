@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Toaster } from './components/ui/sonner';
 import { CartProvider } from './components/context/CartContext';
 import { AuthProvider } from './components/context/AuthContext';
+import { FavoritesProvider } from './components/context/FavoritesContext';
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
 import { Home } from './pages/Home';
@@ -105,9 +106,11 @@ export default function App() {
       <Router>
         <AuthProvider>
           <CartProvider>
-            <div className="min-h-screen flex flex-col bg-white overflow-x-hidden">
-              <AppContent />
-            </div>
+            <FavoritesProvider>
+              <div className="min-h-screen flex flex-col bg-white overflow-x-hidden">
+                <AppContent />
+              </div>
+            </FavoritesProvider>
           </CartProvider>
         </AuthProvider>
       </Router>

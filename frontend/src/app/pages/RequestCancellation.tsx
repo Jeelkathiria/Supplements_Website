@@ -297,7 +297,7 @@ export const RequestCancellation: React.FC = () => {
                 </div>
                 <div className="flex justify-between border-t pt-2 font-semibold">
                   <span>Total Amount</span>
-                  <span>₹{order.totalAmount.toFixed(2)}</span>
+                  <span>₹{order.totalAmount.toFixed(0)}</span>
                 </div>
               </div>
             </div>

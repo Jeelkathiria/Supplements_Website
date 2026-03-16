@@ -662,13 +662,13 @@ export const Checkout: React.FC = () => {
                           {/* Product name */}
                           <div className="flex justify-between font-semibold text-gray-900">
                             <span className="truncate">{item.product.name}</span>
-                            <span>₹{itemTotal.toFixed(2)}</span>
+                            <span>₹{itemTotal.toFixed(0)}</span>
                           </div>
 
                           {/* Quantity & unit price */}
                           <div className="flex justify-between text-gray-500">
                             <span>
-                              {item.quantity} × ₹{finalPrice.toFixed(2)}
+                              {item.quantity} × ₹{finalPrice.toFixed(0)}
                             </span>
                           </div>
 
@@ -683,7 +683,7 @@ export const Checkout: React.FC = () => {
                           {/* Savings */}
                           {discountPercent > 0 && (
                             <div className="text-xs text-green-600">
-                              Saved ₹{saved.toFixed(2)}
+                              Saved ₹{saved.toFixed(0)}
                             </div>
                           )}
                         </div>
@@ -763,21 +763,21 @@ export const Checkout: React.FC = () => {
                             {/* Base Price */}
                             <div className="flex justify-between text-gray-600">
                               <span>Base Price ({cartItems.length} items)</span>
-                              <span>₹{baseTotal.toFixed(2)}</span>
+                              <span>₹{baseTotal.toFixed(0)}</span>
                             </div>
 
                             {/* Discount */}
                             {discountAmount > 0 && (
                               <div className="flex justify-between text-green-600">
                                 <span>Discount</span>
-                                <span>-₹{discountAmount.toFixed(2)}</span>
+                                <span>-₹{discountAmount.toFixed(0)}</span>
                               </div>
                             )}
 
                             {/* Subtotal */}
                             <div className="flex justify-between font-semibold text-gray-900">
                               <span>Subtotal</span>
-                              <span>₹{finalTotal.toFixed(2)}</span>
+                              <span>₹{finalTotal.toFixed(0)}</span>
                             </div>
                           </>
                         );
@@ -787,7 +787,7 @@ export const Checkout: React.FC = () => {
                       {couponDiscount > 0 && (
                         <div className="flex justify-between text-green-600 font-semibold">
                           <span>Coupon Discount</span>
-                          <span>-₹{couponDiscount.toFixed(2)}</span>
+                          <span>-₹{couponDiscount.toFixed(0)}</span>
                         </div>
                       )}
 
@@ -821,7 +821,7 @@ export const Checkout: React.FC = () => {
                           const finalPrice = item.product.basePrice - (item.product.basePrice * (item.product.discountPercent || 0)) / 100;
                           return sum + finalPrice * item.quantity;
                         }, 0) - couponDiscount
-                      ).toFixed(2)}
+                      ).toFixed(0)}
                     </span>
                   </div>
 

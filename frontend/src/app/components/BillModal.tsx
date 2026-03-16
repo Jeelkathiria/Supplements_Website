@@ -156,15 +156,15 @@ export const BillModal: React.FC<BillModalProps> = ({ order, isOpen, onClose }) 
                           <td className="py-3 px-2 text-right text-neutral-900 font-semibold">
                             {item.discountPercent > 0 || discountAmount > 0 ? (
                               <div>
-                                <span className="line-through text-neutral-500">{item.basePrice?.toFixed(2)}</span>
-                                <span className="ml-2 text-neutral-900">₹{itemPrice.toFixed(2)}</span>
+                                <span className="line-through text-neutral-500">{item.basePrice?.toFixed(0)}</span>
+                                <span className="ml-2 text-neutral-900">₹{itemPrice.toFixed(0)}</span>
                               </div>
                             ) : (
-                              <span>₹{itemPrice.toFixed(2)}</span>
+                              <span>₹{itemPrice.toFixed(0)}</span>
                             )}
                           </td>
                           <td className="py-3 px-2 text-right text-neutral-900 font-bold">
-                            ₹{itemTotal.toFixed(2)}
+                            ₹{itemTotal.toFixed(0)}
                           </td>
                         </tr>
                       );
@@ -189,7 +189,7 @@ export const BillModal: React.FC<BillModalProps> = ({ order, isOpen, onClose }) 
                 <div className="flex justify-between py-2 border-b border-neutral-100">
                   <span className="text-neutral-600">Subtotal:</span>
                   <span className="font-semibold text-neutral-900">
-                    ₹{(totalAmount + discountAmount).toFixed(2)}
+                    ₹{(totalAmount + discountAmount).toFixed(0)}
                   </span>
                 </div>
 
@@ -201,7 +201,7 @@ export const BillModal: React.FC<BillModalProps> = ({ order, isOpen, onClose }) 
                       ?.reduce((sum, item) => {
                         const itemSavings = (item.basePrice - item.price) * item.quantity;
                         return sum + itemSavings;
-                      }, 0) ?? 0).toFixed(2)}</span>
+                      }, 0) ?? 0).toFixed(0)}</span>
                   </div>
                 )}
 
@@ -215,14 +215,14 @@ export const BillModal: React.FC<BillModalProps> = ({ order, isOpen, onClose }) 
                         <span className="text-xs text-green-700 block font-semibold">{order.appliedCoupon.trainerName}</span>
                       )}
                     </div>
-                    <span className="font-bold">-₹{discountAmount.toFixed(2)}</span>
+                    <span className="font-bold">-₹{discountAmount.toFixed(0)}</span>
                   </div>
                 )}
 
                 {/* Final Total */}
                 <div className="flex justify-between py-3 text-lg font-bold text-neutral-900 bg-green-50 px-2 rounded mt-2 border border-green-200">
                   <span>Total:</span>
-                  <span>₹{totalAmount.toFixed(2)}</span>
+                  <span>₹{totalAmount.toFixed(0)}</span>
                 </div>
               </div>
             </div>

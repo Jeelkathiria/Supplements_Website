@@ -149,6 +149,13 @@ exports.Prisma.ProductScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.FavoriteScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  productId: 'productId',
+  createdAt: 'createdAt'
+};
+
 exports.Prisma.CartScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
@@ -265,7 +272,6 @@ exports.Prisma.CouponScalarFieldEnum = {
   trainerId: 'trainerId',
   discountPercent: 'discountPercent',
   discountType: 'discountType',
-  minValue: 'minValue',
   isActive: 'isActive',
   maxUses: 'maxUses',
   usageCount: 'usageCount',
@@ -325,6 +331,7 @@ exports.RefundStatus = exports.$Enums.RefundStatus = {
 exports.Prisma.ModelName = {
   Category: 'Category',
   Product: 'Product',
+  Favorite: 'Favorite',
   Cart: 'Cart',
   CartItem: 'CartItem',
   Order: 'Order',
