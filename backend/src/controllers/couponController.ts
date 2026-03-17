@@ -42,7 +42,7 @@ export const createCoupon = async (req: AuthRequest, res: Response) => {
     }
 
     // ✅ Validate request body
-    const { trainerName, discountPercent, maxUses, expiryDate, trainerId } =
+    const { trainerName, discountPercent, minAmount, maxUses, expiryDate, trainerId } =
       req.body;
 
     if (!trainerName) {
@@ -57,6 +57,7 @@ export const createCoupon = async (req: AuthRequest, res: Response) => {
       trainerName,
       trainerId,
       discountPercent: discountPercent || 10,
+      minAmount: minAmount ? parseFloat(minAmount) : 0,
       maxUses,
       expiryDate: expiryDate ? new Date(expiryDate) : undefined,
       createdByAdminId: adminId,
@@ -270,6 +271,64 @@ export const reactivateCoupon = async (req: AuthRequest, res: Response) => {
 };
 
 /**
+ * PUT /api/coupons/:couponId
+ * Update a coupon (discount percent, minAmount, maxUses, expiryDate)
+ * 🔒 Admin only
+ * 
+ * Request body:
+ * {
+ *   discountPercent?: 15
+ *   minAmount?: 500
+ *   maxUses?: 50
+ *   expiryDate?: "2026-12-31"
+ * }
+ */
+export const updateCoupon = async (req: AuthRequest, res: Response) => {
+  try {
+    // ✅ Check admin authorization
+    const adminEmail = req.user?.email;
+    if (adminEmail !== "admin@gmail.com") {
+      return res.status(403).json({
+        success: false,
+        message: "Only admin can update coupons",
+      });
+    }
+
+    const { couponId } = req.params;
+    const { discountPercent, minAmount, maxUses, expiryDate } = req.body;
+
+    if (!couponId) {
+      return res.status(400).json({
+        success: false,
+        message: "Coupon ID is required",
+      });
+    }
+
+    // ✅ Update coupon using service
+    const coupon = await couponService.updateCoupon(String(couponId), {
+      discountPercent: discountPercent !== undefined ? discountPercent : undefined,
+      minAmount: minAmount !== undefined ? parseFloat(minAmount) : undefined,
+      maxUses: maxUses ? parseInt(maxUses) : undefined,
+      expiryDate: expiryDate ? new Date(expiryDate) : undefined,
+    });
+
+    // ✅ Return success response
+    res.status(200).json({
+      success: true,
+      message: "Coupon updated successfully",
+      coupon,
+    });
+  } catch (error) {
+    console.error("Error updating coupon:", error);
+    const message = error instanceof Error ? error.message : "Failed to update coupon";
+    res.status(500).json({
+      success: false,
+      message,
+    });
+  }
+};
+
+/**
  * GET /api/coupons/trainer/:trainerName/commission-report
  * Get commission report for a trainer
  * 🔒 Admin only
@@ -320,6 +379,56 @@ export const getTrainerCommissionReport = async (
   }
 };
 
+/**
+ * GET /api/coupons/trainer/:trainerName/detailed-commission-report
+ * Get detailed commission report with all orders where coupon was applied
+ * 🔒 Admin only
+ * 
+ * Returns: Complete order details, items, discount info, customer address
+ */
+export const getDetailedCommissionReport = async (
+  req: AuthRequest,
+  res: Response
+) => {
+  try {
+    // ✅ Check admin authorization
+    const adminEmail = req.user?.email;
+    if (adminEmail !== "admin@gmail.com") {
+      return res.status(403).json({
+        success: false,
+        message: "Only admin can view detailed commission reports",
+      });
+    }
+
+    const { trainerName } = req.params;
+
+    if (!trainerName) {
+      return res.status(400).json({
+        success: false,
+        message: "Trainer name is required",
+      });
+    }
+
+    // ✅ Get detailed report
+    const report = await couponService.getDetailedTrainerCommissionReport(
+      decodeURIComponent(String(trainerName))
+    );
+
+    // ✅ Return success response
+    res.status(200).json({
+      success: true,
+      report,
+    });
+  } catch (error) {
+    console.error("Error fetching detailed commission report:", error);
+    const message = error instanceof Error ? error.message : "Failed to fetch detailed commission report";
+    res.status(500).json({
+      success: false,
+      message,
+    });
+  }
+};
+
 // ==================== CUSTOMER ENDPOINTS ====================
 
 /**
@@ -344,7 +453,7 @@ export const getTrainerCommissionReport = async (
  */
 export const validateCoupon = async (req: AuthRequest, res: Response) => {
   try {
-    const { couponCode } = req.body;
+    const { couponCode, cartTotal } = req.body;
 
     // ✅ Validate input
     if (!couponCode) {
@@ -355,7 +464,7 @@ export const validateCoupon = async (req: AuthRequest, res: Response) => {
     }
 
     // ✅ Validate coupon using service
-    const result = await couponService.validateCoupon(couponCode);
+    const result = await couponService.validateCoupon(couponCode, cartTotal);
 
     // ✅ Return validation result
     // Note: We return success: true even if coupon is invalid

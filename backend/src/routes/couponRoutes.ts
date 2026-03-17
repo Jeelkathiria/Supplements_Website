@@ -51,6 +51,24 @@ router.post("/:couponId/deactivate", requireAuth, couponController.deactivateCou
 router.post("/:couponId/reactivate", requireAuth, couponController.reactivateCoupon);
 
 /**
+ * PUT /api/coupons/:couponId
+ * Update a coupon (discount percent, minAmount, maxUses, expiryDate)
+ * 🔒 Admin only
+ */
+router.put("/:couponId", requireAuth, couponController.updateCoupon);
+
+/**
+ * GET /api/coupons/trainer/:trainerName/detailed-commission-report
+ * Get detailed commission report with all orders where coupon was applied
+ * 🔒 Admin only
+ */
+router.get(
+  "/trainer/:trainerName/detailed-commission-report",
+  requireAuth,
+  couponController.getDetailedCommissionReport
+);
+
+/**
  * GET /api/coupons/trainer/:trainerName/commission-report
  * Get commission report for a trainer
  * 🔒 Admin only

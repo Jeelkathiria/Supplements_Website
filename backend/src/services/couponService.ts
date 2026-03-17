@@ -11,6 +11,7 @@ export interface CreateCouponDTO {
   trainerName: string;
   trainerId?: string;
   discountPercent?: number;
+  minAmount?: number;
   maxUses?: number;
   expiryDate?: Date;
   createdByAdminId: string;
@@ -24,6 +25,7 @@ export interface CouponValidationResult {
     code: string;
     discountPercent: number;
     trainerName: string;
+    minAmount: number | null;
   };
 }
 
@@ -77,6 +79,7 @@ export const createCoupon = async (dto: CreateCouponDTO): Promise<any> => {
     trainerName,
     trainerId,
     discountPercent = 10,
+    minAmount = 0,
     maxUses,
     expiryDate,
     createdByAdminId,
@@ -120,6 +123,7 @@ export const createCoupon = async (dto: CreateCouponDTO): Promise<any> => {
       trainerName: trainerName.trim(),
       trainerId,
       discountPercent,
+      minAmount,
       maxUses,
       expiryDate,
       isActive: true,
@@ -135,6 +139,7 @@ export const createCoupon = async (dto: CreateCouponDTO): Promise<any> => {
     code: coupon.code,
     trainerName: coupon.trainerName,
     discountPercent: coupon.discountPercent,
+    minAmount: coupon.minAmount,
     isActive: coupon.isActive,
     expiryDate: coupon.expiryDate,
     createdAt: coupon.createdAt,
@@ -148,10 +153,12 @@ export const createCoupon = async (dto: CreateCouponDTO): Promise<any> => {
  * Checks: existence, active status, expiry, max uses, etc.
  * 
  * @param couponCode - The coupon code to validate
+ * @param cartTotal - The total cart amount before discount
  * @returns Validation result with coupon details if valid
  */
 export const validateCoupon = async (
-  couponCode: string
+  couponCode: string,
+  cartTotal?: number
 ): Promise<CouponValidationResult> => {
   // Input validation
   if (!couponCode || couponCode.trim().length === 0) {
@@ -200,6 +207,14 @@ export const validateCoupon = async (
     };
   }
 
+  // Check minimum amount
+  if (coupon.minAmount && coupon.minAmount > 0 && cartTotal !== undefined && cartTotal < coupon.minAmount) {
+    return {
+      isValid: false,
+      error: `This coupon requires a minimum order amount of ₹${coupon.minAmount}`,
+    };
+  }
+
   // ✅ Coupon is valid!
   console.log(`✅ Coupon validated: ${trimmedCode}`);
 
@@ -210,6 +225,7 @@ export const validateCoupon = async (
       code: coupon.code,
       discountPercent: coupon.discountPercent,
       trainerName: coupon.trainerName,
+      minAmount: coupon.minAmount,
     },
   };
 };
@@ -234,7 +250,7 @@ export const applyCouponToOrder = async (
   cartTotal: number
 ): Promise<ApplyCouponResult> => {
   // Validate coupon first
-  const validationResult = await validateCoupon(couponCode);
+  const validationResult = await validateCoupon(couponCode, cartTotal);
 
   if (!validationResult.isValid) {
     return {
@@ -323,6 +339,7 @@ export const getAllCoupons = async (filters?: {
       code: true,
       trainerName: true,
       discountPercent: true,
+      minAmount: true,
       isActive: true,
       usageCount: true,
       maxUses: true,
@@ -470,6 +487,74 @@ export const reactivateCoupon = async (couponId: string): Promise<any> => {
 };
 
 /**
+ * Update a coupon's editable fields
+ * Can update: discountPercent, minAmount, maxUses, expiryDate
+ * 
+ * @param couponId - Coupon ID
+ * @param updateData - Fields to update
+ * @returns Updated coupon
+ */
+export const updateCoupon = async (
+  couponId: string,
+  updateData: {
+    discountPercent?: number;
+    minAmount?: number;
+    maxUses?: number;
+    expiryDate?: Date;
+  }
+): Promise<any> => {
+  // Validate discount percent if provided
+  if (updateData.discountPercent !== undefined) {
+    if (updateData.discountPercent < 0 || updateData.discountPercent > 100) {
+      throw new Error("Discount percent must be between 0 and 100");
+    }
+  }
+
+  // Validate expiry date if provided
+  if (updateData.expiryDate) {
+    if (updateData.expiryDate <= new Date()) {
+      throw new Error("Expiry date must be in the future");
+    }
+  }
+
+  // Build update object with only provided fields
+  const dataToUpdate: any = {};
+  
+  if (updateData.discountPercent !== undefined) {
+    dataToUpdate.discountPercent = updateData.discountPercent;
+  }
+  if (updateData.minAmount !== undefined) {
+    dataToUpdate.minAmount = updateData.minAmount;
+  }
+  if (updateData.maxUses !== undefined) {
+    dataToUpdate.maxUses = updateData.maxUses;
+  }
+  if (updateData.expiryDate !== undefined) {
+    dataToUpdate.expiryDate = updateData.expiryDate;
+  }
+
+  const coupon = await prisma.coupon.update({
+    where: { id: couponId },
+    data: dataToUpdate,
+  });
+
+  console.log(`✏️ Coupon updated: ${coupon.code}`);
+
+  return {
+    id: coupon.id,
+    code: coupon.code,
+    trainerName: coupon.trainerName,
+    discountPercent: coupon.discountPercent,
+    minAmount: coupon.minAmount,
+    isActive: coupon.isActive,
+    maxUses: coupon.maxUses,
+    expiryDate: coupon.expiryDate,
+    usageCount: coupon.usageCount,
+    createdAt: coupon.createdAt,
+  };
+};
+
+/**
  * Get commission report for a trainer
  * Shows total coupons issued, total discount given, usage count
  * Used for offline commission calculation
@@ -525,5 +610,100 @@ export const getTrainerCommissionReport = async (trainerName: string): Promise<a
     couponDetails,
     commissionNote:
       "This data can be used to calculate trainer commission offline",
+  };
+};
+
+/**
+ * Get detailed commission report with all orders where coupon was applied
+ * Includes complete order details, items, customer info, and discount info
+ * 
+ * @param trainerName - Trainer name
+ * @returns Detailed report with order information
+ */
+export const getDetailedTrainerCommissionReport = async (trainerName: string): Promise<any> => {
+  // Get all applied coupons for this trainer with detailed order info
+  const appliedCoupons = await prisma.appliedCoupon.findMany({
+    where: {
+      trainerName: {
+        contains: trainerName,
+        mode: "insensitive",
+      },
+    },
+    include: {
+      order: {
+        include: {
+          items: true,
+          address: true,
+        },
+      },
+      coupon: {
+        select: {
+          code: true,
+          discountPercent: true,
+          minAmount: true,
+        },
+      },
+    },
+    orderBy: {
+      appliedDate: "desc",
+    },
+  });
+
+  // Get all coupons issued for this trainer
+  const coupons = await prisma.coupon.findMany({
+    where: {
+      trainerName: {
+        contains: trainerName,
+        mode: "insensitive",
+      },
+    },
+  });
+
+  // Calculate totals
+  const totalCouponsIssued = coupons.length;
+  const totalOrdersWithCoupon = appliedCoupons.length;
+  const totalDiscountGiven = appliedCoupons.reduce((sum, ac) => sum + ac.discountAmount, 0);
+
+  // Transform order details
+  const orderDetails = appliedCoupons.map((ac) => ({
+    orderId: ac.order.id,
+    orderDate: ac.order.createdAt,
+    appliedDate: ac.appliedDate,
+    couponCode: ac.coupon.code,
+    discountPercent: ac.coupon.discountPercent,
+    minAmount: ac.coupon.minAmount,
+    discountAmount: ac.discountAmount,
+    totalAmount: ac.order.totalAmount,
+    finalAmount: ac.order.totalAmount - ac.discountAmount,
+    paymentMethod: ac.order.paymentMethod,
+    status: ac.order.status,
+    itemCount: ac.order.items.length,
+    items: ac.order.items.map((item) => ({
+      productName: item.productName,
+      basePrice: item.basePrice,
+      quantity: item.quantity,
+      flavor: item.flavor,
+      size: item.size,
+      discountPercent: item.discountPercent,
+    })),
+    address: ac.order.address,
+  }));
+
+  return {
+    trainerName,
+    reportDate: new Date(),
+    totalCouponsIssued,
+    totalOrdersWithCoupon,
+    totalDiscountGiven,
+    averageDiscountPerOrder: totalOrdersWithCoupon > 0 ? totalDiscountGiven / totalOrdersWithCoupon : 0,
+    coupons: coupons.map((c) => ({
+      code: c.code,
+      discountPercent: c.discountPercent,
+      minAmount: c.minAmount,
+      usageCount: c.usageCount,
+      maxUses: c.maxUses,
+      isActive: c.isActive,
+    })),
+    orderDetails,
   };
 };

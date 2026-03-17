@@ -139,6 +139,7 @@ export const Account: React.FC = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isBillModalOpen, setIsBillModalOpen] = useState(false);
   const [selectedOrderForBill, setSelectedOrderForBill] = useState<Order | null>(null);
+  const [orderStatusFilter, setOrderStatusFilter] = useState<'all' | 'buyAgain' | 'notYetShipped' | 'cancelled'>('all');
   const ORDERS_PER_PAGE = 5;
   // Address components
 
@@ -334,6 +335,23 @@ export const Account: React.FC = () => {
     setSelectedOrderForBill(order);
     setIsBillModalOpen(true);
   };
+
+  // Filter orders based on status filter
+  const getFilteredOrders = () => {
+    switch (orderStatusFilter) {
+      case 'buyAgain':
+        return orders.filter(o => o.status === 'DELIVERED');
+      case 'notYetShipped':
+        return orders.filter(o => o.status === 'PENDING' || o.status === 'CONFIRMED');
+      case 'cancelled':
+        return orders.filter(o => o.status === 'CANCELLED');
+      case 'all':
+      default:
+        return orders;
+    }
+  };
+
+  const filteredOrders = getFilteredOrders();
 
   if (loading) {
     return <div className="min-h-screen bg-neutral-50 flex items-center justify-center">Loading...</div>;
@@ -869,36 +887,37 @@ export const Account: React.FC = () => {
 
                   {/* Amazon style sub-tabs */}
                   <div className="flex items-center gap-8 border-b border-neutral-200 mt-4 overflow-x-auto no-scrollbar">
-                    {['Orders', 'Buy Again', 'Not Yet Shipped', 'Cancelled'].map((tab, idx) => (
+                    {[
+                      { id: 'all', label: 'Orders' },
+                      { id: 'buyAgain', label: 'Buy Again' },
+                      { id: 'notYetShipped', label: 'Not Yet Shipped' },
+                      { id: 'cancelled', label: 'Cancelled' },
+                    ].map((tab) => (
                       <button
-                        key={tab}
-                        className={`pb-3 text-sm font-medium whitespace-nowrap transition-colors relative ${idx === 0 ? 'text-orange-700 border-b-2 border-orange-700' : 'text-neutral-600 hover:text-orange-700'}`}
+                        key={tab.id}
+                        onClick={() => { setOrderStatusFilter(tab.id as any); setCurrentOrderPage(1); }}
+                        className={`pb-3 text-sm font-medium whitespace-nowrap transition-colors relative ${
+                          orderStatusFilter === tab.id
+                            ? 'text-orange-700 border-b-2 border-orange-700'
+                            : 'text-neutral-600 hover:text-orange-700'
+                        }`}
                       >
-                        {tab}
+                        {tab.label}
                       </button>
                     ))}
                   </div>
 
                   {/* Filter Section */}
-                  <div className="flex flex-col md:flex-row gap-4 mt-6 items-start md:items-center text-[13px]">
-                    <div className="flex items-center gap-2">
-                      <span className="text-neutral-600"><strong>{orders.length} orders</strong> placed in</span>
-                      <div className="relative">
-                        <select className="appearance-none bg-neutral-100 border border-neutral-300 rounded-lg px-4 py-1.5 pr-8 focus:outline-none focus:ring-2 focus:ring-teal-800 cursor-pointer">
-                          <option>past 3 months</option>
-                          <option>last 30 days</option>
-                          <option>2024</option>
-                          <option>2023</option>
-                        </select>
-                        <ChevronDown className="w-4 h-4 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-neutral-500" />
-                      </div>
+                  {filteredOrders.length > 0 && (
+                    <div className="flex flex-col md:flex-row gap-4 mt-6 items-start md:items-center text-[13px]">
+                      <span className="text-neutral-600"><strong>{filteredOrders.length} order{filteredOrders.length !== 1 ? 's' : ''}</strong> found</span>
                     </div>
-                  </div>
+                  )}
                 </div>
 
-                {orders.length > 0 ? (
+                {filteredOrders.length > 0 ? (
                   <div className="space-y-6">
-                    {orders
+                    {filteredOrders
                       .slice((currentOrderPage - 1) * ORDERS_PER_PAGE, currentOrderPage * ORDERS_PER_PAGE)
                       .map((order) => (
                         <div key={order.id} className="bg-white border border-neutral-200 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow">
@@ -1045,7 +1064,7 @@ export const Account: React.FC = () => {
                       ))}
 
                     {/* Pagination */}
-                    {orders.length > ORDERS_PER_PAGE && (
+                    {filteredOrders.length > ORDERS_PER_PAGE && (
                       <div className="flex items-center justify-between pt-4">
                         <button
                           onClick={() => setCurrentOrderPage(prev => Math.max(1, prev - 1))}
@@ -1055,7 +1074,7 @@ export const Account: React.FC = () => {
                           Previous
                         </button>
                         <div className="flex items-center gap-2">
-                          {Array.from({ length: Math.ceil(orders.length / ORDERS_PER_PAGE) }, (_, i) => i + 1).map(page => (
+                          {Array.from({ length: Math.ceil(filteredOrders.length / ORDERS_PER_PAGE) }, (_, i) => i + 1).map(page => (
                             <button
                               key={page}
                               onClick={() => setCurrentOrderPage(page)}
@@ -1069,8 +1088,8 @@ export const Account: React.FC = () => {
                           ))}
                         </div>
                         <button
-                          onClick={() => setCurrentOrderPage(prev => Math.min(Math.ceil(orders.length / ORDERS_PER_PAGE), prev + 1))}
-                          disabled={currentOrderPage === Math.ceil(orders.length / ORDERS_PER_PAGE)}
+                          onClick={() => setCurrentOrderPage(prev => Math.min(Math.ceil(filteredOrders.length / ORDERS_PER_PAGE), prev + 1))}
+                          disabled={currentOrderPage === Math.ceil(filteredOrders.length / ORDERS_PER_PAGE)}
                           className="px-4 py-2 border border-neutral-300 rounded-lg hover:bg-neutral-50 disabled:opacity-50 disabled:cursor-not-allowed transition font-medium text-sm"
                         >
                           Next
@@ -1081,14 +1100,26 @@ export const Account: React.FC = () => {
                 ) : (
                   <div className="bg-white rounded-xl shadow-md p-12 text-center border border-neutral-200">
                     <Package className="w-16 h-16 text-neutral-300 mx-auto mb-4" />
-                    <p className="text-neutral-700 font-medium mb-2">No orders yet</p>
-                    <p className="text-neutral-500 text-sm mb-6">Start shopping to see your orders here</p>
-                    <button
-                      onClick={() => navigate('/dashboard')}
-                      className="bg-teal-900 text-white px-6 py-2 rounded-lg hover:bg-teal-800 transition font-medium"
-                    >
-                      Continue Shopping
-                    </button>
+                    <p className="text-neutral-700 font-medium mb-2">
+                      {orderStatusFilter === 'all' && 'No orders yet'}
+                      {orderStatusFilter === 'buyAgain' && 'No delivered orders'}
+                      {orderStatusFilter === 'notYetShipped' && 'No pending orders'}
+                      {orderStatusFilter === 'cancelled' && 'No cancelled orders'}
+                    </p>
+                    <p className="text-neutral-500 text-sm mb-6">
+                      {orderStatusFilter === 'all' && 'Start shopping to see your orders here'}
+                      {orderStatusFilter === 'buyAgain' && 'Orders that are delivered will appear here'}
+                      {orderStatusFilter === 'notYetShipped' && 'You have no pending orders'}
+                      {orderStatusFilter === 'cancelled' && 'You have no cancelled orders'}
+                    </p>
+                    {orderStatusFilter === 'all' && (
+                      <button
+                        onClick={() => navigate('/dashboard')}
+                        className="bg-teal-900 text-white px-6 py-2 rounded-lg hover:bg-teal-800 transition font-medium"
+                      >
+                        Continue Shopping
+                      </button>
+                    )}
                   </div>
                 )}
               </div>

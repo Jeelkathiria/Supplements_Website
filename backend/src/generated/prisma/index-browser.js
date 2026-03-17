@@ -272,6 +272,7 @@ exports.Prisma.CouponScalarFieldEnum = {
   trainerId: 'trainerId',
   discountPercent: 'discountPercent',
   discountType: 'discountType',
+  minAmount: 'minAmount',
   isActive: 'isActive',
   maxUses: 'maxUses',
   usageCount: 'usageCount',

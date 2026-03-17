@@ -16140,12 +16140,14 @@ export namespace Prisma {
 
   export type CouponAvgAggregateOutputType = {
     discountPercent: number | null
+    minAmount: number | null
     maxUses: number | null
     usageCount: number | null
   }
 
   export type CouponSumAggregateOutputType = {
     discountPercent: number | null
+    minAmount: number | null
     maxUses: number | null
     usageCount: number | null
   }
@@ -16157,6 +16159,7 @@ export namespace Prisma {
     trainerId: string | null
     discountPercent: number | null
     discountType: string | null
+    minAmount: number | null
     isActive: boolean | null
     maxUses: number | null
     usageCount: number | null
@@ -16173,6 +16176,7 @@ export namespace Prisma {
     trainerId: string | null
     discountPercent: number | null
     discountType: string | null
+    minAmount: number | null
     isActive: boolean | null
     maxUses: number | null
     usageCount: number | null
@@ -16189,6 +16193,7 @@ export namespace Prisma {
     trainerId: number
     discountPercent: number
     discountType: number
+    minAmount: number
     isActive: number
     maxUses: number
     usageCount: number
@@ -16202,12 +16207,14 @@ export namespace Prisma {
 
   export type CouponAvgAggregateInputType = {
     discountPercent?: true
+    minAmount?: true
     maxUses?: true
     usageCount?: true
   }
 
   export type CouponSumAggregateInputType = {
     discountPercent?: true
+    minAmount?: true
     maxUses?: true
     usageCount?: true
   }
@@ -16219,6 +16226,7 @@ export namespace Prisma {
     trainerId?: true
     discountPercent?: true
     discountType?: true
+    minAmount?: true
     isActive?: true
     maxUses?: true
     usageCount?: true
@@ -16235,6 +16243,7 @@ export namespace Prisma {
     trainerId?: true
     discountPercent?: true
     discountType?: true
+    minAmount?: true
     isActive?: true
     maxUses?: true
     usageCount?: true
@@ -16251,6 +16260,7 @@ export namespace Prisma {
     trainerId?: true
     discountPercent?: true
     discountType?: true
+    minAmount?: true
     isActive?: true
     maxUses?: true
     usageCount?: true
@@ -16354,6 +16364,7 @@ export namespace Prisma {
     trainerId: string | null
     discountPercent: number
     discountType: string
+    minAmount: number | null
     isActive: boolean
     maxUses: number | null
     usageCount: number
@@ -16389,6 +16400,7 @@ export namespace Prisma {
     trainerId?: boolean
     discountPercent?: boolean
     discountType?: boolean
+    minAmount?: boolean
     isActive?: boolean
     maxUses?: boolean
     usageCount?: boolean
@@ -16407,6 +16419,7 @@ export namespace Prisma {
     trainerId?: boolean
     discountPercent?: boolean
     discountType?: boolean
+    minAmount?: boolean
     isActive?: boolean
     maxUses?: boolean
     usageCount?: boolean
@@ -16423,6 +16436,7 @@ export namespace Prisma {
     trainerId?: boolean
     discountPercent?: boolean
     discountType?: boolean
+    minAmount?: boolean
     isActive?: boolean
     maxUses?: boolean
     usageCount?: boolean
@@ -16439,6 +16453,7 @@ export namespace Prisma {
     trainerId?: boolean
     discountPercent?: boolean
     discountType?: boolean
+    minAmount?: boolean
     isActive?: boolean
     maxUses?: boolean
     usageCount?: boolean
@@ -16448,7 +16463,7 @@ export namespace Prisma {
     createdBy?: boolean
   }
 
-  export type CouponOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "code" | "trainerName" | "trainerId" | "discountPercent" | "discountType" | "isActive" | "maxUses" | "usageCount" | "expiryDate" | "createdAt" | "updatedAt" | "createdBy", ExtArgs["result"]["coupon"]>
+  export type CouponOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "code" | "trainerName" | "trainerId" | "discountPercent" | "discountType" | "minAmount" | "isActive" | "maxUses" | "usageCount" | "expiryDate" | "createdAt" | "updatedAt" | "createdBy", ExtArgs["result"]["coupon"]>
   export type CouponInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     appliedCoupons?: boolean | Coupon$appliedCouponsArgs<ExtArgs>
     _count?: boolean | CouponCountOutputTypeDefaultArgs<ExtArgs>
@@ -16468,6 +16483,7 @@ export namespace Prisma {
       trainerId: string | null
       discountPercent: number
       discountType: string
+      minAmount: number | null
       isActive: boolean
       maxUses: number | null
       usageCount: number
@@ -16905,6 +16921,7 @@ export namespace Prisma {
     readonly trainerId: FieldRef<"Coupon", 'String'>
     readonly discountPercent: FieldRef<"Coupon", 'Float'>
     readonly discountType: FieldRef<"Coupon", 'String'>
+    readonly minAmount: FieldRef<"Coupon", 'Float'>
     readonly isActive: FieldRef<"Coupon", 'Boolean'>
     readonly maxUses: FieldRef<"Coupon", 'Int'>
     readonly usageCount: FieldRef<"Coupon", 'Int'>
@@ -18721,6 +18738,7 @@ export namespace Prisma {
     trainerId: 'trainerId',
     discountPercent: 'discountPercent',
     discountType: 'discountType',
+    minAmount: 'minAmount',
     isActive: 'isActive',
     maxUses: 'maxUses',
     usageCount: 'usageCount',
@@ -19836,6 +19854,7 @@ export namespace Prisma {
     trainerId?: StringNullableFilter<"Coupon"> | string | null
     discountPercent?: FloatFilter<"Coupon"> | number
     discountType?: StringFilter<"Coupon"> | string
+    minAmount?: FloatNullableFilter<"Coupon"> | number | null
     isActive?: BoolFilter<"Coupon"> | boolean
     maxUses?: IntNullableFilter<"Coupon"> | number | null
     usageCount?: IntFilter<"Coupon"> | number
@@ -19853,6 +19872,7 @@ export namespace Prisma {
     trainerId?: SortOrderInput | SortOrder
     discountPercent?: SortOrder
     discountType?: SortOrder
+    minAmount?: SortOrderInput | SortOrder
     isActive?: SortOrder
     maxUses?: SortOrderInput | SortOrder
     usageCount?: SortOrder
@@ -19873,6 +19893,7 @@ export namespace Prisma {
     trainerId?: StringNullableFilter<"Coupon"> | string | null
     discountPercent?: FloatFilter<"Coupon"> | number
     discountType?: StringFilter<"Coupon"> | string
+    minAmount?: FloatNullableFilter<"Coupon"> | number | null
     isActive?: BoolFilter<"Coupon"> | boolean
     maxUses?: IntNullableFilter<"Coupon"> | number | null
     usageCount?: IntFilter<"Coupon"> | number
@@ -19890,6 +19911,7 @@ export namespace Prisma {
     trainerId?: SortOrderInput | SortOrder
     discountPercent?: SortOrder
     discountType?: SortOrder
+    minAmount?: SortOrderInput | SortOrder
     isActive?: SortOrder
     maxUses?: SortOrderInput | SortOrder
     usageCount?: SortOrder
@@ -19914,6 +19936,7 @@ export namespace Prisma {
     trainerId?: StringNullableWithAggregatesFilter<"Coupon"> | string | null
     discountPercent?: FloatWithAggregatesFilter<"Coupon"> | number
     discountType?: StringWithAggregatesFilter<"Coupon"> | string
+    minAmount?: FloatNullableWithAggregatesFilter<"Coupon"> | number | null
     isActive?: BoolWithAggregatesFilter<"Coupon"> | boolean
     maxUses?: IntNullableWithAggregatesFilter<"Coupon"> | number | null
     usageCount?: IntWithAggregatesFilter<"Coupon"> | number
@@ -21062,6 +21085,7 @@ export namespace Prisma {
     trainerId?: string | null
     discountPercent?: number
     discountType?: string
+    minAmount?: number | null
     isActive?: boolean
     maxUses?: number | null
     usageCount?: number
@@ -21079,6 +21103,7 @@ export namespace Prisma {
     trainerId?: string | null
     discountPercent?: number
     discountType?: string
+    minAmount?: number | null
     isActive?: boolean
     maxUses?: number | null
     usageCount?: number
@@ -21096,6 +21121,7 @@ export namespace Prisma {
     trainerId?: NullableStringFieldUpdateOperationsInput | string | null
     discountPercent?: FloatFieldUpdateOperationsInput | number
     discountType?: StringFieldUpdateOperationsInput | string
+    minAmount?: NullableFloatFieldUpdateOperationsInput | number | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
     maxUses?: NullableIntFieldUpdateOperationsInput | number | null
     usageCount?: IntFieldUpdateOperationsInput | number
@@ -21113,6 +21139,7 @@ export namespace Prisma {
     trainerId?: NullableStringFieldUpdateOperationsInput | string | null
     discountPercent?: FloatFieldUpdateOperationsInput | number
     discountType?: StringFieldUpdateOperationsInput | string
+    minAmount?: NullableFloatFieldUpdateOperationsInput | number | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
     maxUses?: NullableIntFieldUpdateOperationsInput | number | null
     usageCount?: IntFieldUpdateOperationsInput | number
@@ -21130,6 +21157,7 @@ export namespace Prisma {
     trainerId?: string | null
     discountPercent?: number
     discountType?: string
+    minAmount?: number | null
     isActive?: boolean
     maxUses?: number | null
     usageCount?: number
@@ -21146,6 +21174,7 @@ export namespace Prisma {
     trainerId?: NullableStringFieldUpdateOperationsInput | string | null
     discountPercent?: FloatFieldUpdateOperationsInput | number
     discountType?: StringFieldUpdateOperationsInput | string
+    minAmount?: NullableFloatFieldUpdateOperationsInput | number | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
     maxUses?: NullableIntFieldUpdateOperationsInput | number | null
     usageCount?: IntFieldUpdateOperationsInput | number
@@ -21162,6 +21191,7 @@ export namespace Prisma {
     trainerId?: NullableStringFieldUpdateOperationsInput | string | null
     discountPercent?: FloatFieldUpdateOperationsInput | number
     discountType?: StringFieldUpdateOperationsInput | string
+    minAmount?: NullableFloatFieldUpdateOperationsInput | number | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
     maxUses?: NullableIntFieldUpdateOperationsInput | number | null
     usageCount?: IntFieldUpdateOperationsInput | number
@@ -22164,6 +22194,7 @@ export namespace Prisma {
     trainerId?: SortOrder
     discountPercent?: SortOrder
     discountType?: SortOrder
+    minAmount?: SortOrder
     isActive?: SortOrder
     maxUses?: SortOrder
     usageCount?: SortOrder
@@ -22175,6 +22206,7 @@ export namespace Prisma {
 
   export type CouponAvgOrderByAggregateInput = {
     discountPercent?: SortOrder
+    minAmount?: SortOrder
     maxUses?: SortOrder
     usageCount?: SortOrder
   }
@@ -22186,6 +22218,7 @@ export namespace Prisma {
     trainerId?: SortOrder
     discountPercent?: SortOrder
     discountType?: SortOrder
+    minAmount?: SortOrder
     isActive?: SortOrder
     maxUses?: SortOrder
     usageCount?: SortOrder
@@ -22202,6 +22235,7 @@ export namespace Prisma {
     trainerId?: SortOrder
     discountPercent?: SortOrder
     discountType?: SortOrder
+    minAmount?: SortOrder
     isActive?: SortOrder
     maxUses?: SortOrder
     usageCount?: SortOrder
@@ -22213,6 +22247,7 @@ export namespace Prisma {
 
   export type CouponSumOrderByAggregateInput = {
     discountPercent?: SortOrder
+    minAmount?: SortOrder
     maxUses?: SortOrder
     usageCount?: SortOrder
   }
@@ -24897,6 +24932,7 @@ export namespace Prisma {
     trainerId?: string | null
     discountPercent?: number
     discountType?: string
+    minAmount?: number | null
     isActive?: boolean
     maxUses?: number | null
     usageCount?: number
@@ -24913,6 +24949,7 @@ export namespace Prisma {
     trainerId?: string | null
     discountPercent?: number
     discountType?: string
+    minAmount?: number | null
     isActive?: boolean
     maxUses?: number | null
     usageCount?: number
@@ -24986,6 +25023,7 @@ export namespace Prisma {
     trainerId?: NullableStringFieldUpdateOperationsInput | string | null
     discountPercent?: FloatFieldUpdateOperationsInput | number
     discountType?: StringFieldUpdateOperationsInput | string
+    minAmount?: NullableFloatFieldUpdateOperationsInput | number | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
     maxUses?: NullableIntFieldUpdateOperationsInput | number | null
     usageCount?: IntFieldUpdateOperationsInput | number
@@ -25002,6 +25040,7 @@ export namespace Prisma {
     trainerId?: NullableStringFieldUpdateOperationsInput | string | null
     discountPercent?: FloatFieldUpdateOperationsInput | number
     discountType?: StringFieldUpdateOperationsInput | string
+    minAmount?: NullableFloatFieldUpdateOperationsInput | number | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
     maxUses?: NullableIntFieldUpdateOperationsInput | number | null
     usageCount?: IntFieldUpdateOperationsInput | number

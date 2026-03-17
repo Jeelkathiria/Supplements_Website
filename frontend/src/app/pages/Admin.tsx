@@ -120,7 +120,7 @@ export const Admin: React.FC = () => {
   }, [handlePendingCountsChange]);
 
   // Wrapper function to update both state and localStorage
-  const setActiveTab = (tab: "products" | "orders" | "cancellations" | "cancelled-orders" | "refunds") => {
+  const setActiveTab = (tab: "products" | "orders" | "cancellations" | "cancelled-orders" | "refunds" | "coupons") => {
     setActiveTabState(tab);
     localStorage.setItem("adminActiveTab", tab);
   };

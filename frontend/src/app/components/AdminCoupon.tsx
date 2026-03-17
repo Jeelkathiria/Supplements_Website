@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { Plus, Edit2, Trash2, Copy, CheckCircle, AlertCircle, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, Edit2, Trash2, Copy, CheckCircle, AlertCircle, X, ChevronLeft, ChevronRight, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import * as couponService from "../../services/couponService";
 import { useAuth } from "./context/AuthContext";
+import CouponDetailPage from "./CouponDetailPage";
 
 /**
  * ADMIN COUPON MANAGEMENT COMPONENT
@@ -12,7 +13,7 @@ import { useAuth } from "./context/AuthContext";
  * - View all coupons with usage statistics (paginated - 10 per page)
  * - Real-time filtering and searching
  * - Deactivate/Reactivate coupons
- * - View commission reports
+ * - View detailed commission reports
  * - Track coupon usage per trainer
  */
 
@@ -31,6 +32,7 @@ interface Coupon {
 interface CreateCouponForm {
   trainerName: string;
   discountPercent: number;
+  minAmount: string;
   maxUses: string;
   expiryDate: string;
 }
@@ -49,9 +51,11 @@ export const AdminCouponManagement: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [editingCoupon, setEditingCoupon] = useState<Coupon | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [selectedCoupon, setSelectedCoupon] = useState<{ trainer: string; code: string } | null>(null);
   const [editFormData, setEditFormData] = useState<CreateCouponForm>({
     trainerName: "",
     discountPercent: 10,
+    minAmount: "",
     maxUses: "",
     expiryDate: "",
   });
@@ -60,6 +64,7 @@ export const AdminCouponManagement: React.FC = () => {
   const [formData, setFormData] = useState<CreateCouponForm>({
     trainerName: "",
     discountPercent: 10,
+    minAmount: "",
     maxUses: "",
     expiryDate: "",
   });
@@ -176,6 +181,7 @@ export const AdminCouponManagement: React.FC = () => {
         {
           trainerName: formData.trainerName.trim(),
           discountPercent: formData.discountPercent,
+          minAmount: formData.minAmount ? parseFloat(formData.minAmount) : undefined,
           maxUses: formData.maxUses ? parseInt(formData.maxUses) : null,
           expiryDate: formData.expiryDate || undefined,
         },
@@ -189,6 +195,7 @@ export const AdminCouponManagement: React.FC = () => {
       setFormData({
         trainerName: "",
         discountPercent: 10,
+        minAmount: "",
         maxUses: "",
         expiryDate: "",
       });
@@ -264,6 +271,7 @@ export const AdminCouponManagement: React.FC = () => {
     setEditFormData({
       trainerName: coupon.trainerName,
       discountPercent: coupon.discountPercent,
+      minAmount: (coupon as any).minAmount ? (coupon as any).minAmount.toString() : "",
       maxUses: coupon.maxUses?.toString() || "",
       expiryDate: coupon.expiryDate ? coupon.expiryDate.split("T")[0] : "",
     });
@@ -279,6 +287,7 @@ export const AdminCouponManagement: React.FC = () => {
     setEditFormData({
       trainerName: "",
       discountPercent: 10,
+      minAmount: "",
       maxUses: "",
       expiryDate: "",
     });
@@ -300,9 +309,19 @@ export const AdminCouponManagement: React.FC = () => {
         return;
       }
 
-      // API call to update coupon (you'll need to add this endpoint)
-      // For now, we'll update the discount and max uses
-      toast.success(`✅ Coupon ${editingCoupon.code} updated`);
+      // ✅ Call API to update coupon
+      await couponService.updateCoupon(
+        editingCoupon.id,
+        {
+          discountPercent: editFormData.discountPercent,
+          minAmount: editFormData.minAmount ? parseFloat(editFormData.minAmount) : undefined,
+          maxUses: editFormData.maxUses ? parseInt(editFormData.maxUses) : null,
+          expiryDate: editFormData.expiryDate || undefined,
+        },
+        token
+      );
+
+      toast.success(`✅ Coupon ${editingCoupon.code} updated successfully`);
       handleCloseEditModal();
       await loadCoupons();
     } catch (error) {
@@ -314,31 +333,26 @@ export const AdminCouponManagement: React.FC = () => {
   };
 
   /**
-   * Get commission report for trainer
+   * View coupon details
    */
-  const handleViewCommissionReport = async (trainerName: string) => {
-    try {
-      const token = await getIdToken();
-      
-      if (!token) {
-        toast.error("Authentication failed. Please log in again.");
-        return;
-      }
-      
-      const report = await couponService.getTrainerCommissionReport(trainerName, token);
-
-      // Show report in toast/modal
-      console.log("📊 Commission Report:", report);
-      toast.success(`📊 Commission report loaded for ${trainerName}`);
-      // You can display this in a modal or detailed view
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to fetch report";
-      toast.error(message);
-    }
+  const handleViewCouponDetails = (trainerName: string, couponCode: string) => {
+    setSelectedCoupon({ trainer: trainerName, code: couponCode });
   };
 
   // ==================== RENDER ====================
 
+  // ==================== SHOW COUPON DETAILS PAGE ====================
+  if (selectedCoupon) {
+    return (
+      <CouponDetailPage
+        trainerName={selectedCoupon.trainer}
+        couponCode={selectedCoupon.code}
+        onBack={() => setSelectedCoupon(null)}
+      />
+    );
+  }
+
+  // ==================== RENDER COUPON MANAGEMENT ====================
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
@@ -424,6 +438,26 @@ export const AdminCouponManagement: React.FC = () => {
                   />
                   <p className="text-xs text-gray-500 mt-2">
                     Default: 10% off (adjust as needed)
+                  </p>
+                </div>
+
+                {/* Min Amount */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-3">
+                    Minimum Cart Amount (₹) (Optional)
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.minAmount}
+                    onChange={(e) =>
+                      setFormData({ ...formData, minAmount: e.target.value })
+                    }
+                    placeholder="e.g. 500"
+                    min="0"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                  />
+                  <p className="text-xs text-gray-500 mt-2">
+                    Minimum cart total required to apply this coupon.
                   </p>
                 </div>
 
@@ -584,11 +618,16 @@ export const AdminCouponManagement: React.FC = () => {
                       {/* Trainer */}
                       <td className="px-6 py-4 font-medium text-gray-900">{coupon.trainerName}</td>
 
-                      {/* Discount */}
+                      {/* Discount and Min Amount */}
                       <td className="px-6 py-4">
                         <span className="inline-flex items-center px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-semibold">
                           {coupon.discountPercent}% off
                         </span>
+                        {(coupon as any).minAmount > 0 && (
+                          <div className="text-xs text-gray-500 mt-1 mt-1 font-medium">
+                            Min: ₹{(coupon as any).minAmount}
+                          </div>
+                        )}
                       </td>
 
                       {/* Usage */}
@@ -658,12 +697,12 @@ export const AdminCouponManagement: React.FC = () => {
                           </button>
                           <button
                             onClick={() =>
-                              handleViewCommissionReport(coupon.trainerName)
+                              handleViewCouponDetails(coupon.trainerName, coupon.code)
                             }
                             className="text-purple-600 hover:text-purple-800 hover:bg-purple-100 p-2 rounded transition font-medium"
-                            title="View commission report"
+                            title="View coupon details and orders"
                           >
-                            📊
+                            <ArrowRight size={18} />
                           </button>
                         </div>
                       </td>
@@ -781,7 +820,22 @@ export const AdminCouponManagement: React.FC = () => {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
-
+                {/* Min Amount */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Minimum Cart Amount (₹) (Optional)
+                  </label>
+                  <input
+                    type="number"
+                    value={editFormData.minAmount}
+                    onChange={(e) =>
+                      setEditFormData({ ...editFormData, minAmount: e.target.value })
+                    }
+                    placeholder="e.g. 500"
+                    min="0"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
                 {/* Max Uses */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">

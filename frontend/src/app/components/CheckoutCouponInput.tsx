@@ -68,7 +68,7 @@ export const CheckoutCouponInput: React.FC<CouponInputProps> = ({
       setValidationError(null);
 
       // ✅ Validate coupon using service
-      const response = await couponService.validateCoupon(code.trim());
+      const response = await couponService.validateCoupon(code.trim(), cartTotal);
 
       // ✅ Check if coupon is valid
       if (!response.isValid) {

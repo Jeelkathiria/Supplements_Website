@@ -17,6 +17,7 @@ export const createCoupon = async (
     trainerName: string;
     trainerId?: string;
     discountPercent?: number;
+    minAmount?: number;
     maxUses?: number | null;
     expiryDate?: string;
   },
@@ -110,14 +111,15 @@ export const getCouponById = async (couponId: string, authToken: string) => {
  * Check if coupon code is valid before applying
  * 
  * @param couponCode - The coupon code to validate
+ * @param cartTotal - The total cart amount before discount
  */
-export const validateCoupon = async (couponCode: string) => {
+export const validateCoupon = async (couponCode: string, cartTotal?: number) => {
   const response = await fetch(`${API_BASE_URL}/coupons/validate`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ couponCode }),
+    body: JSON.stringify({ couponCode, cartTotal }),
   });
 
   if (!response.ok) {
@@ -219,6 +221,41 @@ export const reactivateCoupon = async (
 };
 
 /**
+ * UPDATE COUPON - Admin only
+ * Update coupon fields (discount percent, minAmount, maxUses, expiryDate)
+ * 
+ * @param couponId - Coupon ID
+ * @param updateData - Fields to update
+ * @param authToken - Firebase auth token
+ */
+export const updateCoupon = async (
+  couponId: string,
+  updateData: {
+    discountPercent?: number;
+    minAmount?: number;
+    maxUses?: number | null;
+    expiryDate?: string;
+  },
+  authToken: string
+) => {
+  const response = await fetch(`${API_BASE_URL}/coupons/${couponId}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${authToken}`,
+    },
+    body: JSON.stringify(updateData),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || "Failed to update coupon");
+  }
+
+  return response.json();
+};
+
+/**
  * GET TRAINER COMMISSION REPORT - Admin only
  * Get commission data for a trainer
  * Used for offline commission calculation
@@ -245,6 +282,38 @@ export const getTrainerCommissionReport = async (
   if (!response.ok) {
     const error = await response.json();
     throw new Error(error.message || "Failed to fetch commission report");
+  }
+
+  return response.json();
+};
+
+/**
+ * GET DETAILED TRAINER COMMISSION REPORT - Admin only
+ * Get detailed commission report with all orders where coupon was applied
+ * Includes complete order details, items, addresses, and discount info
+ * 
+ * @param trainerName - Trainer name
+ * @param authToken - Firebase auth token
+ */
+export const getDetailedTrainerCommissionReport = async (
+  trainerName: string,
+  authToken: string
+) => {
+  const encodedName = encodeURIComponent(trainerName);
+  const response = await fetch(
+    `${API_BASE_URL}/coupons/trainer/${encodedName}/detailed-commission-report`,
+    {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${authToken}`,
+      },
+    }
+  );
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || "Failed to fetch detailed commission report");
   }
 
   return response.json();

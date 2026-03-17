@@ -300,6 +300,7 @@ model Coupon {
   // Discount configuration
   discountPercent Float  @default(10) // Fixed 10% or customizable
   discountType    String @default("percent") // "percent" or "fixed" for future use
+  minAmount       Float? @default(0) // Minimum cart base amount required to use this coupon
 
   // Validity and status
   isActive   Boolean @default(true)
