@@ -190,7 +190,7 @@ export const Navbar: React.FC = () => {
                 )}
 
                 {isAuthenticated && (
-                  <Link to="/account" className="text-sm font-semibold hover:text-gray-200 transition">
+                  <Link to="/account/orders" className="text-sm font-semibold hover:text-gray-200 transition">
                     Orders
                   </Link>
                 )}
@@ -206,10 +206,11 @@ export const Navbar: React.FC = () => {
 
                 {isAuthenticated ? (
                   <button
-                    onClick={() => { logout(); navigate('/'); }}
-                    className="text-sm font-semibold hover:text-gray-200 transition"
+                    onClick={() => navigate('/account')}
+                    className="text-white hover:text-gray-200 transition"
+                    title="Go to Account"
                   >
-                    Logout
+                    <User className="w-5 h-5" />
                   </button>
                 ) : (
                   <Link to="/login" className="text-sm font-semibold hover:text-gray-200 transition">
@@ -379,15 +380,6 @@ export const Navbar: React.FC = () => {
                       <User className="w-4 h-4 text-[#003D45]" />
                     </div>
                     <span className="font-black text-sm">Profile Details</span>
-                  </button>
-                  <button
-                    onClick={() => { logout(); setIsMenuOpen(false); navigate('/'); }}
-                    className="w-full flex items-center gap-4 px-4 py-4 rounded-2xl text-rose-500 hover:bg-rose-50 transition-all mt-4"
-                  >
-                    <div className="w-8 h-8 bg-rose-50 rounded-lg flex items-center justify-center">
-                      <LogOut className="w-4 h-4" />
-                    </div>
-                    <span className="font-black text-sm uppercase tracking-tighter">Secure Logout</span>
                   </button>
                 </>
               ) : (

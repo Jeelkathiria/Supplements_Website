@@ -209,7 +209,7 @@ export const CouponDetailPage: React.FC<CouponDetailPageProps> = ({
             <div className="bg-gradient-to-br from-neutral-50 to-neutral-100 p-4 rounded-xl mb-8">
               <div className="overflow-x-auto pb-4">
                 <div className="flex gap-4 items-start min-w-min">
-                  {filteredOrders.map((order, idx) => {
+                  {filteredOrders.map((order) => {
                     const isExpanded = expandedOrderId === order.orderId;
                     const statusColors: Record<string, string> = {
                       PENDING: "bg-yellow-100 text-yellow-800",
@@ -464,16 +464,16 @@ export const CouponDetailPage: React.FC<CouponDetailPageProps> = ({
           <div className="flex items-center justify-between">
             <div>
               <p className="text-neutral-600 text-sm font-medium mb-2">
-                Total Earnings from {couponCode}
+                Total Price from {couponCode}
               </p>
-              <p className="text-4xl font-bold text-blue-600">
-                ₹{totalEarnings.toFixed(0)}
+              <p className="text-4xl font-bold text-green-600">
+                ₹{filteredOrders.reduce((sum, order) => sum + order.finalAmount, 0).toFixed(0)}
               </p>
               <p className="text-neutral-600 text-xs mt-2">
                 From {filteredOrders.length} order{filteredOrders.length !== 1 ? "s" : ""}
               </p>
             </div>
-            <ShoppingCart size={64} className="text-blue-100" />
+            <ShoppingCart size={64} className="text-green-100" />
           </div>
         </div>
 

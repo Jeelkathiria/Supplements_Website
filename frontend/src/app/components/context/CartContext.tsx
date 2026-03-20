@@ -41,17 +41,21 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const { isAuthenticated, firebaseUser } = useAuth();
   const [hasAttemptedMerge, setHasAttemptedMerge] = useState(false);
 
-  // Load cart from localStorage on mount
+  // Load cart from localStorage on mount (only for guests, not authenticated users)
   useEffect(() => {
     try {
-      const savedCart = localStorage.getItem(CART_STORAGE_KEY);
-      if (savedCart) {
-        setCartItems(JSON.parse(savedCart));
+      // Only load from localStorage if user is NOT authenticated
+      // Authenticated users will sync from backend instead
+      if (!isAuthenticated) {
+        const savedCart = localStorage.getItem(CART_STORAGE_KEY);
+        if (savedCart) {
+          setCartItems(JSON.parse(savedCart));
+        }
       }
     } catch (error) {
       console.error('Failed to load cart from localStorage:', error);
     }
-  }, []);
+  }, [isAuthenticated]);
 
   // Save cart to localStorage whenever it changes
   useEffect(() => {
@@ -67,6 +71,9 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (isAuthenticated && firebaseUser && !hasAttemptedMerge) {
       handleLoginMerge();
       setHasAttemptedMerge(true);
+    } else if (!isAuthenticated) {
+      // Reset merge flag when user logs out
+      setHasAttemptedMerge(false);
     }
   }, [isAuthenticated, firebaseUser?.uid]);
 
@@ -96,6 +103,8 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 selectedColor: item.flavor || undefined,
               }));
               setCartItems(items);
+              // Clear localStorage after successful merge to prevent re-merging stale items
+              localStorage.removeItem(CART_STORAGE_KEY);
             }
             return;
           } catch (mergeErr) {

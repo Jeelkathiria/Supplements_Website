@@ -19,6 +19,10 @@ import { Register } from './pages/Register';
 import { ForgotPassword } from './pages/ForgotPassword';
 import { Dashboard } from './pages/Dashboard';
 import { Account } from './pages/Account';
+import { AccountProfile } from './pages/AccountProfile';
+import { AccountAddresses } from './pages/AccountAddresses';
+import { AccountOrders } from './pages/AccountOrders';
+import { AccountFavourites } from './pages/AccountFavourites';
 import { OrderDetail } from './pages/OrderDetail';
 import { CancellationTicket } from './pages/CancellationTicket';
 import { RequestCancellation } from './pages/RequestCancellation';
@@ -63,7 +67,13 @@ function AppContent() {
                     <ProtectedRoute>
                       <Account />
                     </ProtectedRoute>
-                  } />
+                  }>
+                    <Route path="profile" element={<AccountProfile />} />
+                    <Route path="addresses" element={<AccountAddresses />} />
+                    <Route path="orders" element={<AccountOrders />} />
+                    <Route path="favourites" element={<AccountFavourites />} />
+                    <Route index element={<AccountProfile />} />
+                  </Route>
                   <Route path="/account/order/:orderId" element={
                     <ProtectedRoute>
                       <OrderDetail />
