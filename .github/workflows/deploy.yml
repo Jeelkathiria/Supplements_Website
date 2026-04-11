@@ -96,8 +96,11 @@ jobs:
     - name: Install and verify backend
       working-directory: ./backend
       run: |
+        echo "Installing backend dependencies..."
         npm ci
+        echo "Running typecheck..."
         npm run typecheck
+        echo "Building backend..."
         npm run build
         echo "✓ Backend verification passed"
 
@@ -131,7 +134,9 @@ jobs:
     - name: Install and build frontend
       working-directory: ./frontend
       run: |
-        npm ci
+        echo "Installing frontend dependencies..."
+        npm ci || (echo "❌ npm ci failed. Please check package-lock.json consistency." && exit 1)
+        echo "Building frontend..."
         npm run build
         echo "✓ Frontend build successful"
       env:

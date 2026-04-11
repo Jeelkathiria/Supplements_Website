@@ -79,11 +79,15 @@ jobs:
 
     - name: Verify Prisma Schema
       working-directory: ./backend
-      run: npx prisma validate
+      run: |
+        echo "Validating Prisma Schema..."
+        npx prisma@6.19.2 validate
 
     - name: Verify Prisma Client generated
       working-directory: ./backend
-      run: npx prisma generate
+      run: |
+        echo "Generating Prisma Client (version pinning to 6.x)..."
+        npx prisma@6.19.2 generate
 
     - name: Verify email service exists
       working-directory: ./backend
@@ -124,8 +128,15 @@ jobs:
       working-directory: ./backend
       run: |
         echo "Checking route imports in app.ts..."
-        grep -q "refundRoutes" src/app.ts && echo "✓ refundRoutes imported" || echo "⚠️ refundRoutes not imported"
-        grep -q "orderCancellationRoutes" src/app.ts && echo "✓ orderCancellationRoutes imported" || echo "⚠️ orderCancellationRoutes not imported"
+        MISSING_ROUTES=0
+        
+        grep -q "refundRoutes" src/app.ts && echo "✓ refundRoutes imported" || { echo "❌ refundRoutes not imported in app.ts"; MISSING_ROUTES=1; }
+        grep -q "orderCancellationRoutes" src/app.ts && echo "✓ orderCancellationRoutes imported" || { echo "❌ orderCancellationRoutes not imported in app.ts"; MISSING_ROUTES=1; }
+        
+        if [ $MISSING_ROUTES -ne 0 ]; then
+          echo "❌ Critical routes are missing from app.ts"
+          exit 1
+        fi
 
     - name: Backend tests passed
       run: echo "✅ Backend passed all checks"
@@ -147,7 +158,9 @@ jobs:
 
     - name: Install dependencies
       working-directory: ./frontend
-      run: npm ci
+      run: |
+        echo "Installing frontend dependencies..."
+        npm ci || (echo "❌ npm ci failed. Please check package-lock.json consistency." && exit 1)
 
     - name: TypeScript compilation check
       working-directory: ./frontend
