@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Dumbbell, ChevronDown, CheckCircle2, Zap, Users, ChevronLeft, ChevronRight } from "lucide-react";
+import { Dumbbell, ChevronDown, CheckCircle2, Zap, Users, ChevronLeft, ChevronRight, Grid } from "lucide-react";
 
 import { ProductCard } from "../components/ProductCard";
 import { CategoryCard } from "../components/CategoryCard";
@@ -31,7 +31,9 @@ export const Home: React.FC = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
   const [discountedProducts, setDiscountedProducts] = useState<Product[]>([]);
+  const [allProducts, setAllProducts] = useState<Product[]>([]);
   const [highlightDeals, setHighlightDeals] = useState(false);
+  const [categoriesWithImages, setCategoriesWithImages] = useState<Array<{ id: string; name: string; image: string }>>([]);
 
   // Detect hash and scroll to deals section with highlight
   useEffect(() => {
@@ -63,6 +65,9 @@ export const Home: React.FC = () => {
         (p) => p.isSpecialOffer === true || (p.discountPercent || 0) >= 15,
       );
       setDiscountedProducts(discounted);
+
+      // Save all products for category extraction
+      setAllProducts(products);
     } catch (error) {
       console.error("Failed to load products:", error);
     }
@@ -90,10 +95,48 @@ export const Home: React.FC = () => {
     return () => clearInterval(interval);
   }, []);
 
+  // Process products to extract unique categories with their first product image
+  useEffect(() => {
+    try {
+      const productsForCategories = allProducts.length > 0 ? allProducts : [...featuredProducts, ...discountedProducts];
+      const categoryMap = new Map<string, { id: string; name: string; image: string }>();
+
+      productsForCategories.forEach((product) => {
+        const categoryName = product.categoryName || 'Uncategorized';
+        const categoryId = product.categoryId || categoryName;
+
+        // Add category only if not already added (ensures unique categories)
+        if (!categoryMap.has(categoryName) && product.imageUrls && product.imageUrls.length > 0) {
+          // Get the filename from imageUrls and construct HTTP URL
+          let imagePath = product.imageUrls[0];
+          const filename = imagePath.includes('/') ? imagePath.split('/').pop() : imagePath;
+          const fullImagePath = `http://localhost:5000/uploads/${filename}`;
+
+          categoryMap.set(categoryName, {
+            id: categoryId,
+            name: categoryName,
+            image: fullImagePath, // Use backend HTTP URL
+          });
+        }
+      });
+
+      // Convert map to array and set state
+      const categories = Array.from(categoryMap.values()).map((data) => ({
+        id: data.id,
+        name: data.name,
+        image: data.image,
+      }));
+
+      setCategoriesWithImages(categories);
+    } catch (error) {
+      console.error("Failed to process categories:", error);
+    }
+  }, [featuredProducts, discountedProducts, allProducts]);
+
   return (
     <div className="min-h-screen bg-neutral-50 w-full">
-      {/* HERO */}
-      <section className="relative h-[500px] sm:h-[400px] md:h-[480px] bg-gradient-to-r from-teal-800 to-teal-900 overflow-hidden w-full">
+      {/* MOBILE HERO SECTION */}
+      <section className="relative h-[380px] sm:h-[400px] md:h-[480px] bg-gradient-to-r from-teal-800 to-teal-900 overflow-hidden w-full">
         {HERO_IMAGES.map((image, index) => (
           <div
             key={index}
@@ -107,12 +150,26 @@ export const Home: React.FC = () => {
               alt={`Slide ${index + 1}`}
               className="w-full h-full object-cover"
             />
-            <div className="absolute inset-0 bg-black/60" />
+            <div className="absolute inset-0 bg-black/40 sm:bg-black/60" />
           </div>
         ))}
 
-        {/* CENTER CONTENT */}
-        <div className="absolute inset-0 flex items-center justify-center text-center px-4 md:px-6">
+        {/* MOBILE HERO TEXT - LEFT ALIGNED */}
+        <div className="absolute inset-0 flex items-center sm:justify-center text-left sm:text-center px-4 md:px-6 sm:hidden">
+          <div className="max-w-[300px] text-white">
+            <h1 className="text-4xl font-black mb-4 leading-tight tracking-tight">
+              Don't just train.
+              <br />
+              <span className="text-yellow-400">Transform.</span>
+            </h1>
+            <p className="text-xs text-neutral-200 mb-6">
+              Mobilise fat, maximise strength, do both right.
+            </p>
+          </div>
+        </div>
+
+        {/* DESKTOP CENTER CONTENT */}
+        <div className="hidden sm:flex absolute inset-0 items-center justify-center text-center px-4 md:px-6">
           <div className="max-w-[700px] text-white">
             <h1 className="text-3xl sm:text-3xl md:text-5xl font-bold mb-3 md:mb-5 leading-tight tracking-tight">
               Build Strength.
@@ -134,23 +191,23 @@ export const Home: React.FC = () => {
           </div>
         </div>
 
-        {/* NAVIGATION ARROWS (Phone Only) */}
+        {/* NAVIGATION ARROWS (Phone and SM Only) */}
         <button
           onClick={() => setCurrentSlide((prev) => (prev - 1 + HERO_IMAGES.length) % HERO_IMAGES.length)}
-          className="absolute left-2 top-1/2 -translate-y-1/2 z-20 bg-black/20 backdrop-blur-sm p-2 rounded-full text-white active:scale-90 transition-transform sm:hidden"
+          className="absolute left-2 top-1/2 -translate-y-1/2 z-20 bg-black/20 backdrop-blur-sm p-2 rounded-full text-white active:scale-90 transition-transform md:hidden"
           aria-label="Previous slide"
         >
           <ChevronLeft size={24} />
         </button>
         <button
           onClick={() => setCurrentSlide((prev) => (prev + 1) % HERO_IMAGES.length)}
-          className="absolute right-2 top-1/2 -translate-y-1/2 z-20 bg-black/20 backdrop-blur-sm p-2 rounded-full text-white active:scale-90 transition-transform sm:hidden"
+          className="absolute right-2 top-1/2 -translate-y-1/2 z-20 bg-black/20 backdrop-blur-sm p-2 rounded-full text-white active:scale-90 transition-transform md:hidden"
           aria-label="Next slide"
         >
           <ChevronRight size={24} />
         </button>
 
-        {/* SLIDE INDICATORS (Laptop Only) */}
+        {/* SLIDE INDICATORS (Tablet & Laptop Only) */}
         <div className="absolute bottom-6 left-1/2 -translate-x-1/2 hidden sm:flex gap-3 z-10">
           {HERO_IMAGES.map((_, index) => (
             <button
@@ -167,8 +224,47 @@ export const Home: React.FC = () => {
         </div>
       </section>
 
+      {/* MOBILE CATEGORY BUTTONS - HORIZONTAL SCROLL */}
+      <section className="py-6 bg-neutral-50 w-full sm:hidden">
+        <div className="grid grid-cols-4 gap-4 px-4">
+          {/* First Circle - Categories */}
+          <Link
+            to="/categories"
+            className="flex flex-col items-center gap-2 group"
+          >
+            <div className="w-16 h-16 rounded-full bg-yellow-500 flex items-center justify-center group-hover:bg-yellow-600 transition border-2 border-yellow-600">
+              <Grid className="w-8 h-8 text-white" />
+            </div>
+            <span className="text-[10px] font-medium text-neutral-700 text-center">More</span>
+          </Link>
+
+          {/* Dynamic Categories */}
+          {categoriesWithImages.slice(0, 7).map((category) => (
+            <Link
+              key={category.id}
+              to={`/products?category=${category.name.toLowerCase().replace(/\s+/g, '-')}`}
+              className="flex flex-col items-center gap-2 group"
+            >
+              <div className="w-16 h-16 rounded-full bg-gray-200 group-hover:opacity-90 transition overflow-hidden border-2 border-gray-300">
+                <img
+                  src={category.image}
+                  alt={category.name}
+                  loading="lazy"
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    const target = e.currentTarget as HTMLImageElement;
+                    target.style.backgroundColor = "#e5e7eb";
+                  }}
+                />
+              </div>
+              <span className="text-[10px] font-medium text-neutral-700 text-center line-clamp-1">{category.name}</span>
+            </Link>
+          ))}
+        </div>
+      </section>
+
       {/* BRAND MARQUEE STRIP */}
-      <section className="bg-neutral-950 border-y border-neutral-800 py-4 overflow-hidden w-full">
+      <section className="hidden sm:block bg-neutral-950 border-y border-neutral-800 py-4 overflow-hidden w-full">
         <div className="flex items-center gap-4 mb-0">
           <style>{`
             @keyframes marquee {
@@ -244,8 +340,8 @@ export const Home: React.FC = () => {
         </div>
       </section>
 
-      {/* CATEGORIES */}
-      <section className="py-8 md:py-14 bg-neutral-50 w-full">
+      {/* CATEGORIES - DESKTOP ONLY */}
+      <section className="hidden sm:block py-8 md:py-14 bg-neutral-50 w-full">
         <div className="max-w-[1400px] mx-auto px-4 md:px-12">
           <div className="mb-6 md:mb-8">
             <h2 className="text-xl md:text-4xl font-bold mb-1 md:mb-2 pl-4 border-l-4 border-yellow-500">
@@ -257,37 +353,39 @@ export const Home: React.FC = () => {
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8">
-            {[
-              {
-                name: "Protein",
-                image:
-                  "https://plus.unsplash.com/premium_photo-1726842348600-c66c2e2797b4?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-              },
-              {
-                name: "Mass Gainer",
-                image:
-                  "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b",
-              },
-              {
-                name: "Fish Oil",
-                image:
-                  "https://www.cnet.com/a/img/resize/f6178d76d3336133439b50dda02ad15969ac29cd/hub/2023/01/30/aff431f9-9980-476f-aa59-2b29fe5b46e6/gettyimages-1311464336.jpg?auto=webp&width=1200",
-              },
-              {
-                name: "Pre Workout",
-                image:
-                  "https://images.unsplash.com/photo-1605296867304-46d5465a13f1",
-              },
-            ].map((category, i) => (
-              <CategoryCard key={i} category={category} />
+            {/* Explore Categories Card */}
+            <Link
+              to="/categories"
+              className="relative h-72 rounded-2xl bg-gradient-to-br from-teal-600 to-teal-800 p-8 flex flex-col justify-between group overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300"
+            >
+              <div className="absolute -right-6 -top-6 w-32 h-32 bg-white/10 rounded-full blur-2xl group-hover:bg-white/20 transition-all duration-500" />
+
+              <div className="bg-white/20 w-14 h-14 rounded-2xl flex items-center justify-center backdrop-blur-md border border-white/30 group-hover:scale-110 transition-transform">
+                <Grid className="text-white w-7 h-7" />
+              </div>
+
+              <div className="space-y-4">
+                <h3 className="text-xl md:text-2xl font-black text-white leading-tight uppercase italic tracking-tighter">
+                  Explore <span className="text-teal-300">All</span> <br /> Categories
+                </h3>
+                <div className="flex items-center gap-2 text-white/80 text-sm font-bold group-hover:text-white transition-colors">
+                  View full catalog
+                  <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                </div>
+              </div>
+            </Link>
+
+            {categoriesWithImages.map((category) => (
+              <CategoryCard key={category.id} category={category} />
             ))}
           </div>
         </div>
       </section>
 
-      {/* FEATURED PRODUCTS */}
-      <section className="py-8 md:py-14 bg-white w-full">
-        <div className="max-w-[1400px] mx-auto px-4 md:px-12">
+      {/* FEATURED PRODUCTS / POPULAR SECTION */}
+      <section className="py-8 md:py-14 bg-yellow-50 w-full">
+        <div className="max-w-[1400px] mx-auto px-2 md:px-12">
+          {/* Section Header */}
           <div className="mb-6 md:mb-8">
             <h2 className="text-xl md:text-4xl font-bold mb-1 md:mb-2 pl-4 border-l-4 border-yellow-500">
               Featured Products
@@ -297,9 +395,12 @@ export const Home: React.FC = () => {
             </p>
           </div>
 
-          <div className="flex sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 overflow-x-auto no-scrollbar snap-x snap-mandatory pb-4 -mx-4 px-4 sm:mx-0 sm:px-0">
+          <div className="ml-3 flex overflow-x-auto no-scrollbar snap-x snap-mandatory gap-4 md:gap-5 pb-4 -mx-4 px-4 md:mx-0 md:px-0">
             {featuredProducts.map((product) => (
-              <div key={product.id} className="min-w-[260px] sm:min-w-0 snap-start">
+              <div
+                key={product.id}
+                className="snap-start flex-shrink-0 w-[240px] xs:w-[280px] sm:w-[320px] md:w-[310px]"
+              >
                 <ProductCard product={product} />
               </div>
             ))}
@@ -317,8 +418,56 @@ export const Home: React.FC = () => {
         </div>
       </section>
 
-      {/* DISCOUNT DEALS SECTION */}
-      <section id="deals-section" className={`relative py-16 md:py-28 overflow-hidden transition-all duration-1000 ${highlightDeals ? 'ring-2 ring-teal-400 ring-opacity-75' : ''}`}>
+      {/* MOBILE DISCOUNT DEALS SECTION - PHONE ONLY */}
+      <section id="mobile-deals-section" className="block md:hidden py-10 bg-neutral-950 relative overflow-hidden">
+        {/* Subtle Background Mesh/Gradient for premium feel */}
+        <div className="absolute inset-0 z-0 opacity-30">
+          <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_30%_20%,#134e4a_0%,transparent_50%)]" />
+        </div>
+
+        <div className="relative z-10 px-4">
+          <div className="mb-6 space-y-2">
+            <div className="inline-flex items-center gap-2 bg-teal-500/10 text-teal-400 px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest border border-teal-500/20">
+              <span className="w-1.5 h-1.5 bg-teal-500 rounded-full animate-pulse" />
+              Live Savings
+            </div>
+            <h2 className="text-3xl font-black text-white tracking-tighter uppercase italic">
+              Ironclad <span className="text-teal-500 not-italic">Savings</span>
+            </h2>
+            <p className="text-neutral-400 text-xs font-medium leading-relaxed max-w-[260px]">
+              Elite performance fuel at low-maintenance prices. Dominate your next session.
+            </p>
+          </div>
+
+          {discountedProducts.length > 0 ? (
+            <div className="flex overflow-x-auto no-scrollbar snap-x snap-mandatory gap-4 pb-4 -mx-4 px-4 ml-1">
+              {discountedProducts.map((product) => (
+                <div key={product.id} className="snap-start flex-shrink-0 w-[260px]">
+                  <ProductCard product={product} variant="discount" />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="bg-white/5 border border-white/10 rounded-2xl py-12 text-center">
+              <h3 className="text-white font-bold">Refreshing Deals</h3>
+              <p className="text-neutral-500 text-xs px-10 mt-1">New savings are coming soon. Check back shortly!</p>
+            </div>
+          )}
+
+          <div className="mt-4">
+            <Link
+              to="/products"
+              className="flex items-center justify-center gap-2 w-full bg-teal-700 text-white py-3 rounded-xl font-bold text-xs"
+            >
+              View All Discounts
+              <ChevronDown className="-rotate-90" size={16} />
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* DISCOUNT DEALS SECTION - DESKTOP ONLY */}
+      <section id="deals-section" className={`hidden md:block relative py-16 md:py-28 overflow-hidden transition-all duration-1000 ${highlightDeals ? 'ring-2 ring-teal-400 ring-opacity-75' : ''}`}>
         {/* Professional Background Image with Overlay */}
         <div className="absolute inset-0 z-0">
           <img
@@ -357,7 +506,7 @@ export const Home: React.FC = () => {
           </div>
 
           {discountedProducts.length > 0 ? (
-            <div className="flex sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8 overflow-x-auto no-scrollbar snap-x snap-mandatory pb-4 -mx-4 px-4 sm:mx-0 sm:px-0">
+            <div className="flex sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5 overflow-x-auto no-scrollbar snap-x snap-mandatory pb-4 -mx-4 px-4 sm:mx-0 sm:px-0">
               {discountedProducts.slice(0, 4).map((product) => (
                 <div key={product.id} className="group relative min-w-[260px] sm:min-w-0 snap-start">
                   <div className="absolute -top-3 -right-3 z-20 bg-red-600 text-white text-[10px] font-black px-3 py-1 rounded-full shadow-xl">

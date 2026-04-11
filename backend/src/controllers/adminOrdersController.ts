@@ -2,6 +2,12 @@ import { Request, Response } from "express";
 import { AuthRequest } from "../middlewares/requireAuth";
 import prisma from "../lib/prisma";
 import { $Enums } from "../generated/prisma";
+import { 
+  sendOrderShippedEmail, 
+  sendOrderDeliveredEmail, 
+  sendOrderConfirmationEmail,
+  sendCancellationApprovedEmail
+} from "../services/emailService";
 
 const OrderStatus = $Enums.OrderStatus;
 type OrderStatusType = $Enums.OrderStatus;
@@ -20,12 +26,14 @@ export const getAllOrders = async (_req: Request, res: Response) => {
             price: true,
             flavor: true,
             size: true,
+            basePrice: true,
+            discountPercent: true,
+            productName: true,
+            imageUrl: true,
             product: {
               select: {
                 id: true,
                 name: true,
-                basePrice: true,
-                discountPercent: true,
                 imageUrls: true,
               }
             }
@@ -65,7 +73,7 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
   try {
     const paramId = req.params.id;
     const id = Array.isArray(paramId) ? paramId[0] : paramId;
-    const { status } = req.body;
+    const { status, trackingNumber } = req.body;
 
     // Validate status
     if (!status || !Object.values(OrderStatus).includes(status as OrderStatusType)) {
@@ -85,12 +93,14 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
             price: true,
             flavor: true,
             size: true,
+            basePrice: true,
+            discountPercent: true,
+            productName: true,
+            imageUrl: true,
             product: {
               select: {
                 id: true,
                 name: true,
-                basePrice: true,
-                discountPercent: true,
                 imageUrls: true,
               }
             }
@@ -105,6 +115,40 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
     const user = await prisma.user.findUnique({
       where: { id: updated.userId }
     });
+
+    // Send Status Update Emails
+    if (user && user.email) {
+      try {
+        console.log(`📧 Detected status change for order ${id}: ${status}`);
+        
+        if (status === OrderStatus.SHIPPED) {
+          console.log(`📧 Sending Shipped email to ${user.email}`);
+          await sendOrderShippedEmail(user.email, updated.id, user.name || "Valued Customer", trackingNumber);
+        } 
+        else if (status === OrderStatus.DELIVERED) {
+          console.log(`📧 Sending Delivered email to ${user.email}`);
+          await sendOrderDeliveredEmail(user.email, updated.id, user.name || "Valued Customer");
+        }
+        else if (status === OrderStatus.PAID) {
+          console.log(`📧 Status updated to PAID - Sending notification to ${user.email}`);
+          const items = updated.items.map(item => ({
+            productName: item.productName || item.product.name,
+            quantity: item.quantity,
+            price: item.price,
+            flavor: item.flavor || undefined,
+            size: item.size || undefined
+          }));
+          await sendOrderConfirmationEmail(user.email, updated.id, user.name || "Valued Customer", updated.totalAmount, items);
+        }
+        else if (status === OrderStatus.CANCELLED) {
+          console.log(`📧 Order manually marked as CANCELLED - Sending notification to ${user.email}`);
+          await sendCancellationApprovedEmail(user.email, updated.id, user.name || "Valued Customer", "Order marked as cancelled by administrator.");
+        }
+      } catch (emailErr) {
+        console.error("❌ Failed to send status update email:", emailErr);
+        // We don't fail the request if email fails
+      }
+    }
 
     res.json({
       message: "Order status updated successfully",

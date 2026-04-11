@@ -3,12 +3,24 @@ import { useNavigate } from 'react-router-dom';
 import { Heart } from 'lucide-react';
 import { useCart } from '../components/context/CartContext';
 import { useFavorites } from '../components/context/FavoritesContext';
+import { getProductPricing, getDefaultVariant } from '../utils/pricingUtils';
 import { toast } from 'sonner';
 
 export const AccountFavourites: React.FC = () => {
   const navigate = useNavigate();
   const { addToCart } = useCart();
   const { favorites } = useFavorites();
+
+  const handleAddToCart = (product: any) => {
+    const variant = getDefaultVariant(product);
+    if (!variant) {
+      toast.error('No variants available for this product');
+      return;
+    }
+
+    addToCart(product, 1, variant.size, variant.flavor);
+    toast.success(`${product.name} added to cart`);
+  };
 
   return (
     <div className="space-y-6">
@@ -27,6 +39,8 @@ export const AccountFavourites: React.FC = () => {
               const imgPath = product.imageUrls[0];
               imageUrl = imgPath.startsWith('http') ? imgPath : `${baseUrl}${imgPath}`;
             }
+
+            const pricing = getProductPricing(product);
 
             return (
               <div
@@ -76,11 +90,11 @@ export const AccountFavourites: React.FC = () => {
                   {/* Price */}
                   <div className="flex items-center gap-1 flex-wrap">
                     <span className="text-base font-bold text-neutral-900">
-                      ₹{(product.basePrice - (product.basePrice * (product.discountPercent || 0) / 100)).toFixed(0)}
+                      ₹{pricing.finalPrice.toFixed(0)}
                     </span>
-                    {(product.discountPercent || 0) > 0 && (
+                    {pricing.discountPercent > 0 && (
                       <span className="text-xs font-bold text-green-600 bg-green-50 px-1 py-0.5 rounded">
-                        {product.discountPercent}% OFF
+                        {pricing.discountPercent}% OFF
                       </span>
                     )}
                   </div>
@@ -96,12 +110,7 @@ export const AccountFavourites: React.FC = () => {
                       View
                     </button>
                     <button
-                      onClick={() => {
-                        const selectedSize = product.sizes?.[0];
-                        const selectedFlavor = (product.flavors || product.colors)?.[0];
-                        addToCart(product, 1, selectedSize, selectedFlavor);
-                        toast.success(`${product.name} added to cart`);
-                      }}
+                      onClick={() => handleAddToCart(product)}
                       disabled={product.isOutOfStock}
                       className={`flex-1 py-1 px-2 border rounded text-xs font-medium transition-colors ${
                         product.isOutOfStock

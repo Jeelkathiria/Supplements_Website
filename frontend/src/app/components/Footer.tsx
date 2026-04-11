@@ -1,9 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import {
-  Facebook,
-  Instagram,
-  Twitter,
   Phone,
   MapPin,
 } from "lucide-react";
@@ -15,111 +12,79 @@ export const Footer: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-12">
           {/* Brand */}
           <div>
-            <h3 className="text-white text-xl mb-6">Saturnimports</h3>
+            <h3 className="text-white text-xl mb-6">Muscle & Power</h3>
             <p className="text-sm leading-relaxed">
               Your trusted source for premium protein powders
               and fitness supplements. Quality products for your
               fitness journey.
             </p>
-            <div className="flex gap-6 mt-6">
-              <a
-                href="#"
-                className="hover:text-white transition-colors"
-              >
-                <Facebook className="w-5 h-5" />
-              </a>
-              <a
-                href="#"
-                className="hover:text-white transition-colors"
-              >
-                <Instagram className="w-5 h-5" />
-              </a>
-              <a
-                href="#"
-                className="hover:text-white transition-colors"
-              >
-                <Twitter className="w-5 h-5" />
-              </a>
-            </div>
           </div>
 
           {/* Quick Links */}
           <div>
-            <h4 className="text-white mb-6">Quick Links</h4>
+            <h4 className="text-white font-bold mb-6 uppercase tracking-wider text-sm">Quick Links</h4>
             <ul className="space-y-3">
               <li>
-                <Link
-                  to="/products"
-                  className="hover:text-white transition-colors"
-                >
-                  All Products
-                </Link>
+                <Link to="/" className="text-sm hover:text-white transition-colors">Home Landing</Link>
               </li>
               <li>
-                <Link
-                  to="/blog"
-                  className="hover:text-white transition-colors"
-                >
-                  Blog
-                </Link>
+                <Link to="/products" className="text-sm hover:text-white transition-colors">Shop All Products</Link>
+              </li>
+              <li>
+                <Link to="/categories" className="text-sm hover:text-white transition-colors">Browse Categories</Link>
+              </li>
+              <li>
+                <a href="/#deals-section" className="text-sm text-yellow-500 font-semibold hover:text-yellow-400 transition-colors uppercase tracking-tighter">
+                  🔥 Hot Deals
+                </a>
               </li>
             </ul>
           </div>
 
           {/* Customer Service */}
           <div>
-            <h4 className="text-white mb-6">
-              Customer Service
+            <h4 className="text-white font-bold mb-6 uppercase tracking-wider text-sm">
+              Customer Support
             </h4>
             <ul className="space-y-3">
               <li>
-                <Link
-                  to="/shipping"
-                  className="hover:text-white transition-colors"
-                >
-                  Shipping Info
-                </Link>
+                <Link to="/contact" className="text-sm hover:text-white transition-colors">Contact Us</Link>
               </li>
               <li>
-                <Link
-                  to="/returns"
-                  className="hover:text-white transition-colors"
-                >
-                  Returns
-                </Link>
+                <Link to="/account/orders" className="text-sm hover:text-white transition-colors">Track Your Orders</Link>
               </li>
               <li>
-                <Link
-                  to="/faq"
-                  className="hover:text-white transition-colors"
-                >
-                  FAQ
-                </Link>
+                <Link to="/account/profile" className="text-sm hover:text-white transition-colors">My Profile</Link>
               </li>
               <li>
-                <Link
-                  to="/terms"
-                  className="hover:text-white transition-colors"
-                >
-                  Terms & Conditions
-                </Link>
+                <Link to="/contact" className="text-sm hover:text-white transition-colors underline decoration-neutral-700 underline-offset-4">Need Help?</Link>
               </li>
             </ul>
           </div>
 
           {/* Contact */}
           <div>
-            <h4 className="text-white mb-6">Contact Us</h4>
+            <h4 className="text-white font-bold mb-6 uppercase tracking-wider text-sm">Get In Touch</h4>
             <ul className="space-y-4">
-              <li className="flex items-start gap-4">
-                <MapPin className="w-5 h-5 mt-1 flex-shrink-0" />
-                <span className="text-sm">
+              <li className="flex items-start gap-4 group">
+                <MapPin className="w-5 h-5 mt-1 text-teal-500 flex-shrink-0" />
+                <a 
+                  href="https://www.google.com/maps/search/?api=1&query=No+52+Old+Ashok+Talkies+Compound+Ambedkar+Road+Dehu+Road+Pune+412101" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-sm hover:text-white transition-colors leading-relaxed"
+                >
                   No 52, Old Ashok Talkies Compound, Ambedkar Road, Dehu Road. Pune 412101
-                </span>
+                </a>
               </li>
-              <li className="flex items-center gap-4">
-                <Phone className="w-5 h-5 flex-shrink-0" />
-                <span className="text-sm">+91 8421785660</span>
+              <li className="flex items-center gap-4 group">
+                <Phone className="w-5 h-5 text-teal-500 flex-shrink-0" />
+                <a 
+                  href="tel:+918421785660" 
+                  className="text-sm hover:text-white transition-colors font-semibold"
+                >
+                  +91 8421785660
+                </a>
               </li>
             </ul>
           </div>
@@ -127,7 +92,7 @@ export const Footer: React.FC = () => {
 
         <div className="border-t border-neutral-800 mt-12 pt-6 text-center text-sm">
           <p>
-            &copy; {new Date().getFullYear()} Saturnimports. All rights
+            &copy; {new Date().getFullYear()} Muscle & Power. All rights
             reserved.
           </p>
         </div>

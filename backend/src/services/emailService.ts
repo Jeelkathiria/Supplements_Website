@@ -1,7 +1,7 @@
-import SibApiV3Sdk from "sib-api-v3-sdk";
+import * as SibApiV3Sdk from "sib-api-v3-sdk";
 
 // Initialize Brevo API client with proper configuration
-let api: SibApiV3Sdk.TransactionalEmailsApi | null = null;
+let api: any = null;
 
 const initializeBrevoApi = () => {
   if (api) return api;
@@ -13,7 +13,7 @@ const initializeBrevoApi = () => {
 
   try {
     // Get the default API client instance
-    const defaultClient = SibApiV3Sdk.ApiClient.instance;
+    const defaultClient = (SibApiV3Sdk as any).ApiClient.instance;
     
     // Set the API key authentication
     defaultClient.authentications["api-key"].apiKey = process.env.BREVO_API_KEY;
@@ -22,7 +22,7 @@ const initializeBrevoApi = () => {
     console.log("📧 API Key:", process.env.BREVO_API_KEY?.substring(0, 20) + "...");
 
     // Create the transactional emails API instance
-    api = new SibApiV3Sdk.TransactionalEmailsApi();
+    api = new (SibApiV3Sdk as any).TransactionalEmailsApi();
     
     console.log("✅ Brevo TransactionalEmailsApi initialized");
     
@@ -174,7 +174,7 @@ export const sendOrderConfirmationEmail = async (
               We'll send you another email with tracking information once your order ships. You can check the status of your order anytime by logging into your account.
             </p>
 
-            <a href="http://localhost:5173/account/order/${orderId}" class="button">Track Your Order</a>
+            <a href="${process.env.FRONTEND_URL || "http://localhost:5173"}/account/order/${orderId}" class="button">Track Your Order</a>
           </div>
           <div class="footer">
             <p>SaturnImports - Your trusted supplement store</p>
@@ -240,7 +240,7 @@ export const sendOrderShippedEmail = async (
 
             <p>If you have any questions about your shipment, feel free to contact us.</p>
 
-            <a href="${process.env.FRONTEND_URL || "https://saturnimports.com"}/orders/${orderId}" class="button">Track Your Shipment</a>
+            <a href="${process.env.FRONTEND_URL || "http://localhost:5173"}/account/order/${orderId}" class="button">Track Your Shipment</a>
           </div>
           <div class="footer">
             <p>SaturnImports - Your trusted supplement store</p>
@@ -304,8 +304,8 @@ export const sendOrderDeliveredEmail = async (
               <strong>Questions or Issues?</strong> If you're not satisfied with your order or received any damaged items, please don't hesitate to contact us for a replacement or refund.
             </p>
 
-            <a href="${process.env.FRONTEND_URL || "https://saturnimports.com"}/orders/${orderId}" class="button">View Order</a>
-            <a href="${process.env.FRONTEND_URL || "https://saturnimports.com"}/contact" class="button">Contact Support</a>
+            <a href="${process.env.FRONTEND_URL || "http://localhost:5173"}/account/order/${orderId}" class="button">View Order</a>
+            <a href="${process.env.FRONTEND_URL || "http://localhost:5173"}/contact" class="button">Contact Support</a>
           </div>
           <div class="footer">
             <p>SaturnImports - Your trusted supplement store</p>
@@ -369,7 +369,7 @@ export const sendCancellationApprovedEmail = async (
 
             <p>If you have any questions about the cancellation or refund, please contact us.</p>
 
-            <a href="${process.env.FRONTEND_URL || "https://saturnimports.com"}/orders/${orderId}" class="button">View Order Details</a>
+            <a href="${process.env.FRONTEND_URL || "http://localhost:5173"}/account/order/${orderId}" class="button">View Order Details</a>
           </div>
           <div class="footer">
             <p>SaturnImports - Your trusted supplement store</p>
@@ -439,7 +439,7 @@ export const sendCancellationRejectedEmail = async (
 
             <p>We're here to help if you have any questions!</p>
 
-            <a href="${process.env.FRONTEND_URL || "https://saturnimports.com"}/orders/${orderId}" class="button">Contact Support</a>
+            <a href="${process.env.FRONTEND_URL || "http://localhost:5173"}/contact" class="button">Contact Support</a>
           </div>
           <div class="footer">
             <p>SaturnImports - Your trusted supplement store</p>

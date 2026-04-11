@@ -1,12 +1,13 @@
 import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { CartItem, Product } from '../../types';
+import { getCartItemPrice } from '../../utils/pricingUtils';
 import * as cartService from "../../../services/cartService";
 import { useAuth } from './AuthContext';
 import { toast } from 'sonner';
 
 interface CartContextType {
   cartItems: CartItem[];
-  addToCart: (product: Product, quantity?: number, selectedSize?: string, selectedColor?: string) => Promise<void>;
+  addToCart: (product: Product, quantity?: number, selectedSize?: string, selectedColor?: string, selectedWeight?: string) => Promise<void>;
   removeFromCart: (productId: string, selectedSize?: string, selectedColor?: string) => Promise<void>;
   updateQuantity: (productId: string, quantity: number, selectedSize?: string, selectedColor?: string) => Promise<void>;
   clearCart: () => Promise<void>;
@@ -32,7 +33,13 @@ const defaultCartContext: CartContextType = {
 
 const CartContext = createContext<CartContextType>(defaultCartContext);
 
-const CART_STORAGE_KEY = 'supplements_cart';
+// Guest cart storage key (for non-authenticated users)
+const GUEST_CART_STORAGE_KEY = 'supplements_cart_guest';
+
+// Generate user-specific cart storage key based on email or UID
+const getUserCartStorageKey = (emailOrUid: string): string => {
+  return `supplements_cart_${emailOrUid.toLowerCase().replace(/[^a-z0-9]/g, '_')}`;
+};
 
 export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
@@ -41,30 +48,47 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const { isAuthenticated, firebaseUser } = useAuth();
   const [hasAttemptedMerge, setHasAttemptedMerge] = useState(false);
 
-  // Load cart from localStorage on mount (only for guests, not authenticated users)
+  // Load cart on mount or when user changes
   useEffect(() => {
     try {
-      // Only load from localStorage if user is NOT authenticated
-      // Authenticated users will sync from backend instead
-      if (!isAuthenticated) {
-        const savedCart = localStorage.getItem(CART_STORAGE_KEY);
-        if (savedCart) {
-          setCartItems(JSON.parse(savedCart));
+      if (isAuthenticated && firebaseUser?.email) {
+        // User is logged in - load their specific cart
+        const userCartKey = getUserCartStorageKey(firebaseUser.email);
+        const savedUserCart = localStorage.getItem(userCartKey);
+        
+        if (savedUserCart) {
+          setCartItems(JSON.parse(savedUserCart));
+        } else {
+        }
+      } else if (!isAuthenticated) {
+        // User is NOT logged in (guest) - load guest cart
+        const savedGuestCart = localStorage.getItem(GUEST_CART_STORAGE_KEY);
+        if (savedGuestCart) {
+          setCartItems(JSON.parse(savedGuestCart));
+        } else {
+          setCartItems([]);
         }
       }
     } catch (error) {
       console.error('Failed to load cart from localStorage:', error);
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, firebaseUser?.email, firebaseUser?.uid]);
 
-  // Save cart to localStorage whenever it changes
+  // Save cart to localStorage whenever it changes (to appropriate key based on user)
   useEffect(() => {
     try {
-      localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cartItems));
+      if (isAuthenticated && firebaseUser?.email) {
+        // Save to user-specific cart key
+        const userCartKey = getUserCartStorageKey(firebaseUser.email);
+        localStorage.setItem(userCartKey, JSON.stringify(cartItems));
+      } else {
+        // Save to guest cart key
+        localStorage.setItem(GUEST_CART_STORAGE_KEY, JSON.stringify(cartItems));
+      }
     } catch (error) {
       console.error('Failed to save cart to localStorage:', error);
     }
-  }, [cartItems]);
+  }, [cartItems, isAuthenticated, firebaseUser?.email]);
 
   // Merge guest cart and sync when user logs in
   useEffect(() => {
@@ -74,15 +98,27 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     } else if (!isAuthenticated) {
       // Reset merge flag when user logs out
       setHasAttemptedMerge(false);
+      // Cart will be reloaded by the other useEffect that watches isAuthenticated
     }
   }, [isAuthenticated, firebaseUser?.uid]);
 
   const handleLoginMerge = async () => {
     try {
-      // If user is already authenticated on page reload, just sync from backend
-      // Only merge if there are actually valid guest cart items to merge
-      if (cartItems.length > 0) {
-        const guestCartItems = cartItems
+      // Get guest cart from localStorage
+      const guestCartData = localStorage.getItem(GUEST_CART_STORAGE_KEY);
+      let guestCartItems: CartItem[] = [];
+      
+      if (guestCartData) {
+        try {
+          guestCartItems = JSON.parse(guestCartData);
+        } catch (e) {
+          console.error('Failed to parse guest cart:', e);
+        }
+      }
+
+      // If there are guest cart items, merge them
+      if (guestCartItems.length > 0) {
+        const itemsToMerge = guestCartItems
           .filter(item => item.product && item.product.id && item.quantity > 0)
           .map((item) => ({
             productId: item.product.id,
@@ -92,9 +128,9 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           }));
 
         // Only merge if we have valid items
-        if (guestCartItems.length > 0) {
+        if (itemsToMerge.length > 0) {
           try {
-            const mergedCart = await cartService.mergeGuestCart(guestCartItems);
+            const mergedCart = await cartService.mergeGuestCart(itemsToMerge);
             if (mergedCart && mergedCart.items) {
               const items: CartItem[] = mergedCart.items.map((item: any) => ({
                 product: item.product,
@@ -103,8 +139,15 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 selectedColor: item.flavor || undefined,
               }));
               setCartItems(items);
-              // Clear localStorage after successful merge to prevent re-merging stale items
-              localStorage.removeItem(CART_STORAGE_KEY);
+              
+              // Clear guest cart from localStorage after successful merge
+              localStorage.removeItem(GUEST_CART_STORAGE_KEY);
+              
+              // Save merged cart to user-specific key
+              if (firebaseUser?.email) {
+                const userCartKey = getUserCartStorageKey(firebaseUser.email);
+                localStorage.setItem(userCartKey, JSON.stringify(items));
+              }
             }
             return;
           } catch (mergeErr) {
@@ -177,6 +220,16 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             selectedColor: item.flavor || undefined,
           }));
           setCartItems(items);
+          
+          // Clear guest cart from localStorage after successful merge
+          localStorage.removeItem(GUEST_CART_STORAGE_KEY);
+          
+          // Save merged cart to user-specific key if authenticated
+          if (isAuthenticated && firebaseUser?.email) {
+            const userCartKey = getUserCartStorageKey(firebaseUser.email);
+            localStorage.setItem(userCartKey, JSON.stringify(items));
+          }
+          
           toast.success('Cart merged successfully!');
         }
       } else {
@@ -199,7 +252,8 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     product: Product,
     quantity = 1,
     selectedSize?: string,
-    selectedColor?: string
+    selectedColor?: string,
+    selectedWeight?: string
   ) => {
     try {
       setError(null);
@@ -215,20 +269,22 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           (item) =>
             item.product.id === product.id &&
             item.selectedSize === selectedSize &&
-            item.selectedColor === selectedColor
+            item.selectedColor === selectedColor &&
+            item.selectedWeight === selectedWeight
         );
 
         if (existingItem) {
           return prev.map((item) =>
             item.product.id === product.id &&
             item.selectedSize === selectedSize &&
-            item.selectedColor === selectedColor
+            item.selectedColor === selectedColor &&
+            item.selectedWeight === selectedWeight
               ? { ...item, quantity: item.quantity + quantity }
               : item
           );
         }
 
-        return [...prev, { product, quantity, selectedSize, selectedColor }];
+        return [...prev, { product, quantity, selectedSize, selectedColor, selectedWeight }];
       });
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to add item to cart';
@@ -246,8 +302,8 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setError(null);
 
       if (isAuthenticated) {
-        // Remove from backend
-        await cartService.removeFromCart(productId);
+        // Remove from backend with size and flavor to match exact variant
+        await cartService.removeFromCart(productId, selectedColor, selectedSize);
       }
 
       // Remove from local state
@@ -322,12 +378,8 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const getCartTotal = () => {
     return cartItems.reduce((total, item) => {
-      const basePrice = item.product.basePrice;
-      const discountPercent = item.product.discountPercent || 0;
-
-      const finalPrice = basePrice - (basePrice * discountPercent) / 100;
-
-      return total + finalPrice * item.quantity;
+      const price = getCartItemPrice(item.product, item.selectedSize, item.selectedColor);
+      return total + price * item.quantity;
     }, 0);
   };
 

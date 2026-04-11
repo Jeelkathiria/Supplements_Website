@@ -14,7 +14,7 @@ export class OrderCancellationController {
   static async createRequest(req: Request, res: Response) {
     try {
       const { orderId, reason, upiId } = req.body;
-      const userId = req.user?.uid;
+      const userId = req.user?.dbUser?.id;
 
       console.log("📨 Create cancellation request API called:", { orderId, reasonLength: reason?.length, userId, hasUpiId: !!upiId });
 
@@ -173,7 +173,7 @@ export class OrderCancellationController {
   static async uploadVideo(req: Request, res: Response) {
     try {
       const { requestId } = req.params;
-      const userId = req.user?.uid;
+      const userId = req.user?.dbUser?.id;
       const id = Array.isArray(requestId) ? requestId[0] : requestId;
 
       if (!id) {

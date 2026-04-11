@@ -28,8 +28,6 @@ export interface Order {
     flavor?: string;
     size?: string;
     product: any;
-    productName?: string;
-    // Product snapshot fields
     productName: string;
     basePrice: number;
     discountPercent: number;

@@ -134,17 +134,26 @@ exports.Prisma.ProductScalarFieldEnum = {
   description: 'description',
   basePrice: 'basePrice',
   discountPercent: 'discountPercent',
-  finalPrice: 'finalPrice',
-  isOutOfStock: 'isOutOfStock',
-  flavors: 'flavors',
-  sizes: 'sizes',
-  imageUrls: 'imageUrls',
+  isVegetarian: 'isVegetarian',
   isFeatured: 'isFeatured',
   isSpecialOffer: 'isSpecialOffer',
-  isActive: 'isActive',
-  isVegetarian: 'isVegetarian',
+  isOutOfStock: 'isOutOfStock',
   categoryId: 'categoryId',
   categoryName: 'categoryName',
+  imageUrls: 'imageUrls',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.ProductVariantScalarFieldEnum = {
+  id: 'id',
+  productId: 'productId',
+  size: 'size',
+  flavor: 'flavor',
+  price: 'price',
+  discount: 'discount',
+  discountType: 'discountType',
+  finalPrice: 'finalPrice',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -332,6 +341,7 @@ exports.RefundStatus = exports.$Enums.RefundStatus = {
 exports.Prisma.ModelName = {
   Category: 'Category',
   Product: 'Product',
+  ProductVariant: 'ProductVariant',
   Favorite: 'Favorite',
   Cart: 'Cart',
   CartItem: 'CartItem',

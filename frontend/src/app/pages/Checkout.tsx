@@ -5,6 +5,7 @@ import { useCart } from '../components/context/CartContext';
 import { useAuth } from '../components/context/AuthContext';
 import { toast } from 'sonner';
 import { CheckoutCouponInput } from '../components/CheckoutCouponInput';
+import { getCartItemPrice } from '../utils/pricingUtils';
 
 import * as checkoutService from '../../services/checkoutService';
 import * as orderService from '../../services/orderService';
@@ -161,6 +162,16 @@ export const Checkout: React.FC = () => {
     }
   }, [isAuthenticated, authLoading, cartItems.length, navigate]);
 
+  // Disable body scroll when processing or redirecting
+  useEffect(() => {
+    if (isProcessing || isRedirecting) {
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = 'unset';
+      };
+    }
+  }, [isProcessing, isRedirecting]);
+
   // Load checkout data on mount
   useEffect(() => {
     if (isAuthenticated && cartItems.length > 0) {
@@ -264,6 +275,9 @@ export const Checkout: React.FC = () => {
         toast.success('Order placed successfully!');
         await clearCart();
         
+        // Save order data to localStorage so it persists on page reload
+        localStorage.setItem('lastOrder', JSON.stringify(createdOrder));
+        
         // Show loading animation while preparing to redirect
         setIsRedirecting(true);
         
@@ -284,8 +298,8 @@ export const Checkout: React.FC = () => {
         
         // Calculate total amount from cart items
         const totalAmount = cartItems.reduce((sum, item) => {
-          const finalPrice = item.product.basePrice - (item.product.basePrice * (item.product.discountPercent || 0)) / 100;
-          return sum + finalPrice * item.quantity;
+          const price = getCartItemPrice(item.product, item.selectedSize, item.selectedColor);
+          return sum + price * item.quantity;
         }, 0) - couponDiscount;
         
         console.log('=== RAZORPAY PAYMENT DEBUG ===');
@@ -349,6 +363,9 @@ export const Checkout: React.FC = () => {
         await clearCart();
         toast.success('Payment successful! Order placed.');
         
+        // Save order data to localStorage so it persists on page reload
+        localStorage.setItem('lastOrder', JSON.stringify(createdOrder));
+        
         // Show loading animation while preparing to redirect
         setIsRedirecting(true);
         
@@ -380,63 +397,45 @@ export const Checkout: React.FC = () => {
     );
   }
 
-  // Show loading animation when redirecting after payment
-  if (isRedirecting) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-gray-50 to-gray-100 fixed inset-0 z-50">
-        <div className="text-center space-y-4">
-          <div className="flex justify-center">
-            <div className="animate-bounce">
-              <Check className="h-16 w-16 text-green-500" />
-            </div>
-          </div>
-          <div className="space-y-2">
-            <p className="text-lg font-semibold text-gray-900">Order placed successfully!</p>
-            <p className="text-sm text-gray-600">Redirecting to your order details...</p>
-          </div>
-          <div className="flex justify-center gap-2">
-            <Loader className="h-5 w-5 text-green-600 animate-spin" />
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Processing Modal/Overlay */}
-      {isProcessing && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-8 text-center max-w-md mx-auto shadow-2xl animate-in fade-in duration-300">
+      {(isProcessing || isRedirecting) && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-[9999]">
+          <div className="bg-white rounded-2xl p-10 text-center max-w-md mx-auto shadow-2xl animate-in fade-in zoom-in duration-300">
             {/* Animated check icon */}
-            <div className="mb-6 flex justify-center">
-              <div className="relative w-20 h-20">
+            <div className="mb-8 flex justify-center">
+              <div className="relative w-24 h-24">
                 <div className="absolute inset-0 bg-green-100 rounded-full animate-pulse"></div>
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
-                    <Check className="w-8 h-8 text-green-600 animate-bounce" />
+                  <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center">
+                    <Check className="w-10 h-10 text-green-600 animate-bounce" />
                   </div>
                 </div>
               </div>
             </div>
 
             {/* Message */}
-            <h3 className="text-xl font-bold text-gray-900 mb-2">
-              {paymentMethod === 'cod' ? 'Confirming your order...' : 'Processing payment...'}
+            <h3 className="text-2xl font-bold text-gray-900 mb-3">
+              {isRedirecting ? 'Order placed successfully!' : (paymentMethod === 'cod' ? 'Confirming your order...' : 'Processing payment...')}
             </h3>
-            <p className="text-gray-600 text-sm mb-6">
-              {paymentMethod === 'cod' 
-                ? 'Your order is being confirmed. Please wait.' 
-                : 'Your payment is being processed. Please wait.'}
+            <p className="text-gray-600 text-sm mb-8">
+              {isRedirecting 
+                ? 'Preparing your order confirmation...'
+                : (paymentMethod === 'cod' 
+                  ? 'Your order is being confirmed. Please wait.' 
+                  : 'Your payment is being processed securely. Please wait.')}
             </p>
 
             {/* Loader animation */}
-            <div className="flex justify-center gap-2">
+            <div className="flex justify-center gap-3 mb-6">
               <Loader className="w-6 h-6 text-green-600 animate-spin" />
+              <Loader className="w-6 h-6 text-green-600 animate-spin" style={{ animationDelay: '0.1s' }} />
+              <Loader className="w-6 h-6 text-green-600 animate-spin" style={{ animationDelay: '0.2s' }} />
             </div>
 
             {/* Progress text */}
-            <p className="text-xs text-gray-500 mt-4">Redirecting to confirmation page...</p>
+            <p className="text-xs text-gray-500">Please do not refresh or close this page...</p>
           </div>
         </div>
       )}
@@ -651,9 +650,37 @@ export const Checkout: React.FC = () => {
 
                   <div className="border-t border-b border-dashed border-gray-300 py-3 space-y-4">
                     {cartItems.map((item) => {
-                      const basePrice = item.product.basePrice;
-                      const discountPercent = item.product.discountPercent || 0;
-                      const finalPrice = basePrice - (basePrice * discountPercent) / 100;
+                      const variants = item.product.productVariants || item.product.variants || [];
+                      let basePrice = 0;
+                      let finalPrice = 0;
+                      let discountPercent = 0;
+                      
+                      if (item.selectedSize && item.selectedColor) {
+                        const variant = variants.find(v => v.size === item.selectedSize && v.flavor === item.selectedColor);
+                        if (variant) {
+                          basePrice = variant.price;
+                          finalPrice = variant.finalPrice || variant.price;
+                          discountPercent = variant.discountType === "percent" ? variant.discount : 0;
+                        }
+                      } else if (item.selectedSize) {
+                        const sizeVariants = variants.filter(v => v.size === item.selectedSize);
+                        if (sizeVariants.length > 0) {
+                          const minVariant = sizeVariants.reduce((min, v) => 
+                            (v.finalPrice || v.price) < (min.finalPrice || min.price) ? v : min
+                          );
+                          basePrice = minVariant.price;
+                          finalPrice = minVariant.finalPrice || minVariant.price;
+                          discountPercent = minVariant.discountType === "percent" ? minVariant.discount : 0;
+                        }
+                      } else if (variants.length > 0) {
+                        const minVariant = variants.reduce((min, v) =>
+                          (v.finalPrice || v.price) < (min.finalPrice || min.price) ? v : min
+                        );
+                        basePrice = minVariant.price;
+                        finalPrice = minVariant.finalPrice || minVariant.price;
+                        discountPercent = minVariant.discountType === "percent" ? minVariant.discount : 0;
+                      }
+                      
                       const itemTotal = finalPrice * item.quantity;
                       const saved = (basePrice - finalPrice) * item.quantity;
 
@@ -700,10 +727,8 @@ export const Checkout: React.FC = () => {
                         ₹
                         {cartItems
                           .reduce((sum, item) => {
-                            const basePrice = item.product.basePrice;
-                            const discountPercent = item.product.discountPercent || 0;
-                            const finalPrice = basePrice - (basePrice * discountPercent) / 100;
-                            return sum + finalPrice * item.quantity;
+                            const price = getCartItemPrice(item.product, item.selectedSize, item.selectedColor);
+                            return sum + price * item.quantity;
                           }, 0)
                           .toFixed(0)}
                       </span>
@@ -724,10 +749,8 @@ export const Checkout: React.FC = () => {
                         ₹
                         {(cartItems
                           .reduce((sum, item) => {
-                            const basePrice = item.product.basePrice;
-                            const discountPercent = item.product.discountPercent || 0;
-                            const finalPrice = basePrice - (basePrice * discountPercent) / 100;
-                            return sum + finalPrice * item.quantity;
+                            const price = getCartItemPrice(item.product, item.selectedSize, item.selectedColor);
+                            return sum + price * item.quantity;
                           }, 0) - couponDiscount)
                           .toFixed(0)}
                       </span>
@@ -751,10 +774,23 @@ export const Checkout: React.FC = () => {
                     <div className="space-y-3 mb-6 pb-6 border-b border-gray-200 text-sm">
                       {/* Calculate totals from cart items */}
                       {(() => {
-                        const baseTotal = cartItems.reduce((sum, item) => sum + item.product.basePrice * item.quantity, 0);
+                        const baseTotal = cartItems.reduce((sum, item) => {
+                          const variants = item.product.productVariants || item.product.variants || [];
+                          let basePrice = 0;
+                          if (item.selectedSize && item.selectedColor) {
+                            const variant = variants.find(v => v.size === item.selectedSize && v.flavor === item.selectedColor);
+                            basePrice = variant ? variant.price : 0;
+                          } else if (item.selectedSize) {
+                            const sizeVariants = variants.filter(v => v.size === item.selectedSize);
+                            basePrice = sizeVariants.length > 0 ? Math.min(...sizeVariants.map(v => v.price)) : 0;
+                          } else if (variants.length > 0) {
+                            basePrice = Math.min(...variants.map(v => v.price));
+                          }
+                          return sum + (basePrice || 0) * item.quantity;
+                        }, 0);
                         const finalTotal = cartItems.reduce((sum, item) => {
-                          const finalPrice = item.product.basePrice - (item.product.basePrice * (item.product.discountPercent || 0)) / 100;
-                          return sum + finalPrice * item.quantity;
+                          const price = getCartItemPrice(item.product, item.selectedSize, item.selectedColor);
+                          return sum + price * item.quantity;
                         }, 0);
                         const discountAmount = baseTotal - finalTotal;
 
@@ -795,8 +831,8 @@ export const Checkout: React.FC = () => {
                       <div className="mt-4 pt-4 border-t border-gray-200">
                         <CheckoutCouponInput
                           cartTotal={cartItems.reduce((sum, item) => {
-                            const finalPrice = item.product.basePrice - (item.product.basePrice * (item.product.discountPercent || 0)) / 100;
-                            return sum + finalPrice * item.quantity;
+                            const price = getCartItemPrice(item.product, item.selectedSize, item.selectedColor);
+                            return sum + price * item.quantity;
                           }, 0)}
                           onCouponApplied={(couponData) => {
                             setAppliedCoupon(couponData);
@@ -818,8 +854,8 @@ export const Checkout: React.FC = () => {
                     <span className="text-blue-600">
                       ₹{(
                         cartItems.reduce((sum, item) => {
-                          const finalPrice = item.product.basePrice - (item.product.basePrice * (item.product.discountPercent || 0)) / 100;
-                          return sum + finalPrice * item.quantity;
+                          const price = getCartItemPrice(item.product, item.selectedSize, item.selectedColor);
+                          return sum + price * item.quantity;
                         }, 0) - couponDiscount
                       ).toFixed(0)}
                     </span>

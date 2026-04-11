@@ -33,30 +33,60 @@ model Product {
   name        String
   description String
 
-  basePrice       Float
+  // Pricing - base pricing for the product (optional, variants can override)
+  basePrice       Float @default(0)
   discountPercent Float @default(0)
-  finalPrice      Float // computed in backend
 
-  isOutOfStock Boolean @default(false)
-
-  flavors   String[]
-  sizes     String[]
-  imageUrls String[]
-
+  isVegetarian   Boolean @default(false)
   isFeatured     Boolean @default(false)
   isSpecialOffer Boolean @default(false)
-  isActive       Boolean @default(true)
-  isVegetarian   Boolean @default(false) // true for veg, false for non-veg
+  isOutOfStock   Boolean @default(false)
 
   categoryId   String?
   categoryName String? // Store category name for redundancy and faster queries
   category     Category? @relation(fields: [categoryId], references: [id])
 
-  cartItems  CartItem[] // cartItems
-  orderItems OrderItem[] //order Items
-  favorites  Favorite[] // favorite items
-  createdAt  DateTime    @default(now())
-  updatedAt  DateTime    @updatedAt
+  imageUrls String[]
+
+  // Relations
+  productVariants ProductVariant[] // Variant system - stores size/flavor combinations with pricing
+  cartItems       CartItem[] // Items in user carts
+  orderItems      OrderItem[] // Items in orders
+  favorites       Favorite[] // User favorites
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("Product")
+}
+
+/**
+ * ================= PRODUCT VARIANT =================
+ * Stores each size/flavor combination with its own pricing
+ */
+model ProductVariant {
+  id String @id @default(uuid())
+
+  // Foreign key to product
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  // Variant attributes
+  size   String // e.g., "340g", "510g"
+  flavor String // e.g., "Mango Mayhem", "Cola Frost"
+
+  // Pricing
+  price        Float // Base price
+  discount     Float  @default(0) // Discount amount (percent or flat)
+  discountType String @default("percent") // "percent" or "flat"
+  finalPrice   Float // Calculated: price - (discount based on type)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Ensure unique combinations per product
+  @@unique([productId, size, flavor])
+  @@index([productId])
 }
 
 /**
@@ -109,6 +139,7 @@ model CartItem {
 model Order {
   id     String      @id @default(uuid())
   userId String
+  user   User        @relation(fields: [userId], references: [id])
   status OrderStatus @default(PENDING)
 
   totalAmount   Float
@@ -273,6 +304,7 @@ model User {
   phone       String?
 
   addresses Address[]
+  orders    Order[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Check, AlertCircle } from 'lucide-react';
+import { Check } from 'lucide-react';
 import { useAuth } from '../components/context/AuthContext';
 import { toast } from 'sonner';
 import * as userService from '../../services/userService';

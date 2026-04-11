@@ -6,6 +6,7 @@ import { FavoritesProvider } from './components/context/FavoritesContext';
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
 import { Home } from './pages/Home';
+import { Categories } from './pages/Categories';
 import { Admin } from './pages/Admin';
 import { ProductListing } from './pages/ProductListing';
 import { ProductDetail } from './pages/ProductDetail';
@@ -42,6 +43,7 @@ function AppContent() {
       <main className="flex-1">
         <Routes>
                   <Route path="/" element={<Home />} />
+                  <Route path="/categories" element={<Categories />} />
                   <Route path="/products" element={<ProductListing />} />
                   <Route path="/product/:id" element={<ProductDetail />} />
                   <Route path="/admin" element={

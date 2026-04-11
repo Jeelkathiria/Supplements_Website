@@ -5,6 +5,7 @@ import { ProductCard } from "../components/ProductCard";
 import { Breadcrumb } from "../components/Breadcrumb";
 import { fetchProducts } from "../../services/productService";
 import { Product } from "../types";
+import { getProductPricing } from "../utils/pricingUtils";
 
 type SortType =
   | "popularity"
@@ -30,6 +31,8 @@ export const ProductListing: React.FC = () => {
   const navigate = useNavigate();
 
   // Load products on component mount
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+
   useEffect(() => {
     const loadProducts = async () => {
       try {
@@ -37,6 +40,8 @@ export const ProductListing: React.FC = () => {
         setProducts(data);
       } catch (error) {
         console.error("Failed to load products:", error);
+      } finally {
+        setIsInitialLoad(false);
       }
     };
 
@@ -78,7 +83,8 @@ export const ProductListing: React.FC = () => {
 
   const filteredAndSortedProducts = useMemo(() => {
     let result = products.filter((product) => {
-      const finalPrice = product.finalPrice;
+      const pricing = getProductPricing(product);
+      const finalPrice = pricing.finalPrice;
 
       const priceMatch =
         finalPrice >= priceRange[0] &&
@@ -104,13 +110,16 @@ export const ProductListing: React.FC = () => {
     });
 
     result.sort((a, b) => {
+      const pricingA = getProductPricing(a);
+      const pricingB = getProductPricing(b);
+
       switch (sortBy) {
         case "popularity":
           return (b.rating || 0) - (a.rating || 0);
         case "price-low":
-          return a.finalPrice - b.finalPrice;
+          return pricingA.finalPrice - pricingB.finalPrice;
         case "price-high":
-          return b.finalPrice - a.finalPrice;
+          return pricingB.finalPrice - pricingA.finalPrice;
         case "rating":
           return (b.rating || 0) - (a.rating || 0);
         default:
@@ -132,22 +141,33 @@ export const ProductListing: React.FC = () => {
     setCurrentPage(1);
   }, [selectedCategory, selectedType, searchQuery, sortBy]);
 
+  // Redirect to categories if no products found for a specific category selection
+  useEffect(() => {
+    if (!isInitialLoad && selectedCategory !== "all" && filteredAndSortedProducts.length === 0) {
+      // Small delay to allow the user to see that it's empty before redirecting, or just redirect
+      const timer = setTimeout(() => {
+        navigate('/categories');
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [filteredAndSortedProducts, selectedCategory, isInitialLoad, navigate]);
+
   return (
     <div className="min-h-screen bg-neutral-50">
-      <div className="max-w-[1400px] mx-auto px-6 md:px-12 py-14">
+      <div className="max-w-[1500px] mx-auto px-4 sm:px-6 md:px-10 lg:px-20 xl:px-28 py-14">
         <Breadcrumb
           items={[
             { label: "Home", path: "/" },
             { label: "Products" },
           ]}
         />
-        <div className="flex flex-col md:flex-row gap-12">
+        <div className="flex flex-col md:flex-row gap-6 lg:gap-12">
           {/* FILTERS — LEFT */}
           <aside
-            className={`w-full md:w-[280px] ${showFilters ? "block" : "hidden md:block"
+            className={`w-full md:w-[220px] lg:w-[280px] shrink-0 ${showFilters ? "block" : "hidden md:block"
               }`}
           >
-            <div className="bg-white rounded-xl border border-neutral-200 p-6 sticky top-24 space-y-8">
+            <div className="bg-white rounded-xl border border-neutral-200 p-4 lg:p-6 sticky top-24 space-y-8">
               {/* Header */}
               <div className="flex items-center justify-between">
                 <h3 className="font-semibold flex items-center gap-2 text-lg">
@@ -264,12 +284,15 @@ export const ProductListing: React.FC = () => {
 
           {/* PRODUCTS — RIGHT */}
           <div className="flex-1">
-            <div className="mb-8">
-              <h1 className="text-3xl font-bold mb-1 pl-4 border-l-4 border-yellow-500">
-                All Products
+            <div>
+              <div className="h-1 w-16 bg-yellow-500 rounded-full mb-2"></div>
+              <h1 className="text-2xl md:text-5xl font-black text-neutral-900 tracking-tight uppercase leading-tight">
+                {selectedCategory === 'all' ? 'All Products' : `${selectedCategory} Products`}
               </h1>
-              <p className="text-neutral-600">
-                Browse our complete range of supplements
+              <p className="text-sm md:text-lg text-neutral-500 mt-2 font-medium">
+                {selectedCategory === 'all'
+                  ? 'Browse our complete range of supplements'
+                  : `Showing the best ${selectedCategory} supplements for you`}
               </p>
             </div>
 
@@ -288,7 +311,7 @@ export const ProductListing: React.FC = () => {
             </div>
 
             {/* Products Grid */}
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-6 mb-8">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-2 md:gap-6 mb-8">
               {paginatedProducts.map((product) => (
                 <ProductCard
                   key={product.id}

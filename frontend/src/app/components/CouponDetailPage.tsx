@@ -11,7 +11,6 @@ interface OrderDetail {
   discountPercent: number;
   discountAmount: number;
   totalAmount: number;
-  finalAmount: number;
   paymentMethod: string;
   status: string;
   items: Array<{
@@ -52,6 +51,7 @@ export const CouponDetailPage: React.FC<CouponDetailPageProps> = ({
   const [loading, setLoading] = useState(true);
   const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     loadDetailedReport();
@@ -129,6 +129,13 @@ export const CouponDetailPage: React.FC<CouponDetailPageProps> = ({
     return order.status === filterStatus;
   });
 
+  // Pagination
+  const itemsPerPage = 8;
+  const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
+  const startIdx = (currentPage - 1) * itemsPerPage;
+  const endIdx = startIdx + itemsPerPage;
+  const paginatedOrders = filteredOrders.slice(startIdx, endIdx);
+
   const totalEarnings = filteredOrders.reduce(
     (sum, order) => sum + order.discountAmount,
     0
@@ -179,7 +186,10 @@ export const CouponDetailPage: React.FC<CouponDetailPageProps> = ({
             {availableStatuses.map((status) => (
               <button
                 key={status}
-                onClick={() => setFilterStatus(status)}
+                onClick={() => {
+                  setFilterStatus(status);
+                  setCurrentPage(1);
+                }}
                 className={`px-4 py-2 font-medium text-sm whitespace-nowrap transition-all ${
                   filterStatus === status
                     ? "text-orange-600 border-b-2 border-orange-600"
@@ -315,7 +325,7 @@ export const CouponDetailPage: React.FC<CouponDetailPageProps> = ({
                         {!isExpanded && (
                           <div className="px-4 py-3 bg-neutral-50 border-b border-neutral-200 flex items-center justify-between">
                             <span className="text-lg font-bold text-neutral-900">
-                              ₹{order.finalAmount.toFixed(0)}
+                              ₹{order.totalAmount.toFixed(0)}
                             </span>
                             <button
                               onClick={() =>
@@ -337,7 +347,7 @@ export const CouponDetailPage: React.FC<CouponDetailPageProps> = ({
                                   Subtotal
                                 </span>
                                 <span className="font-semibold text-neutral-900">
-                                  ₹{order.totalAmount.toFixed(0)}
+                                  ₹{(order.totalAmount + order.discountAmount).toFixed(0)}
                                 </span>
                               </div>
                               <div className="flex justify-between items-baseline mb-2 text-blue-600">
@@ -353,7 +363,7 @@ export const CouponDetailPage: React.FC<CouponDetailPageProps> = ({
                                   Total Amount
                                 </span>
                                 <span className="text-lg font-bold text-neutral-900">
-                                  ₹{order.finalAmount.toFixed(0)}
+                                  ₹{order.totalAmount.toFixed(0)}
                                 </span>
                               </div>
                             </div>
@@ -407,13 +417,13 @@ export const CouponDetailPage: React.FC<CouponDetailPageProps> = ({
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredOrders.map((order, idx) => (
+                  {paginatedOrders.map((order, idx) => (
                     <tr
                       key={order.orderId}
                       className="border-b border-neutral-200 hover:bg-neutral-50"
                     >
                       <td className="px-6 py-3 font-semibold text-neutral-900 text-sm">
-                        {idx + 1}
+                        {startIdx + idx + 1}
                       </td>
                       <td className="px-6 py-3 text-neutral-700 text-sm">
                         {new Date(order.orderDate).toLocaleDateString()}
@@ -422,13 +432,13 @@ export const CouponDetailPage: React.FC<CouponDetailPageProps> = ({
                         <span>{getItemsDisplay(order.items)}</span>
                       </td>
                       <td className="px-6 py-3 text-right text-neutral-900 font-semibold text-sm">
-                        ₹{order.totalAmount.toFixed(0)}
+                        ₹{(order.totalAmount + order.discountAmount).toFixed(0)}
                       </td>
                       <td className="px-6 py-3 text-right text-blue-600 font-semibold text-sm">
                         -₹{order.discountAmount.toFixed(0)}
                       </td>
                       <td className="px-6 py-3 text-right text-neutral-900 font-bold text-sm">
-                        ₹{order.finalAmount.toFixed(0)}
+                        ₹{order.totalAmount.toFixed(0)}
                       </td>
                     </tr>
                   ))}
@@ -440,7 +450,7 @@ export const CouponDetailPage: React.FC<CouponDetailPageProps> = ({
                     <td className="px-6 py-3 text-right text-neutral-900">
                       ₹
                       {filteredOrders
-                        .reduce((sum, order) => sum + order.totalAmount, 0)
+                        .reduce((sum, order) => sum + (order.totalAmount + order.discountAmount), 0)
                         .toFixed(0)}
                     </td>
                     <td className="px-6 py-3 text-right text-blue-600">
@@ -449,13 +459,55 @@ export const CouponDetailPage: React.FC<CouponDetailPageProps> = ({
                     <td className="px-6 py-3 text-right text-blue-600 font-bold">
                       ₹
                       {filteredOrders
-                        .reduce((sum, order) => sum + order.finalAmount, 0)
+                        .reduce((sum, order) => sum + order.totalAmount, 0)
                         .toFixed(0)}
                     </td>
                   </tr>
                 </tbody>
               </table>
             </div>
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between mt-6 pt-4 border-t border-neutral-200">
+                <div className="text-sm text-neutral-600">
+                  Showing {startIdx + 1} to {Math.min(endIdx, filteredOrders.length)} of {filteredOrders.length} orders
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                    disabled={currentPage === 1}
+                    className="px-4 py-2 rounded-lg border border-neutral-300 text-neutral-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-neutral-50 transition"
+                  >
+                    Previous
+                  </button>
+                  
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                      <button
+                        key={page}
+                        onClick={() => setCurrentPage(page)}
+                        className={`px-3 py-2 rounded-lg font-medium transition ${
+                          currentPage === page
+                            ? "bg-blue-600 text-white"
+                            : "border border-neutral-300 text-neutral-700 hover:bg-neutral-50"
+                        }`}
+                      >
+                        {page}
+                      </button>
+                    ))}
+                  </div>
+
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                    disabled={currentPage === totalPages}
+                    className="px-4 py-2 rounded-lg border border-neutral-300 text-neutral-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-neutral-50 transition"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -467,7 +519,7 @@ export const CouponDetailPage: React.FC<CouponDetailPageProps> = ({
                 Total Price from {couponCode}
               </p>
               <p className="text-4xl font-bold text-green-600">
-                ₹{filteredOrders.reduce((sum, order) => sum + order.finalAmount, 0).toFixed(0)}
+                ₹{filteredOrders.reduce((sum, order) => sum + order.totalAmount, 0).toFixed(0)}
               </p>
               <p className="text-neutral-600 text-xs mt-2">
                 From {filteredOrders.length} order{filteredOrders.length !== 1 ? "s" : ""}

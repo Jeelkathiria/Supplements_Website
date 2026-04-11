@@ -39,7 +39,7 @@ export class OrderCancellationService {
     console.log("🔍 Checking order:", { orderId, requestUserId: userId });
     const order = await prisma.order.findUnique({
       where: { id: orderId },
-      select: { id: true, userId: true, status: true }
+      select: { id: true, userId: true, status: true, deliveredAt: true }
     });
 
     if (!order) {
@@ -85,9 +85,12 @@ export class OrderCancellationService {
 
     // Send cancellation request email to user
     try {
-      const user = await prisma.user.findUnique({
-        where: { id: userId },
+      const orderWithUser = await prisma.order.findUnique({
+        where: { id: orderId },
+        include: { user: true }
       });
+
+      const user = orderWithUser?.user;
 
       if (user && user.email) {
         // Determine if this is pre-delivery or post-delivery
@@ -288,9 +291,12 @@ export class OrderCancellationService {
 
     // Send approval email to user
     try {
-      const user = await prisma.user.findUnique({
-        where: { id: request.userId },
+      const orderWithUser = await prisma.order.findUnique({
+        where: { id: request.orderId },
+        include: { user: true }
       });
+
+      const user = orderWithUser?.user;
 
       if (user && user.email) {
         await sendCancellationApprovedEmail(
@@ -328,9 +334,12 @@ export class OrderCancellationService {
 
     // Send rejection email to user
     try {
-      const user = await prisma.user.findUnique({
-        where: { id: request.userId },
+      const orderWithUser = await prisma.order.findUnique({
+        where: { id: request.orderId },
+        include: { user: true }
       });
+
+      const user = orderWithUser?.user;
 
       if (user && user.email) {
         await sendCancellationRejectedEmail(

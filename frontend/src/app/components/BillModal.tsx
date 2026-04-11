@@ -1,5 +1,7 @@
 import React from "react";
-import { X, Download, Printer } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { X, Download, Printer, ArrowLeft } from "lucide-react";
+import saturnLogo from "../../images/LOGO.png";
 import type { Order } from "../../services/orderService";
 
 interface BillModalProps {
@@ -9,6 +11,8 @@ interface BillModalProps {
 }
 
 export const BillModal: React.FC<BillModalProps> = ({ order, isOpen, onClose }) => {
+  const navigate = useNavigate();
+  
   if (!isOpen || !order) return null;
 
   // Safe value extraction with defaults
@@ -31,12 +35,26 @@ export const BillModal: React.FC<BillModalProps> = ({ order, isOpen, onClose }) 
     }
   };
 
+  const handleBackToOrders = () => {
+    onClose();
+    navigate("/account/orders");
+  };
+
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-xl">
         {/* Header */}
         <div className="sticky top-0 bg-white border-b border-neutral-200 px-6 py-4 flex items-center justify-between">
-          <h2 className="text-lg font-bold text-neutral-900">Order Bill</h2>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleBackToOrders}
+              className="p-2 rounded-lg hover:bg-neutral-100 transition text-neutral-600"
+              title="Back to Orders"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+            <h2 className="text-lg font-bold text-neutral-900">Order Bill</h2>
+          </div>
           <div className="flex items-center gap-3">
             {/* Coupon Badge - Show if coupon was applied */}
             {order.couponCode && (
@@ -75,10 +93,13 @@ export const BillModal: React.FC<BillModalProps> = ({ order, isOpen, onClose }) 
         </div>
 
         {/* Bill Content */}
-        <div id="bill-content" className="p-6 space-y-6">
-          {/* Header Section */}
+        <div id="bill-content" className="p-6 space-y-6 bg-white">
+          {/* Header Section with Logo and Company Name */}
           <div className="text-center border-b border-neutral-200 pb-4">
-            <h1 className="text-3xl font-bold text-neutral-900">SaturnImports</h1>
+            <div className="flex items-center justify-center gap-3 mb-3">
+              <img src={saturnLogo} alt="Muscle & Power" className="h-12 w-12 object-contain" />
+              <h1 className="text-3xl font-bold text-neutral-900">MUSCLE AND POWER</h1>
+            </div>
             <p className="text-sm text-neutral-600 mt-1">Premium Supplements & Nutrition</p>
           </div>
 
@@ -206,7 +227,7 @@ export const BillModal: React.FC<BillModalProps> = ({ order, isOpen, onClose }) 
                 )}
 
                 {/* Coupon Discount */}
-                {discountAmount > 0 && (
+                {order.couponCode && order.appliedCoupon && discountAmount > 0 && (
                   <div className="flex justify-between py-2 border-b border-neutral-100 text-green-600">
                     <div>
                       <span className="text-sm font-semibold block">Coupon Discount</span>
@@ -241,7 +262,7 @@ export const BillModal: React.FC<BillModalProps> = ({ order, isOpen, onClose }) 
           {/* Footer */}
           <div className="border-t border-neutral-200 pt-4 text-center text-xs text-neutral-500">
             <p>Thank you for your purchase!</p>
-            <p>For queries, contact support@saturnimports.com</p>
+            <p>For queries, contact support@muscleandpower.com</p>
           </div>
         </div>
       </div>

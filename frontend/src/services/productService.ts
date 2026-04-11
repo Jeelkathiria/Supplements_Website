@@ -42,6 +42,18 @@ export const fetchProducts = async (): Promise<Product[]> => {
   }
 };
 
+// Get a single product by ID (latest data from database)
+export const fetchProductById = async (productId: string): Promise<Product | null> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/products/${productId}`);
+    if (!response.ok) throw new Error("Failed to fetch product");
+    return await response.json();
+  } catch (error) {
+    console.error("Error fetching product:", error);
+    return null;
+  }
+};
+
 // Create a new product (admin only)
 export const createProduct = async (
   productData: Omit<Product, "id" | "createdAt" | "updatedAt" | "finalPrice">
@@ -58,10 +70,10 @@ export const createProduct = async (
       description: productData.description,
       basePrice: productData.basePrice,
       discountPercent: productData.discountPercent || 0,
-      gstPercent: productData.tax || 0,
       isOutOfStock: productData.isOutOfStock || false,
       flavors: productData.flavors || [],
-      sizes: productData.sizes || [],
+      productSizes: productData.productSizes || [],
+      variants: productData.variants || [],
       imageUrls: productData.imageUrls || [],
       isFeatured: productData.isFeatured || false,
       isSpecialOffer: productData.isSpecialOffer || false,
@@ -107,10 +119,10 @@ export const updateProduct = async (
       description: productData.description,
       basePrice: productData.basePrice,
       discountPercent: productData.discountPercent || 0,
-      gstPercent: productData.tax || 0,
       isOutOfStock: productData.isOutOfStock || false,
       flavors: productData.flavors || [],
-      sizes: productData.sizes || [],
+      productSizes: productData.productSizes || [],
+      variants: productData.variants || [],
       imageUrls: productData.imageUrls || [],
       isFeatured: productData.isFeatured || false,
       isSpecialOffer: productData.isSpecialOffer || false,
@@ -229,5 +241,155 @@ export const uploadImages = async (files: File[]): Promise<string[]> => {
   } catch (error) {
     console.error("Error uploading images:", error);
     throw error;
+  }
+};
+
+// ============= VARIANT MANAGEMENT =============
+
+export interface ProductVariant {
+  id: string;
+  productId: string;
+  size: string;
+  flavor: string;
+  price: number;
+  discount: number;
+  discountType: "percent" | "flat";
+  finalPrice: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Fetch all variants for a product
+ */
+export const fetchProductVariants = async (productId: string): Promise<ProductVariant[]> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/admin/products/${productId}/variants`);
+    if (!response.ok) throw new Error("Failed to fetch variants");
+    return await response.json();
+  } catch (error) {
+    console.error("Error fetching variants:", error);
+    return [];
+  }
+};
+
+/**
+ * Create product variants (bulk)
+ */
+export const createProductVariants = async (
+  productId: string,
+  variants: Omit<ProductVariant, "id" | "productId" | "createdAt" | "updatedAt">[]
+): Promise<ProductVariant[]> => {
+  try {
+    const token = await getAuthToken();
+
+    if (!token) {
+      throw new Error("Not authenticated. Please login first.");
+    }
+
+    const response = await fetch(`${API_BASE_URL}/admin/products/${productId}/variants`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ variants }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || `Failed to create variants (${response.status})`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Error creating variants:", error);
+    throw error;
+  }
+};
+
+/**
+ * Update a single variant
+ */
+export const updateVariant = async (
+  variantId: string,
+  data: Partial<Omit<ProductVariant, "id" | "productId" | "createdAt" | "updatedAt">>
+): Promise<ProductVariant> => {
+  try {
+    const token = await getAuthToken();
+
+    if (!token) {
+      throw new Error("Not authenticated. Please login first.");
+    }
+
+    const response = await fetch(`${API_BASE_URL}/admin/products/variants/${variantId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || `Failed to update variant (${response.status})`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Error updating variant:", error);
+    throw error;
+  }
+};
+
+/**
+ * Delete a variant
+ */
+export const deleteVariant = async (variantId: string): Promise<void> => {
+  try {
+    const token = await getAuthToken();
+
+    if (!token) {
+      throw new Error("Not authenticated. Please login first.");
+    }
+
+    const response = await fetch(`${API_BASE_URL}/admin/products/variants/${variantId}`, {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || `Failed to delete variant (${response.status})`);
+    }
+  } catch (error) {
+    console.error("Error deleting variant:", error);
+    throw error;
+  }
+};
+
+/**
+ * Get price for specific variant
+ */
+export const getVariantPrice = async (
+  productId: string,
+  flavor: string,
+  size: string
+): Promise<number | null> => {
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/admin/products/${productId}/price?flavor=${encodeURIComponent(flavor)}&size=${encodeURIComponent(size)}`
+    );
+
+    if (!response.ok) throw new Error("Failed to get variant price");
+
+    const data = await response.json();
+    return data.price;
+  } catch (error) {
+    console.error("Error getting variant price:", error);
+    return null;
   }
 };

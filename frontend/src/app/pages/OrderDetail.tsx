@@ -169,14 +169,18 @@ export const OrderDetail: React.FC = () => {
                 {imageUrl && (
                   <img
                     src={imageUrl}
-                    className="w-16 h-16 object-cover border rounded"
+                    onClick={() => navigate(`/product/${item.product?.id}`)}
+                    className="w-16 h-16 object-cover border rounded cursor-pointer hover:opacity-80 transition-opacity"
                   />
                 )}
 
                 <div className="flex-1">
-                  <p className="font-medium">
+                  <button
+                    onClick={() => navigate(`/product/${item.product?.id}`)}
+                    className="font-medium text-left hover:text-blue-600 transition-colors"
+                  >
                     {item.product?.name || item.productName}
-                  </p>
+                  </button>
                   <p className="text-neutral-500 text-xs">
                     {item.quantity} × ₹{item.price.toFixed(0)}
                   </p>

@@ -67,11 +67,10 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({ filterStatus = "all" }
   const [currentPage, setCurrentPage] = useState(1);
   const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
   const [cancellationRequests, setCancellationRequests] = useState<Record<string, any>>({});
-  const [pendingCancellationOrder, setPendingCancellationOrder] = useState<Order | null>(null);
-  const [isCancelConfirmationOpen, setIsCancelConfirmationOpen] = useState(false);
-  const [cancelConfirmationText, setCancelConfirmationText] = useState("");
   const [dateFilterStart, setDateFilterStart] = useState("");
   const [dateFilterEnd, setDateFilterEnd] = useState("");
+  const [showCancelPopup, setShowCancelPopup] = useState(false);
+  const [pendingCancelOrderId, setPendingCancelOrderId] = useState<string | null>(null);
   const CARDS_PER_PAGE = 12;
   const { firebaseUser } = useAuth();
 
@@ -111,12 +110,10 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({ filterStatus = "all" }
   };
 
   const handleStatusUpdate = async (orderId: string, newStatus: string) => {
-    // For PENDING and SHIPPED orders being cancelled, show confirmation modal
-    const order = orders.find(o => o.id === orderId);
-    if (order && (order.status === "PENDING" || order.status === "SHIPPED") && newStatus === "CANCELLED") {
-      setPendingCancellationOrder(order);
-      setIsCancelConfirmationOpen(true);
-      setCancelConfirmationText("");
+    // Confirmation specifically for CANCELLED status using custom popup
+    if (newStatus === "CANCELLED") {
+      setPendingCancelOrderId(orderId);
+      setShowCancelPopup(true);
       return;
     }
 
@@ -142,21 +139,18 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({ filterStatus = "all" }
     }
   };
 
-  const confirmCancellation = async () => {
-    if (cancelConfirmationText !== "SaturnImports") {
-      toast.error("Incorrect confirmation text. Please type 'SaturnImports' to cancel.");
-      return;
-    }
-
-    if (!pendingCancellationOrder) return;
-
+  const executeCancellation = async () => {
+    if (!pendingCancelOrderId) return;
+    
     try {
-      setUpdatingOrderId(pendingCancellationOrder.id);
-      const updated = await updateOrderStatus(pendingCancellationOrder.id, "CANCELLED");
+      setUpdatingOrderId(pendingCancelOrderId);
+      setShowCancelPopup(false);
+      
+      const updated = await updateOrderStatus(pendingCancelOrderId, "CANCELLED");
 
       setOrders((prev) =>
         prev.map((o) =>
-          o.id === pendingCancellationOrder.id ? { ...o, status: updated.status } : o
+          o.id === pendingCancelOrderId ? { ...o, status: updated.status } : o
         )
       );
 
@@ -167,11 +161,10 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({ filterStatus = "all" }
       toast.error("Failed to cancel order");
     } finally {
       setUpdatingOrderId(null);
-      setIsCancelConfirmationOpen(false);
-      setPendingCancellationOrder(null);
-      setCancelConfirmationText("");
+      setPendingCancelOrderId(null);
     }
   };
+
 
   const handleApproveCancellation = async (requestId: string, orderId: string) => {
     try {
@@ -734,6 +727,45 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({ filterStatus = "all" }
         </div>
       )}
 
+      {/* CUSTOM CANCELLATION POPUP */}
+      {showCancelPopup && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden transform animate-in zoom-in-95 duration-200">
+            <div className="p-8 text-center">
+              <div className="mx-auto w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-6">
+                <AlertCircle className="w-10 h-10 text-red-600" />
+              </div>
+              <h3 className="text-xl font-bold text-neutral-900 mb-3">Confirm Cancellation</h3>
+              <p className="text-neutral-600 mb-8 leading-relaxed">
+                Are you sure you want to <span className="font-bold text-red-600">CANCEL</span> order <span className="font-mono font-bold">#{pendingCancelOrderId?.toUpperCase()}</span>?<br/>
+                This will instantly notify the customer via email.
+              </p>
+              
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    setShowCancelPopup(false);
+                    setPendingCancelOrderId(null);
+                  }}
+                  className="flex-1 px-5 py-3 border border-neutral-300 rounded-xl font-semibold text-neutral-700 hover:bg-neutral-50 transition-colors"
+                >
+                  No, Keep it
+                </button>
+                <button
+                  onClick={executeCancellation}
+                  className="flex-1 px-5 py-3 bg-red-600 rounded-xl font-semibold text-white hover:bg-red-700 shadow-lg shadow-red-200 transition-all active:scale-95"
+                >
+                  Yes, Cancel
+                </button>
+              </div>
+            </div>
+            <div className="bg-neutral-50 px-8 py-3 text-center border-t border-neutral-100">
+              <p className="text-[10px] text-neutral-400 uppercase tracking-widest font-bold">Administrator Action Required</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Bill Modal */}
       <BillModal 
         order={selectedBillOrder as any} 
@@ -744,52 +776,6 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({ filterStatus = "all" }
         }} 
       />
 
-      {/* Cancel Confirmation Modal */}
-      {isCancelConfirmationOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
-            <div className="px-6 py-4 border-b border-neutral-200">
-              <h3 className="text-lg font-bold text-neutral-900">Confirm Order Cancellation</h3>
-            </div>
-            <div className="px-6 py-4 space-y-4">
-              <div>
-                <p className="text-sm text-neutral-700 mb-4">
-                  Are you sure you want to cancel order <span className="font-semibold">{pendingCancellationOrder?.id}</span>?
-                </p>
-                <p className="text-xs text-neutral-600 mb-4 bg-amber-50 p-3 rounded border border-amber-200">
-                  To confirm cancellation, please type <span className="font-mono font-bold text-amber-900">SaturnImports</span>
-                </p>
-                <input
-                  type="text"
-                  value={cancelConfirmationText}
-                  onChange={(e) => setCancelConfirmationText(e.target.value)}
-                  placeholder="Type here..."
-                  className="w-full px-3 py-2 border border-neutral-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-            </div>
-            <div className="px-6 py-4 border-t border-neutral-200 flex items-center justify-end gap-2">
-              <button
-                onClick={() => {
-                  setIsCancelConfirmationOpen(false);
-                  setPendingCancellationOrder(null);
-                  setCancelConfirmationText("");
-                }}
-                className="px-4 py-2 text-xs font-medium text-neutral-700 border border-neutral-300 rounded hover:bg-neutral-50 transition"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={confirmCancellation}
-                disabled={cancelConfirmationText !== "SaturnImports" || updatingOrderId !== null}
-                className="px-4 py-2 text-xs font-medium text-white bg-red-600 rounded hover:bg-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Confirm Cancellation
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

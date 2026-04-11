@@ -245,7 +245,7 @@ export const AccountOrders: React.FC = () => {
 
                           <div className="flex-1 min-w-0">
                             <button
-                              onClick={() => navigate(`/product/${item.product?._id}`)}
+                              onClick={() => navigate(`/product/${item.product?.id}`)}
                               className="text-sm md:text-base font-medium text-teal-800 hover:text-orange-700 leading-snug line-clamp-2 transition-colors text-left"
                             >
                               {item.product?.name || item.productName}
@@ -290,7 +290,7 @@ export const AccountOrders: React.FC = () => {
                       onClick={() => navigate('/contact')}
                       className="w-full py-2 bg-neutral-100 border border-neutral-300 rounded-lg text-sm font-medium hover:bg-neutral-200 transition-colors shadow-sm"
                     >
-                      Write a product review
+                      Others
                     </button>
                   </div>
                 </div>

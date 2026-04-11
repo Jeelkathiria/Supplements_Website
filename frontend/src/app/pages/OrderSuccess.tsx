@@ -32,6 +32,38 @@ export const OrderSuccess: React.FC = () => {
       }
 
       try {
+        // First, check if order is cached in localStorage
+        const cachedOrder = localStorage.getItem('lastOrder');
+        
+        if (cachedOrder) {
+          try {
+            const parsedOrder = JSON.parse(cachedOrder);
+            // Verify this is the correct order
+            if (parsedOrder.id === orderId) {
+              setOrder(parsedOrder);
+              // Delay showing animation for better visual effect
+              setTimeout(() => {
+                setShowAnimation(true);
+              }, 100);
+              setLoading(false);
+              
+              // Now try to fetch fresh data from backend in the background
+              // to update status if needed, but don't block on it
+              try {
+                const freshOrder = await orderService.getOrder(orderId);
+                setOrder(freshOrder);
+              } catch (err) {
+                // Silent fail - we already have cached data
+                console.log('Could not refresh order from backend, using cached version');
+              }
+              return;
+            }
+          } catch (e) {
+            console.error('Failed to parse cached order:', e);
+          }
+        }
+
+        // If no cached order or it's a different order ID, fetch from backend
         const orderData = await orderService.getOrder(orderId);
         setOrder(orderData);
         
@@ -325,14 +357,20 @@ export const OrderSuccess: React.FC = () => {
               </div>
 
               <button
-                onClick={() => navigate('/')}
+                onClick={() => {
+                  localStorage.removeItem('lastOrder');
+                  navigate('/');
+                }}
                 className="w-full py-2 bg-yellow-400 hover:bg-yellow-500 text-black rounded font-semibold mb-2"
               >
                 Continue Shopping
               </button>
 
               <button
-                onClick={() => navigate('/account')}
+                onClick={() => {
+                  localStorage.removeItem('lastOrder');
+                  navigate('/account');
+                }}
                 className="w-full py-2 border border-gray-300 rounded font-semibold hover:bg-gray-100"
               >
                 View Your Orders

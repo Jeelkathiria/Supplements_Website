@@ -23,7 +23,8 @@ import {
   sendCancellationRejectedEmail,
   sendRefundInitiatedEmail,
   sendRefundCompletedEmail,
-  sendOrderShippedEmail
+  sendOrderShippedEmail,
+  sendOrderDeliveredEmail
 } from "./services/emailService";
 
 
@@ -177,6 +178,35 @@ app.post("/api/test-shipped-email", async (req: Request, res: Response) => {
     console.error("🧪 TEST SHIPPED EMAIL ERROR:", error);
     res.status(500).json({
       error: "Failed to send shipped email",
+      message: error?.message,
+    });
+  }
+});
+
+app.post("/api/test-delivered-email", async (req: Request, res: Response) => {
+  try {
+    console.log("🧪 TEST DELIVERED EMAIL ENDPOINT CALLED");
+    const { email, name, orderId } = req.body;
+
+    if (!email || !orderId) {
+      return res.status(400).json({ error: "Email and orderId are required" });
+    }
+
+    await sendOrderDeliveredEmail(
+      email,
+      orderId || "TEST-ORDER",
+      name || "Test User"
+    );
+
+    res.json({
+      success: true,
+      message: "Delivered email sent successfully",
+      email,
+    });
+  } catch (error: any) {
+    console.error("🧪 TEST DELIVERED EMAIL ERROR:", error);
+    res.status(500).json({
+      error: "Failed to send delivered email",
       message: error?.message,
     });
   }

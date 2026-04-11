@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { ArrowLeft, ShoppingCart, Truck, TrendingUp } from "lucide-react";
+import { ArrowLeft, Truck, Calendar, FileDown as Download } from "lucide-react";
 import { toast } from "sonner";
 import * as couponService from "../../services/couponService";
 import { useAuth } from "./context/AuthContext";
@@ -61,12 +61,12 @@ interface DetailedReport {
 
 export const CommissionReportDetail: React.FC<CommissionReportDetailProps> = ({
   trainerName,
-  couponCode,
   onBack,
 }) => {
   const { getIdToken } = useAuth();
   const [report, setReport] = useState<DetailedReport | null>(null);
   const [loading, setLoading] = useState(true);
+  const [expandedOrders, setExpandedOrders] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     loadDetailedReport();

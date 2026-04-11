@@ -13,12 +13,33 @@ export const getFavorites = async (req: Request, res: Response) => {
     const favorites = await prisma.favorite.findMany({
       where: { userId },
       include: {
-        product: true,
+        product: {
+          include: {
+            productVariants: {
+              orderBy: { createdAt: "asc" },
+            },
+            category: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
       },
       orderBy: { createdAt: "desc" },
     });
 
-    return res.status(200).json(favorites);
+    // Transform products to include categoryName
+    const favoritesWithCategoryNames = favorites.map((fav) => ({
+      ...fav,
+      product: {
+        ...fav.product,
+        categoryName: fav.product.category?.name || fav.product.categoryName,
+      },
+    }));
+
+    return res.status(200).json(favoritesWithCategoryNames);
   } catch (error) {
     console.error("Error fetching favorites:", error);
     return res.status(500).json({ error: "Failed to fetch favorites" });
@@ -69,7 +90,19 @@ export const addFavorite = async (req: Request, res: Response) => {
         productId,
       },
       include: {
-        product: true,
+        product: {
+          include: {
+            productVariants: {
+              orderBy: { createdAt: "asc" },
+            },
+            category: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
       },
     });
 

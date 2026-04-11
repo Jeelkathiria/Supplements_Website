@@ -35,6 +35,7 @@ export const createOrder = async (payload: CheckoutPayload) => {
     let totalAmount = 0;
     let totalDiscount = 0;
     const productSnapshots: { [key: string]: any } = {};
+    const variantSnapshots: { [key: string]: any } = {};
 
     // Verify all products exist and store snapshots
     for (const item of payload.cartItems) {
@@ -48,11 +49,26 @@ export const createOrder = async (payload: CheckoutPayload) => {
 
       productSnapshots[item.productId] = product;
 
-      // Calculate amounts
-      const basePrice = product.basePrice;
-      const discountAmount =
-        (basePrice * (product.discountPercent || 0)) / 100;
-      const finalPrice = basePrice - discountAmount;
+      // Get variant for pricing information
+      const variant = await prisma.productVariant.findFirst({
+        where: {
+          productId: item.productId,
+          size: item.size || "",
+          flavor: item.flavor || "",
+        },
+      });
+
+      if (!variant) {
+        throw new Error(`Variant for Product ${item.productId} not found`);
+      }
+
+      const key = `${item.productId}-${item.size}-${item.flavor}`;
+      variantSnapshots[key] = variant;
+
+      // Calculate amounts from variant pricing
+      const basePrice = variant.price;
+      const discountAmount = basePrice - variant.finalPrice;
+      const finalPrice = variant.finalPrice;
 
       totalAmount += finalPrice * item.quantity;
       totalDiscount += discountAmount * item.quantity;
@@ -85,16 +101,18 @@ export const createOrder = async (payload: CheckoutPayload) => {
           items: {
             create: payload.cartItems.map((item) => {
               const product = productSnapshots[item.productId];
+              const key = `${item.productId}-${item.size}-${item.flavor}`;
+              const variant = variantSnapshots[key];
               return {
                 productId: item.productId,
                 quantity: item.quantity,
-                price: item.price,
+                price: variant.finalPrice,
                 flavor: item.flavor || null,
                 size: item.size || null,
                 // Store product snapshot
                 productName: product.name,
-                basePrice: product.basePrice,
-                discountPercent: product.discountPercent || 0,
+                basePrice: variant.price,
+                discountPercent: variant.discount || 0,
                 imageUrl: product.imageUrls?.[0] || null,
               };
             }),
@@ -156,12 +174,18 @@ export const placeOrderFromCart = async (
       throw new Error("Address not found or unauthorized");
     }
 
-    // Get user's cart
+    // Get user's cart with product variants
     const cart = await prisma.cart.findUnique({
       where: { userId },
       include: {
         items: {
-          include: { product: true }
+          include: { 
+            product: {
+              include: {
+                productVariants: true  // Include variants for pricing
+              }
+            }
+          }
         }
       }
     });
@@ -173,19 +197,35 @@ export const placeOrderFromCart = async (
       throw new Error("Cart is empty");
     }
 
-    // Calculate totals
+    // Calculate totals using ProductVariant pricing system
     let totalAmount = 0;
     let totalDiscount = 0;
 
     for (const item of cart.items) {
       const product = item.product;
+      
+      // Get the ProductVariant for this specific size/flavor combination
+      const variant = product.productVariants?.find(
+        (v: any) => v.size === item.size && v.flavor === item.flavor
+      );
 
-      const basePrice = product.basePrice;
-      const discountAmount = (basePrice * (product.discountPercent || 0)) / 100;
-      const finalPrice = basePrice - discountAmount;
+      if (!variant) {
+        throw new Error(
+          `Product variant not found for ${product.name} - ${item.size}/${item.flavor}`
+        );
+      }
+
+      // Use the variant's finalPrice (which already includes discount)
+      const finalPrice = variant.finalPrice || variant.price;
+      const basePrice = variant.price;
+      const variantDiscount = variant.discount || 0;
 
       totalAmount += finalPrice * item.quantity;
-      totalDiscount += discountAmount * item.quantity;
+      totalDiscount += (basePrice - finalPrice) * item.quantity;
+
+      console.log(`Item: ${product.name} - Size: ${item.size}, Flavor: ${item.flavor}`);
+      console.log(`  Base Price: ${basePrice}, Final Price: ${finalPrice}, Qty: ${item.quantity}`);
+      console.log(`  Item Total: ${finalPrice * item.quantity}`);
     }
 
     // Apply coupon discount
@@ -228,20 +268,33 @@ export const placeOrderFromCart = async (
           items: {
             create: cart.items.map((item) => {
               const product = item.product;
-              const basePrice = product.basePrice;
-              const discountAmount = (basePrice * (product.discountPercent || 0)) / 100;
-              const finalPrice = basePrice - discountAmount;
+              
+              // Get the ProductVariant for this specific size/flavor combination
+              const variant = product.productVariants?.find(
+                (v: any) => v.size === item.size && v.flavor === item.flavor
+              );
+
+              if (!variant) {
+                throw new Error(
+                  `Product variant not found for ${product.name} - ${item.size}/${item.flavor}`
+                );
+              }
+
+              // Use variant data
+              const finalPrice = variant.finalPrice || variant.price;
+              const basePrice = variant.price;
+              const discountPercent = variant.discount || 0;
 
               return {
                 productId: item.productId,
                 quantity: item.quantity,
-                price: finalPrice,
+                price: finalPrice, // Use final price from variant
                 flavor: item.flavor,
                 size: item.size,
                 // Store product snapshot
                 productName: product.name,
-                basePrice: basePrice,
-                discountPercent: product.discountPercent || 0,
+                basePrice: basePrice, // Store base price from variant
+                discountPercent: discountPercent, // Store discount from variant
                 imageUrl: product.imageUrls?.[0] || null,
               };
             })
@@ -355,7 +408,7 @@ export const placeOrderFromCart = async (
           console.log("📧 Order ID:", order?.id);
           console.log("📧 Items count:", items?.length || 0);
 
-          if (order && items) {
+          if (order && items && items.length > 0) {
             await sendOrderConfirmationEmail(
               user.email,
               order.id,
@@ -380,10 +433,10 @@ export const placeOrderFromCart = async (
     console.log("=== PLACE ORDER FROM CART SUCCESS ===");
     
     // Transform order response: map 'discount' to 'discountAmount' for API compatibility
-    const transformedOrder = {
+    const transformedOrder = order ? {
       ...order,
       discountAmount: order.discount
-    };
+    } : null;
     
     return transformedOrder;
   } catch (error) {

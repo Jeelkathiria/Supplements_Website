@@ -1,12 +1,10 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Plus, Edit2, Trash2, X, Upload } from "lucide-react";
-import { Product } from "../types";
-import {
-  calculateFinalPrice,
-} from "../data/products";
+import { Product, ProductSize } from "../types";
 import { toast } from "sonner";
 import {
   fetchProducts,
+  fetchProductById,
   createProduct,
   updateProduct,
   deleteProduct,
@@ -28,14 +26,56 @@ const getFullImageUrl = (imageUrl: string) => {
   return `${backendBase}${imageUrl}`;
 };
 
-const EMPTY_FORM: Partial<Product> = {
+// Helper: Get price range from product variants
+const getPriceRange = (product: Product): { min: number; max: number; display: string } => {
+  const variants = product.productVariants || product.variants || [];
+  if (!variants || variants.length === 0) {
+    return { min: 0, max: 0, display: '₹0' };
+  }
+  const prices = variants.map(v => v.finalPrice || v.price);
+  const minPrice = Math.min(...prices);
+  const maxPrice = Math.max(...prices);
+  const min = Math.round(Number(minPrice) || 0);
+  const max = Math.round(Number(maxPrice) || 0);
+  
+  return {
+    min,
+    max,
+    display: min === max ? `₹${min}` : `₹${min} – ₹${max}`
+  };
+};
+
+// Helper: Check if product has any discount
+const hasDiscount = (product: Product): boolean => {
+  const variants = product.productVariants || product.variants || [];
+  return variants.some(v => (v.discount ?? 0) > 0);
+};
+
+// Helper: Get maximum discount percentage from variants
+const getMaxDiscount = (product: Product): number => {
+  const variants = product.productVariants || product.variants || [];
+  if (variants.length === 0) return 0;
+  return Math.max(...variants.map(v => {
+    if (v.discountType === 'percent') {
+      return v.discount ?? 0;
+    }
+    return ((v.discount ?? 0) / (v.price || 1)) * 100;
+  }));
+};
+
+interface AdminFormData extends Partial<Product> {
+  newSizeValue?: string;
+  newSizeUnit?: string;
+  newFlavor?: string;
+  sizes?: string[]; // Used by some legacy logic
+}
+
+const EMPTY_FORM: AdminFormData = {
   name: "",
   description: "",
   categoryId: "",
-  sizes: [],
-  flavors: [],
-  basePrice: 0,
-  discountPercent: 0,
+  productSizes: [],
+  flavors: ["Unflavoured"],
   isOutOfStock: false,
   rating: 4.5,
   reviews: 0,
@@ -43,6 +83,9 @@ const EMPTY_FORM: Partial<Product> = {
   isFeatured: false,
   isSpecialOffer: false,
   isVegetarian: false,
+  newSizeValue: "",
+  newSizeUnit: "g",
+  newFlavor: "",
 };
 
 export const Admin: React.FC = () => {
@@ -138,14 +181,18 @@ export const Admin: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] =
     useState<Product | null>(null);
-  const [formData, setFormData] =
-    useState<Partial<Product>>(EMPTY_FORM);
+  const [formData, setFormData] = useState<AdminFormData>(EMPTY_FORM);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [searchQuery, setSearchQuery] = useState("");
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [isAddingCategory, setIsAddingCategory] = useState(false);
   const [newCategoryInput, setNewCategoryInput] = useState("");
+
+  // Delete confirmation modal state
+  const [deleteConfirmation, setDeleteConfirmation] = useState<{ isOpen: boolean; productId: string | null; productName: string }>({ isOpen: false, productId: null, productName: "" });
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const ITEMS_PER_PAGE = 10;
@@ -250,19 +297,90 @@ export const Admin: React.FC = () => {
   };
 
   /* ---------------- MODAL HANDLING ---------------- */
-  const openModal = (product?: Product) => {
-    if (product) {
-      setEditingProduct(product);
-      // When editing, use categoryName instead of categoryId for display
-      setFormData({
-        ...product,
-        categoryId: product.categoryName || product.categoryId || "",
-      });
-    } else {
-      setEditingProduct(null);
-      setFormData(EMPTY_FORM);
+  const openModal = async (product?: Product) => {
+    try {
+      // Refresh categories list when opening modal to ensure latest data
+      let updatedCategories = categoryNames;
+      try {
+        const categoriesResponse = await fetch("http://localhost:5000/api/categories");
+        if (categoriesResponse.ok) {
+          const categoriesData = await categoriesResponse.json();
+          updatedCategories = categoriesData.map((cat: any) => cat.name).sort();
+          setCategoryNames(updatedCategories);
+        }
+      } catch (error) {
+        console.error("Failed to refresh categories:", error);
+      }
+
+      if (product) {
+        // Fetch latest product data from database
+        const latestProduct = await fetchProductById(product.id);
+        if (latestProduct) {
+          setEditingProduct(latestProduct);
+          
+          // Transform productVariants from database to productSizes format for form
+          let productSizes: ProductSize[] = [];
+          if (latestProduct.productVariants && latestProduct.productVariants.length > 0) {
+            // Group variants by size
+            const sizeMap = new Map<string, Map<string, number>>();
+            const discountMap = new Map<string, number>();
+            
+            latestProduct.productVariants.forEach(variant => {
+              if (!sizeMap.has(variant.size)) {
+                sizeMap.set(variant.size, new Map());
+              }
+              sizeMap.get(variant.size)!.set(variant.flavor, variant.price);
+              discountMap.set(variant.size, Math.max(0, variant.discount || 0));
+            });
+            
+            // Convert to productSizes format
+            productSizes = Array.from(sizeMap.entries()).map(([size, flavorsMap]) => ({
+              size,
+              flavors: Array.from(flavorsMap.entries()).map(([name, price]) => ({
+                name,
+                price
+              })),
+              discount: Math.max(0, discountMap.get(size) || 0)
+            }));
+          }
+          
+          // Extract unique flavors
+          const flavorsSet = new Set<string>();
+          latestProduct.productVariants?.forEach(v => {
+            flavorsSet.add(v.flavor);
+          });
+          const flavors = Array.from(flavorsSet).length > 0 ? Array.from(flavorsSet) : ["Unflavoured"];
+          
+          // Get product's category
+          const productCategory = latestProduct.categoryName || latestProduct.categoryId;
+          
+          // Ensure product's category is in the dropdown list and update the local copy
+          if (productCategory && !updatedCategories.includes(productCategory)) {
+            updatedCategories = [...updatedCategories, productCategory].sort();
+            setCategoryNames(updatedCategories);
+          }
+          
+          // Set form data with transformed structure
+          setFormData({
+            ...latestProduct,
+            categoryId: productCategory || "",
+            productSizes,
+            flavors
+          });
+
+          setIsModalOpen(true);
+        } else {
+          toast.error("Failed to load product data");
+        }
+      } else {
+        setEditingProduct(null);
+        setFormData(EMPTY_FORM);
+        setIsModalOpen(true);
+      }
+    } catch (error) {
+      console.error("Error opening modal:", error);
+      toast.error("Failed to load product");
     }
-    setIsModalOpen(true);
   };
 
   const closeModal = () => {
@@ -285,15 +403,41 @@ export const Admin: React.FC = () => {
     if (!formData.categoryId || formData.categoryId.trim() === "") {
       newErrors.categoryId = "Category is required";
     }
-    if (!formData.basePrice || formData.basePrice === 0) {
-      newErrors.basePrice = "Base price is required and must be greater than 0";
-    }
     if (!formData.imageUrls || formData.imageUrls.length === 0) {
       newErrors.imageUrls = "At least one image is required";
     }
-    // Size is now optional - removed the validation check
     if (formData.isVegetarian === undefined || formData.isVegetarian === null) {
       newErrors.isVegetarian = "Please select product type (Vegetarian/Non-Vegetarian)";
+    }
+
+    // Check sizes and pricing
+    if (!formData.productSizes || formData.productSizes.length === 0) {
+      newErrors.productSizes = "At least one size is required";
+    } else {
+      // Validate each size has flavors with prices
+      let hasPricedFlavors = false;
+      for (let i = 0; i < formData.productSizes.length; i++) {
+        const size = formData.productSizes[i];
+        if (!size.flavors || size.flavors.length === 0) {
+          newErrors.productSizes = `Size "${size.size}" must have at least one flavor`;
+          break;
+        }
+        // Check if all flavors have prices
+        for (let j = 0; j < size.flavors.length; j++) {
+          const flavor = size.flavors[j];
+          if (flavor.price === undefined || flavor.price === null || flavor.price === 0) {
+            newErrors.productSizes = `All flavors must have a price. "${size.size}" - "${flavor.name}" is missing price`;
+            break;
+          }
+          if (flavor.price > 0) {
+            hasPricedFlavors = true;
+          }
+        }
+        if (newErrors.productSizes) break;
+      }
+      if (!hasPricedFlavors) {
+        newErrors.productSizes = "At least one flavor must have a price greater than 0";
+      }
     }
 
     setErrors(newErrors);
@@ -349,17 +493,33 @@ export const Admin: React.FC = () => {
 
       if (editingProduct) {
         await updateProduct(editingProduct.id, dataToSend as any);
-        // Refresh products
+        // Refresh products and categories
         const updated = await fetchProducts();
         setProducts(updated);
+        
+        // Refresh categories in case new ones were created
+        const categoriesResponse = await fetch("http://localhost:5000/api/categories");
+        if (categoriesResponse.ok) {
+          const categoriesData = await categoriesResponse.json();
+          setCategoryNames(categoriesData.map((cat: any) => cat.name).sort());
+        }
+        
         toast.success("Product updated", {
           duration: 2000,
         });
       } else {
         await createProduct(dataToSend as any);
-        // Refresh products
+        // Refresh products and categories
         const updated = await fetchProducts();
         setProducts(updated);
+        
+        // Refresh categories in case new ones were created
+        const categoriesResponse = await fetch("http://localhost:5000/api/categories");
+        if (categoriesResponse.ok) {
+          const categoriesData = await categoriesResponse.json();
+          setCategoryNames(categoriesData.map((cat: any) => cat.name).sort());
+        }
+        
         toast.success("Product added", {
           duration: 2000,
         });
@@ -374,12 +534,27 @@ export const Admin: React.FC = () => {
   };
 
   const handleDeleteProduct = async (id: string) => {
+    const productToDelete = products.find(p => p.id === id);
+    setDeleteConfirmation({ isOpen: true, productId: id, productName: productToDelete?.name || "Product" });
+    setDeleteConfirmText("");
+  };
+
+  const confirmDeleteProduct = async () => {
+    if (deleteConfirmText !== "Delete Confirm") {
+      toast.error("Type 'Delete Confirm' exactly to confirm deletion");
+      return;
+    }
+
     try {
-      await deleteProduct(id);
-      setProducts((prev) => prev.filter((p) => p.id !== id));
-      toast.success("Product deleted", {
-        duration: 2000,
-      });
+      if (deleteConfirmation.productId) {
+        await deleteProduct(deleteConfirmation.productId);
+        setProducts((prev) => prev.filter((p) => p.id !== deleteConfirmation.productId));
+        toast.success("Product deleted", {
+          duration: 2000,
+        });
+      }
+      setDeleteConfirmation({ isOpen: false, productId: null, productName: "" });
+      setDeleteConfirmText("");
     } catch (error: any) {
       toast.error(error.message || "Failed to delete product");
     }
@@ -406,64 +581,39 @@ export const Admin: React.FC = () => {
   );
 
   /* --------- Product Form Handlers ---------- */
-  const handleRemoveSize = (size: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      sizes: prev.sizes?.filter((s) => s !== size),
-    }));
-  };
-
-  const handleAddFlavor = () => {
-    if (
-      formData.newFlavor &&
-      !formData.flavors?.includes(formData.newFlavor)
-    ) {
-      setFormData((prev) => ({
-        ...prev,
-        flavors: [...(prev.flavors || []), prev.newFlavor!],
-        newFlavor: "",
-      }));
-    }
-  };
-
-  const handleRemoveFlavor = (flavor: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      flavors: prev.flavors?.filter((f) => f !== flavor),
-    }));
-  };
-
   const handleAddCategory = () => {
-    const trimmedName = newCategoryInput.trim();
-    if (!trimmedName) {
+    // Automatically convert to uppercase and trim
+    const categoryName = newCategoryInput.trim().toUpperCase();
+    if (!categoryName) {
       toast.error("Please enter a category name");
       return;
     }
 
-    // Check if category already exists (case-insensitive)
+    // Check if category already exists (now consistent uppercase)
     const existingCategory = existingCategories.find(
-      (cat) => cat.toLowerCase() === trimmedName.toLowerCase()
+      (cat) => cat.toUpperCase().trim() === categoryName
     );
 
     if (existingCategory) {
       // If category already exists, select it
       setFormData((prev) => ({
         ...prev,
-        categoryId: existingCategory,
+        categoryId: existingCategory.toUpperCase(),
       }));
       setNewCategoryInput("");
       setIsAddingCategory(false);
-      toast.success(`Category "${existingCategory}" selected`);
+      toast.success(`Category "${existingCategory.toUpperCase()}" selected`);
     } else {
-      // Add new category
-      setCategoryNames((prev) => [...prev, trimmedName].sort());
+      // Add new category as uppercase
+      const upperCategory = categoryName;
+      setCategoryNames((prev) => [...prev, upperCategory].sort());
       setFormData((prev) => ({
         ...prev,
-        categoryId: trimmedName,
+        categoryId: upperCategory,
       }));
       setNewCategoryInput("");
       setIsAddingCategory(false);
-      toast.success(`Category "${trimmedName}" added`);
+      toast.success(`Category "${upperCategory}" added`);
     }
   };
 
@@ -487,21 +637,56 @@ export const Admin: React.FC = () => {
       {/* HEADER */}
       <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
 
-        <div className="flex gap-3">
-          <input
+        <div className="flex gap-3 relative">
+          {/* Search Bar - Desktop Only - UNIQUE DESIGN */}
+          <div 
+            className="relative w-96 hidden lg:block"
+            onMouseEnter={() => searchQuery && setIsSearchOpen(true)}
+            onMouseLeave={() => setIsSearchOpen(false)}
+          >
+            <input
             type="text"
-            placeholder="Search by name or category..."
+            placeholder="Search products..."
             value={searchQuery}
             onChange={(e) => {
               setSearchQuery(e.target.value);
               setCurrentPage(1);
+              if (e.target.value) setIsSearchOpen(true);
             }}
-            className="w-64 rounded-lg border px-4 py-2"
+            className="w-full border border-gray-300 rounded-md px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
           />
+            
+            {/* Search Dropdown - Shows on hover with z-index fix */}
+            {isSearchOpen && searchQuery && (
+              <div className=" left-0 right-0 bg-white border-2 border-emerald-300 rounded-2xl shadow-2xl z-[999] max-h-64 overflow-y-auto">
+                {filteredProducts.length > 0 ? (
+                  <div className="divide-y-2">
+                    {filteredProducts.slice(0, 5).map((product) => (
+                      <div
+                        key={product.id}
+                        onClick={() => {
+                          setSearchQuery(product.name);
+                          setIsSearchOpen(false);
+                        }}
+                        className="px-5 py-4 hover:bg-emerald-50 cursor-pointer transition-colors border-b last:border-b-0"
+                      >
+                        <p className="text-sm font-semibold text-neutral-900">{product.name}</p>
+                        <p className="text-xs text-emerald-600 font-medium">{product.categoryName || product.categoryId || "Uncategorized"}</p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="px-5 py-4 text-center text-sm text-neutral-500">
+                    No products found
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
 
           <button
             onClick={() => openModal()}
-            className="flex items-center gap-2 rounded-lg bg-neutral-900 px-4 py-2 text-white"
+            className="flex items-center gap-2 rounded-xl bg-neutral-900 px-4 py-3 text-white font-medium hover:bg-neutral-800 transition-colors"
           >
             <Plus className="h-4 w-4" />
             Add Product
@@ -519,68 +704,99 @@ export const Admin: React.FC = () => {
           <table className="w-full text-sm">
             <thead className="bg-neutral-100">
               <tr>
-                <th className="px-4 py-3 text-left">Product</th>
+                <th className="px-4 py-3 text-left">Product Name</th>
                 <th className="px-4 py-3">Category</th>
-                <th className="px-4 py-3">Base Price</th>
+                <th className="px-4 py-3">Price (Range)</th>
                 <th className="px-4 py-3">Discount</th>
-                <th className="px-4 py-3">Final Price</th>
-                <th className="px-4 py-3">Stock</th>
+                <th className="px-4 py-3">Stock Status</th>
                 <th className="px-4 py-3">Actions</th>
               </tr>
             </thead>
 
             <tbody>
-              {paginatedProducts.map((p) => (
-                <tr key={p.id} className="border-t">
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-3">
-                      <img
-                        src={getFullImageUrl(p.imageUrls?.[0] || "")}
-                        className="h-10 w-10 rounded-lg border object-cover"
-                        alt={p.name}
-                      />
-                      <div className="flex flex-col gap-1">
-                        <span className="font-medium">
-                          {p.name}
-                        </span>
-                        <div className="flex gap-2">
-                          {p.isFeatured && (
-                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                              Featured
-                            </span>
-                          )}
-                          {p.isSpecialOffer && (
-                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
-                              Discounted
-                            </span>
-                          )}
+              {paginatedProducts.map((p) => {
+                const priceInfo = getPriceRange(p);
+                const hasDiscountFlag = hasDiscount(p);
+                const maxDiscount = getMaxDiscount(p);
+
+                return (
+                  <tr key={p.id} className="border-t hover:bg-neutral-50 transition">
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-3">
+                        <img
+                          src={getFullImageUrl(p.imageUrls?.[0] || "")}
+                          className="h-10 w-10 rounded-lg border object-cover"
+                          alt={p.name}
+                        />
+                        <div className="flex flex-col gap-1">
+                          <span className="font-medium">
+                            {p.name}
+                          </span>
+                          <div className="flex gap-2 flex-wrap">
+                            {p.isFeatured && (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                Featured
+                              </span>
+                            )}
+                            {p.isSpecialOffer && (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                                Special Offer
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </td>
+                    </td>
 
-                  <td className="text-center">{p.categoryName || (typeof p.category === 'object' ? p.category?.name : p.category) || p.categoryId || "—"}</td>
-                  <td className="text-center">₹{p.basePrice}</td>
-                  <td className="text-center text-green-600">
-                    {p.discountPercent ? `${p.discountPercent}%` : "—"}
-                  </td>
-                  <td className="text-center font-bold">
-                    ₹{p.finalPrice}
-                  </td>
-                  <td className="text-center">{p.isOutOfStock ? 'Out of Stock' : 'In Stock'}</td>
+                    <td className="text-center">{p.categoryName || (typeof p.category === 'object' ? p.category?.name : p.category) || p.categoryId || "—"}</td>
 
-                  <td>
-                    <div className="flex justify-center gap-2">
-                      <button onClick={() => openModal(p)}>
-                        <Edit2 className="h-4 w-4" />
-                      </button>
-                      <button onClick={() => handleDeleteProduct(p.id)}>
-                        <Trash2 className="h-4 w-4 text-red-600" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                    <td className="text-center">
+                      <span className="font-semibold text-neutral-900">
+                        {priceInfo.display}
+                      </span>
+                    </td>
+
+                    <td className="text-center">
+                      {hasDiscountFlag ? (
+                        <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-green-100 text-green-800">
+                          Yes {maxDiscount > 0 && `(${Math.round(maxDiscount)}%)`}
+                        </span>
+                      ) : (
+                        <span className="text-neutral-400">No</span>
+                      )}
+                    </td>
+
+                    <td className="text-center">
+                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${
+                        p.isOutOfStock 
+                          ? 'bg-red-100 text-red-800' 
+                          : 'bg-emerald-100 text-emerald-800'
+                      }`}>
+                        {p.isOutOfStock ? 'Out of Stock' : 'In Stock'}
+                      </span>
+                    </td>
+
+                    <td className="px-4 py-3">
+                      <div className="flex justify-center gap-2">
+                        <button
+                          onClick={() => openModal(p)}
+                          className="p-2 text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 rounded-md transition"
+                          title="Edit product"
+                        >
+                          <Edit2 className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteProduct(p.id)}
+                          className="p-2 text-red-600 hover:text-red-900 hover:bg-red-50 rounded-md transition"
+                          title="Delete product"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         )}
@@ -633,6 +849,45 @@ export const Admin: React.FC = () => {
         </div>
       )}
 
+      {/* Delete Confirmation Modal */}
+      {deleteConfirmation.isOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-lg p-6 max-w-md w-full">
+            <h3 className="text-lg font-bold text-red-600 mb-2">Delete Product?</h3>
+            <p className="text-neutral-600 mb-4">
+              Are you sure you want to delete <strong>{deleteConfirmation.productName}</strong>? This action cannot be undone.
+            </p>
+            <p className="text-sm text-neutral-500 mb-3">To confirm, type the text below (no pasting allowed):</p>
+            <input
+              type="text"
+              placeholder="Type 'Delete Confirm' exactly"
+              value={deleteConfirmText}
+              onChange={(e) => setDeleteConfirmText(e.target.value)}
+              onPaste={(e) => e.preventDefault()}
+              className="w-full px-3 py-2 border rounded-lg mb-4 font-mono text-center"
+            />
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  setDeleteConfirmation({ isOpen: false, productId: null, productName: "" });
+                  setDeleteConfirmText("");
+                }}
+                className="flex-1 rounded-lg border border-neutral-300 px-4 py-2 hover:bg-neutral-100"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDeleteProduct}
+                disabled={deleteConfirmText !== "Delete Confirm"}
+                className="flex-1 rounded-lg bg-red-600 text-white px-4 py-2 hover:bg-red-700 disabled:bg-neutral-300 disabled:cursor-not-allowed"
+              >
+                Delete Product
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* MODAL */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
@@ -680,119 +935,47 @@ export const Admin: React.FC = () => {
                 {errors.description && <p className="mt-1 text-xs text-red-500">{errors.description}</p>}
               </div>
 
-              {/* SIZES */}
-              <div>
-                <label className="mb-1 block text-sm font-medium">
-                  Sizes Available
-                </label>
-
-                {/* Existing sizes */}
-                <div className="flex gap-2 flex-wrap mb-2">
-                  {(formData.sizes || []).map((size) => (
-                    <span
-                      key={size}
-                      className="flex items-center gap-1 rounded-full bg-neutral-200 px-2 py-1 text-sm"
-                    >
-                      {size}
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveSize(size)}
-                      >
-                        ×
-                      </button>
-                    </span>
-                  ))}
-                </div>
-
-                {/* Add new size */}
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    placeholder="Add new size..."
-                    value={formData.newSize || ""}
-                    onChange={(e) => {
-                      const numericValue =
-                        e.target.value.replace(/\D/g, ""); // remove non-numeric
-                      setFormData((prev) => ({
-                        ...prev,
-                        newSize: numericValue,
-                      }));
-                    }}
-                    className="w-full rounded-lg border px-3 py-2"
-                  />
-
-                  {/* Unit dropdown */}
-                  <select
-                    value={formData.newSizeUnit || "kg"}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        newSizeUnit: e.target.value,
-                      }))
-                    }
-                    className="rounded-lg border px-3 py-2"
-                  >
-                    <option value="kg">kg</option>
-                    <option value="g">g</option>
-                  </select>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (formData.newSize) {
-                        const sizeWithUnit = `${formData.newSize}${formData.newSizeUnit || "kg"}`;
-                        if (
-                          !(formData.sizes || []).includes(
-                            sizeWithUnit,
-                          )
-                        ) {
-                          setFormData((prev) => ({
-                            ...prev,
-                            sizes: [
-                              ...(prev.sizes || []),
-                              sizeWithUnit,
-                            ],
-                            newSize: "",
-                            newSizeUnit: "kg",
-                          }));
-                        }
-                      }
-                    }}
-                    className="rounded-lg bg-neutral-900 px-4 py-2 text-white"
-                  >
-                    Add
-                  </button>
-                </div>
-                {errors.sizes && <p className="mt-1 text-xs text-red-500">{errors.sizes}</p>}
-              </div>
-
               {/* FLAVORS */}
               <div>
-                <label className="mb-1 block text-sm font-medium">
-                  Flavors Available
-                </label>
-                <div className="flex gap-2 flex-wrap mb-2">
+                <label className="mb-3 block text-sm font-medium">Flavors</label>
+                
+                {/* Flavor Tags */}
+                <div className="flex gap-2 flex-wrap mb-3">
                   {(formData.flavors || []).map((flavor) => (
-                    <span
+                    <div
                       key={flavor}
-                      className="flex items-center gap-1 rounded-full bg-neutral-200 px-2 py-1 text-sm"
+                      className="flex items-center gap-2 rounded-full bg-blue-100 text-blue-800 px-3 py-1.5 text-sm font-medium"
                     >
                       {flavor}
-                      <button
-                        type="button"
-                        onClick={() =>
-                          handleRemoveFlavor(flavor)
-                        }
-                      >
-                        ×
-                      </button>
-                    </span>
+                      {flavor !== "Unflavoured" && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newFlavors = (formData.flavors || []).filter(f => f !== flavor);
+                            const newSizes = (formData.productSizes || []).map(size => ({
+                              ...size,
+                              flavors: size.flavors.filter(f => f.name !== flavor)
+                            }));
+                            setFormData((prev) => ({
+                              ...prev,
+                              flavors: newFlavors.length === 0 ? ["Unflavoured"] : newFlavors,
+                              productSizes: newSizes
+                            }));
+                          }}
+                          className="text-blue-600 hover:text-blue-800 font-bold"
+                        >
+                          ×
+                        </button>
+                      )}
+                    </div>
                   ))}
                 </div>
+
+                {/* Add Flavor Input */}
                 <div className="flex gap-2">
                   <input
                     type="text"
-                    placeholder="Add new flavor..."
+                    placeholder="Add new flavor (e.g., Mango, Chocolate)..."
                     value={formData.newFlavor || ""}
                     onChange={(e) =>
                       setFormData((prev) => ({
@@ -800,16 +983,252 @@ export const Admin: React.FC = () => {
                         newFlavor: e.target.value,
                       }))
                     }
-                    className="w-full rounded-lg border px-3 py-2"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        const flavorName = (formData.newFlavor || "").trim();
+                        if (flavorName && !(formData.flavors || []).includes(flavorName)) {
+                          const newFlavors = (formData.flavors || []).filter(f => f !== "Unflavoured");
+                          setFormData((prev) => ({
+                            ...prev,
+                            flavors: [...newFlavors, flavorName],
+                            newFlavor: ""
+                          }));
+                        }
+                      }
+                    }}
+                    className="flex-1 rounded-lg border px-3 py-2"
                   />
                   <button
                     type="button"
-                    onClick={handleAddFlavor}
-                    className="rounded-lg bg-neutral-900 px-4 py-2 text-white"
+                    onClick={() => {
+                      const flavorName = (formData.newFlavor || "").trim();
+                      if (flavorName && !(formData.flavors || []).includes(flavorName)) {
+                        const newFlavors = (formData.flavors || []).filter(f => f !== "Unflavoured");
+                        setFormData((prev) => ({
+                          ...prev,
+                          flavors: [...newFlavors, flavorName],
+                          newFlavor: ""
+                        }));
+                      }
+                    }}
+                    className="rounded-lg bg-neutral-900 px-4 py-2 text-white hover:bg-neutral-800"
                   >
                     Add
                   </button>
                 </div>
+                {errors.flavors && <p className="mt-1 text-xs text-red-500">{errors.flavors}</p>}
+              </div>
+
+              {/* SIZES WITH FLAVORS & PRICING */}
+              <div>
+                <label className="mb-3 block text-sm font-medium">Sizes & Pricing</label>
+                
+                {/* Existing Sizes */}
+                {(formData.productSizes || []).map((size, sizeIdx) => (
+                  <div key={sizeIdx} className="mb-4 rounded-lg border border-neutral-200 bg-neutral-50 p-4">
+                    <div className="flex justify-between items-center mb-3 gap-3">
+                      <div className="flex items-end gap-2">
+                        <div>
+                          <h4 className="font-semibold">{size.size}</h4>
+                        </div>
+                        <div className="flex-1 min-w-[150px]">
+                          <label className="text-xs font-medium text-neutral-600">Base Price (₹)</label>
+                          <input
+                            type="number"
+                            placeholder="Enter price for all flavors"
+                            onChange={(e) => {
+                              const basePrice = Math.round(parseFloat(e.target.value) || 0);
+                              const newSizes = [...(formData.productSizes || [])];
+                              if (basePrice > 0) {
+                                newSizes[sizeIdx].flavors = newSizes[sizeIdx].flavors.map(f => ({
+                                  ...f,
+                                  price: basePrice
+                                }));
+                              }
+                              setFormData((prev) => ({
+                                ...prev,
+                                productSizes: newSizes
+                              }));
+                            }}
+                            className="w-full text-sm rounded border px-2 py-1"
+                            step="1"
+                          />
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const newSizes = (formData.productSizes || []).filter((_, idx) => idx !== sizeIdx);
+                          setFormData((prev) => ({
+                            ...prev,
+                            productSizes: newSizes
+                          }));
+                        }}
+                        className="text-red-600 hover:text-red-800 font-bold"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                    
+                    {/* Flavor Pricing for this Size */}
+                    <div className="mb-4 space-y-2">
+                      <div className="text-xs font-medium text-neutral-600 mb-2">Flavor, Price, Final Price</div>
+                      {size.flavors.map((flavorItem, flavorIdx) => {
+                        const discount = size.discount || 0;
+                        const finalPrice = Math.round(flavorItem.price - (flavorItem.price * discount / 100));
+                        return (
+                          <div key={flavorIdx} className="flex gap-3 items-end bg-white p-2 rounded border">
+                            <div className="flex-1">
+                              <label className="text-xs font-medium text-neutral-600">Flavor</label>
+                              <select
+                                value={flavorItem.name}
+                                onChange={(e) => {
+                                  const newSizes = [...(formData.productSizes || [])];
+                                  newSizes[sizeIdx].flavors[flavorIdx].name = e.target.value;
+                                  setFormData((prev) => ({
+                                    ...prev,
+                                    productSizes: newSizes
+                                  }));
+                                }}
+                                className="w-full text-sm rounded border px-2 py-1"
+                              >
+                                {(formData.flavors || []).map(f => (
+                                  <option key={f} value={f}>{f}</option>
+                                ))}
+                              </select>
+                            </div>
+                            <div className="flex-1">
+                              <label className="text-xs font-medium text-neutral-600">Price (₹)</label>
+                              <input
+                                type="number"
+                                value={flavorItem.price}
+                                onChange={(e) => {
+                                  const newSizes = [...(formData.productSizes || [])];
+                                  newSizes[sizeIdx].flavors[flavorIdx].price = Math.round(parseFloat(e.target.value) || 0);
+                                  setFormData((prev) => ({
+                                    ...prev,
+                                    productSizes: newSizes
+                                  }));
+                                }}
+                                className="w-full text-sm rounded border px-2 py-1"
+                                step="1"
+                              />
+                            </div>
+                            <div className="flex-1">
+                              <label className="text-xs font-medium text-neutral-600">Final Price (₹)</label>
+                              <input
+                                type="number"
+                                value={finalPrice}
+                                readOnly
+                                className="w-full text-sm rounded border px-2 py-1 bg-neutral-100"
+                              />
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newSizes = [...(formData.productSizes || [])];
+                                newSizes[sizeIdx].flavors.splice(flavorIdx, 1);
+                                if (newSizes[sizeIdx].flavors.length === 0) {
+                                  newSizes.splice(sizeIdx, 1);
+                                }
+                                setFormData((prev) => ({
+                                  ...prev,
+                                  productSizes: newSizes
+                                }));
+                              }}
+                              className="text-red-600 hover:text-red-800 font-bold"
+                            >
+                              ×
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    
+                    {/* Discount Section - Applied on Size */}
+                    <div className="bg-white p-3 rounded border border-neutral-200">
+                      <label className="text-xs font-medium text-neutral-600">Discount (%) - Applied on Size</label>
+                      <input
+                        type="number"
+                        value={size.discount || 0}
+                        onChange={(e) => {
+                          const newSizes = [...(formData.productSizes || [])];
+                          const discountValue = Math.round(parseFloat(e.target.value) || 0);
+                          newSizes[sizeIdx].discount = Math.max(0, discountValue);
+                          setFormData((prev) => ({
+                            ...prev,
+                            productSizes: newSizes
+                          }));
+                        }}
+                        className="w-full text-sm rounded border px-2 py-1"
+                        step="1"
+                        min="0"
+                      />
+                    </div>
+                  </div>
+                ))}
+
+                {/* Add New Size */}
+                <div className="rounded-lg border-2 border-dashed border-neutral-300 p-4">
+                  <div className="flex gap-2">
+                    <input
+                      type="number"
+                      placeholder="Enter size (e.g., 250, 500, 1000)"
+                      value={formData.newSizeValue || ""}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          newSizeValue: e.target.value,
+                        }))
+                      }
+                      className="flex-1 rounded-lg border px-3 py-2"
+                      step="1"
+                    />
+                    <select
+                      value={formData.newSizeUnit || "g"}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          newSizeUnit: e.target.value,
+                        }))
+                      }
+                      className="rounded-lg border px-3 py-2"
+                    >
+                      <option value="g">g</option>
+                      <option value="kg">kg</option>
+                    </select>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const sizeValue = formData.newSizeValue?.trim();
+                        if (sizeValue) {
+                          const sizeName = `${sizeValue}${formData.newSizeUnit || "g"}`;
+                          if (!(formData.productSizes || []).some(s => s.size === sizeName)) {
+                            const newSize = {
+                              size: sizeName,
+                              discount: 0,
+                              flavors: (formData.flavors || ["Unflavoured"]).map(flavor => ({
+                                name: flavor,
+                                price: 0,
+                                discount: 0
+                              }))
+                            };
+                            setFormData((prev) => ({
+                              ...prev,
+                              productSizes: [...(prev.productSizes || []), newSize],
+                              newSizeValue: "",
+                              newSizeUnit: "g"
+                            }));
+                          }
+                        }
+                      }}
+                      className="rounded-lg bg-neutral-900 px-4 py-2 text-white hover:bg-neutral-800"
+                    >
+                      Add Size
+                    </button>
+                  </div>
+                </div>
+                {errors.productSizes && <p className="mt-2 text-xs text-red-500">{errors.productSizes}</p>}
               </div>
 
               {/* CATEGORY (Dropdown + Add New) */}
@@ -1052,59 +1471,21 @@ export const Admin: React.FC = () => {
                 </p>
               </div>
 
-              {/* PRICING & STOCK */}
-              <div className="grid grid-cols-4 gap-4">
-                <div>
-                  <label className="mb-1 block text-sm font-medium">
-                    Base Price
-                  </label>
+              {/* OUT OF STOCK */}
+              <div>
+                <label className="mb-1 block text-sm font-medium">
+                  Stock Status
+                </label>
+                <div className="flex items-center gap-3">
                   <input
-                    type="number"
-                    name="basePrice"
-                    value={formData.basePrice}
+                    type="checkbox"
+                    name="isOutOfStock"
+                    checked={formData.isOutOfStock || false}
                     onChange={handleInputChange}
-                    className={`w-full rounded-lg border px-3 py-2 ${errors.basePrice ? "border-b-2 border-b-red-500" : ""}`}
+                    className="w-5 h-5 rounded border-gray-300 cursor-pointer"
                   />
-                  {errors.basePrice && <p className="mt-1 text-xs text-red-500">{errors.basePrice}</p>}
+                  <span className="text-sm text-gray-600">Mark this product as out of stock</span>
                 </div>
-
-                <div>
-                  <label className="mb-1 block text-sm font-medium">
-                    Discount (%)
-                  </label>
-                  <input
-                    type="number"
-                    name="discountPercent"
-                    value={formData.discountPercent}
-                    onChange={handleInputChange}
-                    className="w-full rounded-lg border px-3 py-2"
-                  />
-                </div>
-
-                <div>
-                  <label className="mb-1 block text-sm font-medium">
-                    Out of Stock
-                  </label>
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="checkbox"
-                      name="isOutOfStock"
-                      checked={formData.isOutOfStock || false}
-                      onChange={handleInputChange}
-                      className="w-5 h-5 rounded border-gray-300 cursor-pointer"
-                    />
-                    <span className="text-sm text-gray-600">Mark this product as out of stock</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* FINAL PRICE */}
-              <div className="rounded-lg bg-neutral-100 p-4 font-bold">
-                Final Price: ₹{" "}
-                {calculateFinalPrice(
-                  formData.basePrice || 0,
-                  formData.discountPercent || 0,
-                )}
               </div>
 
               {/* SUBMIT */}

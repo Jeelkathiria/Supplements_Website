@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ShoppingCart, Zap, Eye, Heart } from 'lucide-react';
+import { ShoppingCart, Eye, Heart } from 'lucide-react';
 import { useCart } from './context/CartContext';
 import { useFavorites } from './context/FavoritesContext';
 import { toast } from 'sonner';
 import { Product } from '../types';
-import { calculateFinalPrice } from '../data/products';
+import { getProductPricing, getProductSizes, getProductFlavors } from '../utils/pricingUtils';
 
 interface ProductCardProps {
   product: Product;
@@ -32,11 +32,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     }
   };
 
-  // Price calculation - handle both old and new field names
-  const basePrice = product.basePrice || 0;
-  const discount = product.discountPercent || product.discount || 0;
-
-  const finalPrice = calculateFinalPrice(basePrice, discount);
+  // Price calculation - use variant pricing from database
+  const pricing = getProductPricing(product);
+  const discountPercent = pricing.discountPercent;
+  const finalPrice = pricing.finalPrice;
 
   // Get images from either field
   const images = product.imageUrls || product.images || [];
@@ -67,8 +66,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     }
 
     // Auto-select 1st size and 1st flavor if available
-    const selectedSize = product.sizes?.[0];
-    const selectedFlavor = (product.flavors || product.colors)?.[0];
+    const selectedSize = getProductSizes(product)[0];
+    const selectedFlavor = getProductFlavors(product)[0];
 
     addToCart(product, 1, selectedSize, selectedFlavor);
     toast.success(`${product.name} added to cart`);
@@ -106,14 +105,14 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           )}
 
           {/* Discount Ribbon Strip */}
-          {discount > 0 && (
+          {discountPercent > 0 && (
             <div className="absolute -top-1 -left-1 flex items-center justify-center">
               <div className="relative w-20 h-10 bg-red-600 text-white flex items-center justify-center font-bold text-[11px] shadow-lg"
                 style={{
                   clipPath: 'polygon(0 0, 85% 0, 100% 50%, 85% 100%, 0 100%, 15% 50%)',
                   boxShadow: 'inset -2px -2px 5px rgba(0,0,0,0.3)'
                 }}>
-                {discount}% OFF
+                {discountPercent}% OFF
               </div>
             </div>
           )}
@@ -121,7 +120,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           {/* Favorite Button */}
           <button
             onClick={handleToggleFavorite}
-            className="absolute top-3 right-3 bg-white/80 backdrop-blur-sm rounded-full p-2 shadow-sm hover:shadow-md transition-all z-10"
+            className="absolute top-3 right-3 bg-white/80 backdrop-blur-sm rounded-full w-8 h-8 flex items-center justify-center shadow-sm hover:shadow-md transition-all z-10"
           >
             <Heart
               className={`w-4 h-4 transition-colors ${isProductFavorited
@@ -133,7 +132,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         </div>
 
         {/* Product Info */}
-        <div className="p-3">
+        <div className="p-2 sm:p-3">
           {/* Category */}
           <div
             className={`text-[12px] uppercase tracking-wide font-semibold mb-0.5 ${isDiscount ? 'text-white/70' : 'text-neutral-500'
@@ -159,13 +158,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               <span className={`italic text-lg font-bold ${isDiscount ? 'text-white' : 'text-neutral-900'}`}>
                 ₹{finalPrice.toFixed(0)}
               </span>
-              {discount > 0 && (
+              {discountPercent > 0 && (
                 <>
                   <span className="ml-1 text-xs line-through">
-                    ₹{basePrice.toFixed(0)}
+                    ₹{pricing.basePrice.toFixed(0)}
                   </span>
                   <span className={`ml-1 text-xs font-bold ${isDiscount ? 'text-yellow-300' : 'text-green-600'}`}>
-                    {discount}% off
+                    {discountPercent}% off
                   </span>
                 </>
               )}
@@ -173,7 +172,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             <p className="text-[11px] text-neutral-400 mt-2">
               Inclusive of all taxes
             </p>
-            {discount === 0 && <div className="h-3"></div>}
+            {discountPercent === 0 && <div className="h-3"></div>}
 
           </div>
 

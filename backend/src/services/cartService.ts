@@ -8,7 +8,13 @@ export const getOrCreateCart = async (userId: string) => {
       create: { userId },
       include: {
         items: {
-          include: { product: true }
+          include: {
+            product: {
+              include: {
+                productVariants: true
+              }
+            }
+          }
         }
       }
     });
@@ -197,25 +203,36 @@ export const getCartWithTotals = async (userId: string) => {
     let subtotal = 0;
     let totalDiscount = 0;
 
-    const itemsWithTotals = cart.items.map((item) => {
-      const product = item.product;
-      const basePrice = product.basePrice;
-      const discountAmount = (basePrice * (product.discountPercent || 0)) / 100;
-      const finalPrice = basePrice - discountAmount;
+    const itemsWithTotals = await Promise.all(
+      cart.items.map(async (item) => {
+        // Get variant for this item to get correct pricing
+        const variant = await prisma.productVariant.findFirst({
+          where: {
+            productId: item.productId,
+            size: item.size || "",
+            flavor: item.flavor || "",
+          },
+        });
 
-      const itemTotal = finalPrice * item.quantity;
-      const itemDiscount = discountAmount * item.quantity;
+        // Use variant price if available, otherwise fallback to 0
+        const finalPrice = variant?.finalPrice || 0;
+        const unitPrice = variant?.price || 0;
+        const discountAmount = unitPrice - finalPrice;
 
-      subtotal += itemTotal;
-      totalDiscount += itemDiscount;
+        const itemTotal = finalPrice * item.quantity;
+        const itemDiscountTotal = discountAmount * item.quantity;
 
-      return {
-        ...item,
-        unitPrice: finalPrice,
-        totalPrice: itemTotal,
-        discountAmount: itemDiscount
-      };
-    });
+        subtotal += itemTotal;
+        totalDiscount += itemDiscountTotal;
+
+        return {
+          ...item,
+          unitPrice: finalPrice,
+          totalPrice: itemTotal,
+          discountAmount: itemDiscountTotal
+        };
+      })
+    );
 
     return {
       ...cart,

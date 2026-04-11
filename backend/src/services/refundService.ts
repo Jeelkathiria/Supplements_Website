@@ -61,17 +61,6 @@ export const createRefundForApprovedCancellation = async (
 
     // Send refund initiated email to user
     try {
-      const user = await prisma.user.findUnique({
-        where: { id: order.id }, // Get user from order
-        include: {
-          orders: {
-            where: { id: orderId },
-            select: { id: true },
-          },
-        },
-      });
-
-      // Actually, we need to get the order first to get the user, let me fix that
       const orderWithUser = await prisma.order.findUnique({
         where: { id: orderId },
         select: {

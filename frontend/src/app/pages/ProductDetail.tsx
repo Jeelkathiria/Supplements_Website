@@ -7,13 +7,15 @@ import {
   Heart,
   ChevronLeft,
   ChevronRight,
+  Plus,
+  Minus,
 } from "lucide-react";
 import { useCart } from "../components/context/CartContext";
 import { useFavorites } from "../components/context/FavoritesContext";
 import { toast } from "sonner";
 import { Breadcrumb } from "../components/Breadcrumb";
 import { fetchProducts } from "../../services/productService";
-import { calculateFinalPrice } from "../data/products";
+import { getProductPricing } from "../utils/pricingUtils";
 import { Product } from "../types";
 
 export const ProductDetail: React.FC = () => {
@@ -24,11 +26,13 @@ export const ProductDetail: React.FC = () => {
 
   const [product, setProduct] = useState<Product | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isPriceLoading, setIsPriceLoading] = useState(false);
   const imageRef = useRef<HTMLDivElement | null>(null);
 
   const [selectedImage, setSelectedImage] = useState(0);
   const [selectedSize, setSelectedSize] = useState("");
-  const [selectedColor, setSelectedColor] = useState("");
+  const [selectedFlavor, setSelectedFlavor] = useState("");
+  const [selectedWeight, setSelectedWeight] = useState("");
   const [quantity, setQuantity] = useState(1);
 
   const [isHovering, setIsHovering] = useState(false);
@@ -57,8 +61,190 @@ export const ProductDetail: React.FC = () => {
     loadProduct();
   }, [id]);
 
+  // Auto-select first size and flavor when product loads
+  useEffect(() => {
+    if (product) {
+      const sizes = getSizesFromVariants();
+      const flavors = getFlavorsFromVariants();
+      
+      if (sizes.length > 0 && !selectedSize) {
+        setSelectedSize(sizes[0]);
+      }
+      
+      if (flavors.length > 0 && !selectedFlavor) {
+        setSelectedFlavor(flavors[0]);
+      }
+    }
+  }, [product]);
+
   // Check if product is favorited whenever favorites change
   const isProductFavorited = product ? favorites.some(fav => fav.id === product.id) : false;
+
+  // Build productSizes structure from productVariants
+  const getProductSizesFromVariants = (): Array<{ size: string; flavors: Array<{ name: string; price: number }> }> => {
+    if (!product?.productVariants || product.productVariants.length === 0) {
+      return [];
+    }
+
+    // Group variants by size and collect flavors
+    const sizeMap = new Map<string, Array<{ name: string; price: number }>>();
+    
+    product.productVariants.forEach((variant) => {
+      if (!sizeMap.has(variant.size)) {
+        sizeMap.set(variant.size, []);
+      }
+      sizeMap.get(variant.size)!.push({
+        name: variant.flavor,
+        price: variant.finalPrice || variant.price,
+      });
+    });
+
+    // Convert to productSizes structure
+    return Array.from(sizeMap.entries()).map(([size, flavors]) => ({
+      size,
+      flavors,
+    }));
+  };
+
+  const productSizes = getProductSizesFromVariants();
+
+  // Helper: Get all unique sizes from productSizes
+  const getSizesFromVariants = (): string[] => {
+    return productSizes.map((s) => s.size);
+  };
+
+  // Helper: Get all unique flavors from productSizes
+  const getFlavorsFromVariants = (): string[] => {
+    const flavors = new Set<string>();
+    productSizes.forEach((size) => {
+      size.flavors.forEach((flavor) => {
+        flavors.add(flavor.name);
+      });
+    });
+    return Array.from(flavors);
+  };
+
+  // Helper: Get flavors available for a specific size
+  const getFlavorsForSize = (sizeName: string): string[] => {
+    const size = productSizes.find((s) => s.size === sizeName);
+    if (!size) {
+      return [];
+    }
+    return size.flavors.map((f) => f.name);
+  };
+
+  // Get minimum price from all productVariants
+  const getMinimumPriceFromSizes = (): number => {
+    if (!product?.productVariants || product.productVariants.length === 0) {
+      return Infinity;
+    }
+
+    let minPrice = Infinity;
+    product.productVariants.forEach((variant) => {
+      const price = variant.finalPrice || variant.price;
+      if (price < minPrice) {
+        minPrice = price;
+      }
+    });
+
+    return minPrice === Infinity ? Infinity : minPrice;
+  };
+
+  // Get minimum price for a specific size
+  const getMinimumPriceForSize = (sizeName: string): number => {
+    if (!product?.productVariants || product.productVariants.length === 0) {
+      return Infinity;
+    }
+
+    const sizeVariants = product.productVariants.filter((v) => v.size === sizeName);
+    if (sizeVariants.length === 0) {
+      return Infinity;
+    }
+
+    return Math.min(...sizeVariants.map((v) => v.finalPrice || v.price));
+  };
+
+  // Get price for a specific size AND flavor combination
+  const getPriceForSizeAndFlavor = (sizeName: string, flavorName: string): number => {
+    if (!product?.productVariants || product.productVariants.length === 0) {
+      return Infinity;
+    }
+
+    const variant = product.productVariants.find(
+      (v) => v.size === sizeName && v.flavor === flavorName
+    );
+
+    if (!variant) {
+      return Infinity;
+    }
+
+    return variant.finalPrice || variant.price;
+  };
+
+  // Get price from variant or default, showing lowest price from productVariants
+  const getDisplayPrice = (): number => {
+    // If we have productVariants, use specific price logic
+    if (product?.productVariants && product.productVariants.length > 0) {
+      // If both size and flavor are selected, show exact variant price
+      if (selectedSize && selectedFlavor) {
+        const exactPrice = getPriceForSizeAndFlavor(selectedSize, selectedFlavor);
+        if (exactPrice !== Infinity) {
+          return exactPrice;
+        }
+      }
+
+      // If only size is selected, show lowest price for that size
+      if (selectedSize) {
+        const sizeMinPrice = getMinimumPriceForSize(selectedSize);
+        if (sizeMinPrice !== Infinity) {
+          return sizeMinPrice;
+        }
+      }
+
+      // Show absolute minimum price across all variants
+      const allMinPrice = getMinimumPriceFromSizes();
+      if (allMinPrice !== Infinity) {
+        return allMinPrice;
+      }
+    }
+
+    // Fallback to old pricing system
+    const pricing = getProductPricing(product || {} as Product);
+    return pricing.finalPrice;
+  };
+
+  // Get discount percentage and base price for selected size and flavor
+  const getDiscountForSelectedSize = (): { discount: number; basePrice: number } => {
+    if (!product?.productVariants || product.productVariants.length === 0) {
+      return { discount: 0, basePrice: 0 };
+    }
+
+    // Get variant for selected size and flavor
+    let variant = null;
+    
+    if (selectedSize && selectedFlavor) {
+      // If both are selected, get exact variant
+      variant = product.productVariants.find((v) => v.size === selectedSize && v.flavor === selectedFlavor);
+    } else if (selectedSize) {
+      // If only size is selected, get first variant of that size
+      variant = product.productVariants.find((v) => v.size === selectedSize);
+    } else {
+      // Fallback to first variant
+      variant = product.productVariants[0];
+    }
+
+    if (!variant) {
+      return { discount: 0, basePrice: 0 };
+    }
+
+    // Discount is stored as a percentage for size-level discounts
+    const discountPercent = variant.discountType === "percent" ? variant.discount : 0;
+    
+    return {
+      discount: discountPercent,
+      basePrice: variant.price,
+    };
+  };
 
   if (isLoading) {
     return (
@@ -98,7 +284,11 @@ export const ProductDetail: React.FC = () => {
   // Get images array
   const images = product.imageUrls || product.images || [];
 
-  const finalPrice = calculateFinalPrice(product.basePrice, product.discountPercent || 0);
+  const pricing = getProductPricing(product);
+  const finalPrice = getDisplayPrice();
+  const sizeDiscount = getDiscountForSelectedSize();
+  const discountPercent = selectedSize ? sizeDiscount.discount : pricing.discountPercent;
+  const basePrice = selectedSize ? sizeDiscount.basePrice : pricing.basePrice;
 
   const handleMouseMove = (
     e: React.MouseEvent<HTMLDivElement, MouseEvent>,
@@ -121,21 +311,15 @@ export const ProductDetail: React.FC = () => {
       return;
     }
 
-    // Auto-select size if not selected and sizes exist
-    let finalSize = selectedSize;
-    if ((product.sizes || [])?.length && !selectedSize) {
-      finalSize = product.sizes![0];
-      setSelectedSize(finalSize);
+    // Require size selection if variants exist
+    const sizes = getSizesFromVariants();
+    if (sizes.length > 0 && !selectedSize) {
+      toast.error('Please select a size');
+      return;
     }
 
-    // Auto-select flavor if not selected and flavors exist
-    let finalColor = selectedColor;
-    if ((product.flavors || product.colors || [])?.length && !selectedColor) {
-      finalColor = (product.flavors || product.colors)![0];
-      setSelectedColor(finalColor);
-    }
-
-    addToCart(product, quantity, finalSize, finalColor);
+    // For backward compatibility: use selectedSize and selectedFlavor from variant selector
+    addToCart(product, quantity, selectedSize, selectedFlavor, undefined);
     toast.success(
       `${quantity} × ${product.name} added to cart`,
     );
@@ -147,22 +331,15 @@ export const ProductDetail: React.FC = () => {
       return;
     }
 
-    // Auto-select size if not selected and sizes exist
-    let finalSize = selectedSize;
-    if ((product.sizes || [])?.length && !selectedSize) {
-      finalSize = product.sizes![0];
-      setSelectedSize(finalSize);
+    // Require size selection if variants exist
+    const sizes = getSizesFromVariants();
+    if (sizes.length > 0 && !selectedSize) {
+      toast.error('Please select a size');
+      return;
     }
 
-    // Auto-select flavor if not selected and flavors exist
-    let finalColor = selectedColor;
-    if ((product.flavors || product.colors || [])?.length && !selectedColor) {
-      finalColor = (product.flavors || product.colors)![0];
-      setSelectedColor(finalColor);
-    }
-
-    // Add to cart
-    addToCart(product, quantity, finalSize, finalColor);
+    // Add to cart with selected variant data
+    addToCart(product, quantity, selectedSize, selectedFlavor, undefined);
 
     // Success toast
     toast.success(`${quantity} × ${product.name} added to cart`);
@@ -177,6 +354,31 @@ export const ProductDetail: React.FC = () => {
     } else {
       await addFavorite(product!.id);
     }
+  };
+
+  // Handle size change with price loading animation
+  const handleSizeChange = (size: string) => {
+    setSelectedSize(size);
+    // Auto-select first flavor for this size
+    const flavorsForSize = getFlavorsForSize(size);
+    if (flavorsForSize.length > 0) {
+      setSelectedFlavor(flavorsForSize[0]);
+    }
+    setIsPriceLoading(true);
+    // Simulate price update delay (1-2 seconds)
+    setTimeout(() => {
+      setIsPriceLoading(false);
+    }, 1200);
+  };
+
+  // Handle flavor change with price loading animation
+  const handleFlavorChange = (flavor: string) => {
+    setSelectedFlavor(flavor);
+    setIsPriceLoading(true);
+    // Simulate price update delay (1-2 seconds)
+    setTimeout(() => {
+      setIsPriceLoading(false);
+    }, 1200);
   };
 
 
@@ -304,24 +506,49 @@ export const ProductDetail: React.FC = () => {
                 <div className="space-y-1">
 
                   {/* Price + Discount */}
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-3">
                     <span className="text-4xl font-bold">
-                      ₹{finalPrice.toFixed(0)}
+                      {isPriceLoading ? (
+                        <span className="inline-flex items-center gap-1">
+                          <span className="text-2xl text-neutral-400">Loading</span>
+                          <span className="text-2xl text-neutral-400 animate-pulse">
+                            <span className="inline-block mx-0.5">.</span>
+                            <span className="inline-block mx-0.5">.</span>
+                            <span className="inline-block mx-0.5">.</span>
+                          </span>
+                        </span>
+                      ) : (
+                        `₹${finalPrice.toFixed(0)}`
+                      )}
                     </span>
 
-                    {(product.discountPercent || 0) > 0 && (
-                      <span className="text-red-600 font-semibold text-lg">
-                        ({product.discountPercent}% OFF)
-                      </span>
+                    {discountPercent > 0 && !isPriceLoading && (
+                      <div className="flex flex-col gap-1">
+                        {basePrice > finalPrice && (
+                          <span className="text-sm line-through text-neutral-500">
+                            ₹{basePrice.toFixed(0)}
+                          </span>
+                        )}
+                        <span className="text-red-600 font-semibold text-lg">
+                          {discountPercent}% OFF
+                        </span>
+                      </div>
                     )}
                   </div>
 
+                  {/* Dynamic Price Info */}
+                  {selectedSize && (
+                    <div className="text-sm text-blue-600 font-medium">
+                      Price for selected {selectedFlavor && "flavor"}{selectedFlavor && selectedSize && " & "}{selectedSize && "size"}
+                    </div>
+                  )}
+
                   {/* MRP */}
-                  {(product.discountPercent || 0) > 0 && (
+                  {discountPercent > 0 && (
                     <div className="text-sm text-neutral-500">
                       MRP{" "}
                       <span className="line-through">
-                        ₹{product.basePrice.toFixed(0)}
+                        ₹{basePrice.toFixed(0)}
                       </span>
                     </div>
                   )}
@@ -347,14 +574,14 @@ export const ProductDetail: React.FC = () => {
                 </div>
               </div>
 
-              {((product.sizes || [])?.length) > 0 && (
+              {getSizesFromVariants().length > 0 && (
                 <div className="mt-5">
                   <p className="text-sm font-medium mb-2">Size</p>
                   <div className="flex gap-2 flex-wrap">
-                    {(product.sizes || []).map((size: string) => (
+                    {getSizesFromVariants().map((size: string) => (
                       <button
                         key={size}
-                        onClick={() => setSelectedSize(size)}
+                        onClick={() => handleSizeChange(size)}
                         className={`px-4 py-2 border rounded-md ${selectedSize === size
                           ? "bg-black text-white"
                           : "border-neutral-300"
@@ -367,18 +594,38 @@ export const ProductDetail: React.FC = () => {
                 </div>
               )}
 
-              {((product.flavors || product.colors || [])?.length) > 0 && (
+              {((product.weights || [])?.length) > 0 && (
+                <div className="mt-5">
+                  <p className="text-sm font-medium mb-2">Weight</p>
+                  <div className="flex gap-2 flex-wrap">
+                    {(product.weights || []).map((weight: string) => (
+                      <button
+                        key={weight}
+                        onClick={() => setSelectedWeight(weight)}
+                        className={`px-4 py-2 border rounded-md ${selectedWeight === weight
+                          ? "bg-blue-600 text-white border-blue-600"
+                          : "border-neutral-300"
+                          }`}
+                      >
+                        {weight}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {selectedSize && getFlavorsForSize(selectedSize).length > 0 && (
                 <div className="mt-5">
                   <p className="text-sm font-medium mb-2">
                     Flavor
                   </p>
                   <div className="flex gap-2 flex-wrap">
-                    {(product.flavors || product.colors || []).map((flavor: string) => (
+                    {getFlavorsForSize(selectedSize).map((flavor: string) => (
                       <button
                         key={flavor}
-                        onClick={() => setSelectedColor(flavor)}
-                        className={`px-4 py-2 border rounded-md ${selectedColor === flavor
-                          ? "bg-black text-white"
+                        onClick={() => handleFlavorChange(flavor)}
+                        className={`px-4 py-2 border rounded-md ${selectedFlavor === flavor
+                          ? "bg-orange-600 text-white border-orange-600"
                           : "border-neutral-300"
                           }`}
                       >
@@ -470,173 +717,196 @@ export const ProductDetail: React.FC = () => {
             </span> / <span className="text-[#003D45] font-semibold truncate">{product.name}</span>
           </p>
 
-          {/* Product Image Carousel */}
-          <div className="relative -mx-5">
-            <div className="flex overflow-x-auto snap-x snap-mandatory no-scrollbar">
+          {/* Product Image Carousel - Premium */}
+          <div className="relative -mx-5 bg-white py-4 shadow-sm border-y border-neutral-100">
+            <div className="flex overflow-x-auto snap-x snap-mandatory no-scrollbar scroll-smooth">
               {images.map((img, idx) => (
-                <div key={idx} className="min-w-full snap-center px-5">
-                  <div className="bg-white rounded-3xl shadow-md p-4">
+                <div key={idx} className="min-w-full snap-center px-8">
+                  <div className="aspect-square flex items-center justify-center p-2">
                     <img
                       src={getFullImageUrl(img)}
                       alt={product.name}
-                      className="w-full aspect-square object-contain"
+                      className="w-full h-full object-contain mix-blend-multiply"
                     />
                   </div>
                 </div>
               ))}
             </div>
-          </div>
-          {/* Product Title */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-neutral-500">
-                {product.categoryName ||
-                  (typeof product.category === 'object'
-                    ? product.category?.name
-                    : product.category) ||
-                  "Uncategorized"}
-              </p>
+            {/* Heart Icon - Top Right on Image */}
+            <button
+              onClick={handleToggleFavorite}
+              className={`absolute top-6 right-8 w-11 h-11 rounded-full flex items-center justify-center border transition-all duration-300 z-20 active:scale-90 ${
+                isProductFavorited
+                  ? "bg-rose-50 border-rose-100 text-rose-500 shadow-lg shadow-rose-500/20"
+                  : "bg-white/80 backdrop-blur-md border-neutral-100 text-neutral-400 shadow-sm"
+              }`}
+            >
+              <Heart className={`w-5 h-5 ${isProductFavorited ? "fill-rose-500" : ""}`} />
+            </button>
 
-              {/* Veg / Non-Veg Badge */}
+            {/* Carousel Indicators */}
+            <div className="flex justify-center gap-1.5 mt-4">
+              {images.map((_, idx) => (
+                <div 
+                  key={idx} 
+                  className={`h-1 rounded-full transition-all duration-300 ${
+                    selectedImage === idx ? "w-6 bg-teal-800" : "w-1.5 bg-neutral-200"
+                  }`} 
+                />
+              ))}
+            </div>
+          </div>
+          {/* Product Title Section */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-black uppercase tracking-widest text-neutral-400">
+                {product.categoryName || "Premium Supplement"}
+              </span>
               <span
-                className={`px-3 py-1 rounded-full text-xs font-bold tracking-wide border ${product.isVegetarian
-                  ? "bg-green-50 text-green-700 border-green-200"
-                  : "bg-red-50 text-red-700 border-red-200"
-                  }`}
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black tracking-widest border ${
+                  product.isVegetarian
+                    ? "bg-green-50 text-green-700 border-green-100"
+                    : "bg-rose-50 text-rose-700 border-rose-100"
+                }`}
               >
-                {product.isVegetarian ? "VEG" : "NON-VEG"}
+                <div className={`w-1.5 h-1.5 rounded-full ${product.isVegetarian ? "bg-green-600" : "bg-rose-600"}`} />
+                {product.isVegetarian ? "VEGETARIAN" : "NON-VEG"}
               </span>
             </div>
 
-            <h1 className="text-2xl font-extrabold text-[#003D45] leading-tight">
+            <h1 className="text-2xl font-[900] text-neutral-900 leading-tight tracking-tight uppercase italic">
               {product.name}
             </h1>
-          </div>
-
-          {/* Flavor Selection */}
-          {(product.flavors || product.colors || [])?.length > 0 && (
-            <div className="space-y-3">
-              <p className="text-sm font-bold text-[#003D45]">Select Flavor</p>
-              <div className="flex flex-wrap gap-2">
-                {(product.flavors || product.colors || []).map((flavor: string) => (
-                  <button
-                    key={flavor}
-                    onClick={() => setSelectedColor(flavor)}
-                    className={`px-4 py-2 rounded-full text-xs font-bold border transition ${selectedColor === flavor
-                      ? "bg-[#003D45] text-white border-[#003D45]"
-                      : "bg-white text-neutral-500 border-neutral-200"
-                      }`}
-                  >
-                    {flavor}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Size Selection */}
-          {(product.sizes || [])?.length > 0 && (
-            <div className="space-y-3">
-              <p className="text-sm font-bold text-[#003D45]">Select Size</p>
-              <div className="grid grid-cols-2 gap-3">
-                {(product.sizes || []).map((size: string) => (
-                  <button
-                    key={size}
-                    onClick={() => setSelectedSize(size)}
-                    className={`py-3 rounded-xl text-sm font-bold border-2 transition ${selectedSize === size
-                      ? "border-[#003D45] bg-[#003D45]/5 text-[#003D45]"
-                      : "border-neutral-200 text-neutral-500 bg-white"
-                      }`}
-                  >
-                    {size}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Quantity */}
-          <div className="space-y-2">
-            <p className="text-sm font-bold text-[#003D45]">Quantity</p>
-            <div className="flex items-center bg-white border border-neutral-200 rounded-xl w-fit px-3 py-2 shadow-sm">
-              <button
-                onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                className="w-8 h-8 flex items-center justify-center text-lg font-bold text-neutral-400"
-              >
-                −
-              </button>
-              <span className="px-6 font-bold text-[#003D45] text-lg">{quantity}</span>
-              <button
-                onClick={() => setQuantity(quantity + 1)}
-                className="w-8 h-8 flex items-center justify-center text-lg font-bold text-neutral-400"
-              >
-                +
-              </button>
-            </div>
-          </div>
-
-          {/* Price Section */}
-          <div className="bg-white rounded-2xl p-5 shadow-sm border border-neutral-100">
-            <div className="flex items-center gap-3 flex-wrap">
-
-              {/* Final Price */}
-              <span className="text-3xl font-bold text-[#111]">
+            
+            <div className="flex items-baseline gap-3">
+              <span className="text-3xl font-black text-teal-800 italic">
                 ₹{finalPrice.toFixed(0)}
               </span>
-
-              {/* Original Price */}
-              {(product.discountPercent || 0) > 0 && (
-                <>
-                  <span className="text-base text-neutral-400 line-through">
-                    ₹{product.basePrice.toFixed(0)}
+              {discountPercent > 0 && (
+                <div className="flex flex-col">
+                  <span className="text-sm font-bold text-neutral-300 line-through leading-none">
+                    ₹{basePrice.toFixed(0)}
                   </span>
-
-                  {/* Save Badge */}
-                  <span className="bg-green-500 text-white text-xs font-semibold px-3 py-1 rounded-md">
-                    Save {product.discountPercent}%
+                  <span className="text-[10px] font-black text-rose-500 uppercase tracking-tighter">
+                    {discountPercent}% OFF TODAY
                   </span>
-                </>
+                </div>
               )}
             </div>
-
-            <p className="text-[11px] text-neutral-400 mt-2">
-              Inclusive of all taxes
-            </p>
           </div>
 
-          {/* Description */}
-          <div className="space-y-2 pt-6">
-            <p className="text-sm font-bold text-[#003D45]">Product Description</p>
-            <p className="text-sm text-neutral-600 leading-relaxed">
-              {product.description?.split('\n')[0] ||
-                "High-quality supplement designed to support muscle growth, strength, and recovery."}
-            </p>
+          {/* Selections Section */}
+          <div className="space-y-8 py-4 bg-white -mx-5 px-5 border-y border-neutral-100 shadow-sm">
+            {/* Flavor Selection */}
+            {selectedSize && getFlavorsForSize(selectedSize).length > 0 && (
+              <div className="space-y-4">
+                <p className="text-xs font-black text-neutral-400 uppercase tracking-[0.2em]">Select Flavor</p>
+                <div className="flex flex-wrap gap-2.5">
+                  {getFlavorsForSize(selectedSize).map((flavor: string) => (
+                    <button
+                      key={flavor}
+                      onClick={() => handleFlavorChange(flavor)}
+                      className={`px-6 py-3 rounded-2xl text-[10px] font-bold tracking-widest border transition-all duration-300 active:scale-95 ${
+                        selectedFlavor === flavor
+                          ? "bg-teal-800 text-white border-teal-800 shadow-lg shadow-teal-800/20"
+                          : "bg-white text-neutral-400 border-neutral-100"
+                      }`}
+                    >
+                      {flavor.toUpperCase()}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Size Selection */}
+            {getSizesFromVariants().length > 0 && (
+              <div className="space-y-4">
+                <p className="text-xs font-black text-neutral-400 uppercase tracking-[0.2em]">Select Container Size</p>
+                <div className="grid grid-cols-2 gap-3">
+                  {getSizesFromVariants().map((size: string) => (
+                    <button
+                      key={size}
+                      onClick={() => handleSizeChange(size)}
+                      className={`py-4 rounded-[2rem] text-[10px] font-black border-2 transition-all duration-300 tracking-widest active:scale-95 ${
+                        selectedSize === size
+                          ? "border-teal-800 bg-teal-50/50 text-teal-800"
+                          : "border-neutral-100 text-neutral-400 bg-white"
+                      }`}
+                    >
+                      {size.toUpperCase()}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            {/* Quantity Selector */}
+            <div className="space-y-4">
+              <p className="text-xs font-black text-neutral-400 uppercase tracking-[0.2em]">Quantity</p>
+              <div className="flex items-center bg-neutral-50 rounded-2xl w-fit p-1 border border-neutral-100">
+                <button
+                  onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                  className="w-10 h-10 flex items-center justify-center text-teal-800 active:bg-neutral-200 rounded-xl transition-colors"
+                >
+                  <Minus className="w-4 h-4" />
+                </button>
+                <span className="px-6 font-black text-teal-800 text-sm min-w-[50px] text-center">{quantity}</span>
+                <button
+                  onClick={() => setQuantity(quantity + 1)}
+                  className="w-10 h-10 flex items-center justify-center text-teal-800 active:bg-neutral-200 rounded-xl transition-colors"
+                >
+                  <Plus className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
           </div>
 
+          {/* Trust Badges Section */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="bg-white p-4 rounded-3xl border border-neutral-100 flex flex-col items-center text-center">
+              <Shield className="w-6 h-6 text-teal-800 mb-2" />
+              <p className="text-[10px] font-black text-neutral-900 uppercase tracking-tighter">100% Authentic</p>
+              <p className="text-[8px] text-neutral-400 font-bold">GENUINE PRODUCTS</p>
+            </div>
+            <div className="bg-white p-4 rounded-3xl border border-neutral-100 flex flex-col items-center text-center">
+              <Truck className="w-6 h-6 text-teal-800 mb-2" />
+              <p className="text-[10px] font-black text-neutral-900 uppercase tracking-tighter">Fast Delivery</p>
+              <p className="text-[8px] text-neutral-400 font-bold">SAME DAY SHIPPING</p>
+            </div>
+          </div>
+
+          {/* Product Description - More readable */}
+          <div className="space-y-4 pt-4">
+            <div className="flex items-center gap-4">
+              <h3 className="text-xs font-[900] text-neutral-900 uppercase tracking-[0.2em] whitespace-nowrap">Description</h3>
+              <div className="h-[1px] w-full bg-neutral-100" />
+            </div>
+            <p className="text-xs text-neutral-500 leading-loose font-medium italic">
+              {product.description || "No description available for this premium supplement."}
+            </p>
+          </div>
         </div>
 
-        {/* Sticky Bottom CTA */}
-        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-neutral-200 p-4 flex gap-3 shadow-[0_-5px_20px_rgba(0,0,0,0.05)]">
-          <button
-            onClick={handleAddToCart}
-            disabled={product.isOutOfStock}
-            className={`flex-1 bg-[#003D45] text-white py-4 rounded-xl font-bold tracking-wider text-sm transition active:scale-95 ${product.isOutOfStock ? "opacity-50 cursor-not-allowed" : ""
-              }`}
-          >
-            {product.isOutOfStock ? "OUT OF STOCK" : "ADD TO BASKET"}
-          </button>
+        {/* STICKY BOTTOM ACTION BAR - PREMIUM DUAL BUTTONS */}
+        <div className="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-xl border-t border-neutral-100 p-5 z-[60] safe-area-bottom">
+          <div className="flex gap-4">
+            <button
+              onClick={handleAddToCart}
+              disabled={product.isOutOfStock}
+              className={`flex-1 h-15 rounded-3xl font-black text-[11px] tracking-[0.2em] border-2 transition-all duration-300 active:scale-95 border-teal-800 text-teal-800 hover:bg-teal-50 disabled:opacity-30 uppercase`}
+            >
+              {product.isOutOfStock ? "Out of Stock" : "Add to Bag"}
+            </button>
 
-          <button
-            onClick={handleToggleFavorite}
-            className="w-14 flex items-center justify-center border border-neutral-200 rounded-xl bg-white hover:border-[#003D45] transition"
-          >
-            <Heart
-              className={`w-5 h-5 transition ${isProductFavorited
-                ? 'fill-red-500 text-red-500'
-                : 'text-[#003D45]'
-                }`}
-            />
-          </button>
+            <button
+              onClick={handleBuyNow}
+              disabled={product.isOutOfStock}
+              className={`flex-1 h-15 rounded-3xl font-black text-[11px] tracking-[0.2em] transition-all duration-300 active:scale-95 bg-teal-800 text-white shadow-xl shadow-teal-800/20 disabled:opacity-30 uppercase`}
+            >
+              {product.isOutOfStock ? "NOT AVAILABLE" : "BUY NOW"}
+            </button>
+          </div>
         </div>
       </div>
 

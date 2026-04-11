@@ -5,6 +5,7 @@ import { useCart } from '../components/context/CartContext';
 import { useAuth } from '../components/context/AuthContext';
 import { toast } from 'sonner';
 import { Breadcrumb } from '../components/Breadcrumb';
+import { getCartItemPrice } from '../utils/pricingUtils';
 import * as checkoutService from '../../services/checkoutService';
 import * as orderService from '../../services/orderService';
 import * as userService from '../../services/userService';
@@ -336,22 +337,25 @@ export const Checkout: React.FC = () => {
             <div className="bg-white rounded-lg shadow-md p-6">
               <h2 className="text-xl font-bold text-gray-900 mb-4">Order Summary</h2>
               <div className="space-y-4">
-                {checkoutData?.cart.items.map((item) => (
-                  <div key={item.productId} className="flex gap-4 pb-4 border-b border-gray-200">
-                    <div className="flex-1">
-                      <p className="font-semibold text-gray-900">{item.product.name}</p>
-                      <p className="text-sm text-gray-600">Quantity: {item.quantity}</p>
-                      {item.flavor && <p className="text-sm text-gray-600">Flavor: {item.flavor}</p>}
-                      {item.size && <p className="text-sm text-gray-600">Size: {item.size}</p>}
+                {checkoutData?.cart.items.map((item) => {
+                  const itemPrice = getCartItemPrice(item.product, item.size, item.flavor);
+                  return (
+                    <div key={`${item.productId}-${item.size}-${item.flavor}`} className="flex gap-4 pb-4 border-b border-gray-200">
+                      <div className="flex-1">
+                        <p className="font-semibold text-gray-900">{item.product.name}</p>
+                        <p className="text-sm text-gray-600">Quantity: {item.quantity}</p>
+                        {item.flavor && <p className="text-sm text-gray-600">Flavor: {item.flavor}</p>}
+                        {item.size && <p className="text-sm text-gray-600">Size: {item.size}</p>}
+                      </div>
+                      <div className="text-right">
+                        <p className="font-semibold text-gray-900">
+                          ₹{(itemPrice * item.quantity).toFixed(0)}
+                        </p>
+                        <p className="text-sm text-gray-500">{item.quantity} x ₹{itemPrice.toFixed(0)}</p>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <p className="font-semibold text-gray-900">
-                        ₹{(item.product.basePrice * item.quantity).toFixed(0)}
-                      </p>
-                      <p className="text-sm text-gray-500">{item.quantity} x ₹{item.product.basePrice.toFixed(0)}</p>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           </div>
