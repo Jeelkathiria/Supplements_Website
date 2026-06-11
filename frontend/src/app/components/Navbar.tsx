@@ -125,9 +125,9 @@ export const Navbar: React.FC = () => {
             <div className="flex items-center justify-center gap-8 h-10 text-xs text-gray-200">
               <span>Same Day Dispatch Before 4PM</span>
               <span className="text-gray-500">|</span>
-              <Link to="/account" className="hover:text-white transition">100% Authentic Products</Link>
+              <span className="hover:text-white transition">100% Authentic Products</span>
               <span className="text-gray-500">|</span>
-              <Link to="/contact" className="hover:text-white transition">Easy Returns</Link>
+              <span className="hover:text-white transition">Easy Returns</span>
             </div>
           </div>
         </div>

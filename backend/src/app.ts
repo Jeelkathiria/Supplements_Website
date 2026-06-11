@@ -30,7 +30,25 @@ import {
 
 const app = express();
 
-app.use(cors());
+// CORS Configuration for Vercel Deployment
+const allowedOrigins = process.env.NODE_ENV === 'production'
+  ? [
+      'https://your-frontend.vercel.app', // Update with your actual frontend URL
+      process.env.FRONTEND_URL
+    ].filter(Boolean)
+  : [
+      'http://localhost:5173',      // Vite dev server
+      'http://localhost:3000',      // Alternative local
+      'http://localhost:5000'       // Local backend
+    ];
+
+app.use(cors({
+  origin: allowedOrigins,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ limit: "50mb", extended: true }));
 

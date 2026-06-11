@@ -509,9 +509,6 @@ export const Home: React.FC = () => {
             <div className="flex sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5 overflow-x-auto no-scrollbar snap-x snap-mandatory pb-4 -mx-4 px-4 sm:mx-0 sm:px-0">
               {discountedProducts.slice(0, 4).map((product) => (
                 <div key={product.id} className="group relative min-w-[260px] sm:min-w-0 snap-start">
-                  <div className="absolute -top-3 -right-3 z-20 bg-red-600 text-white text-[10px] font-black px-3 py-1 rounded-full shadow-xl">
-                    HOT
-                  </div>
                   <ProductCard
                     product={product}
                     variant="discount"
@@ -534,35 +531,7 @@ export const Home: React.FC = () => {
           )}
 
           {/* Glassmorphism Trust Banner */}
-          <div className="mt-20 grid grid-cols-1 md:grid-cols-3 gap-8 pt-12 border-t border-white/10">
-            <div className="flex items-center gap-5 p-4 rounded-2xl transition-colors hover:bg-white/5 cursor-default">
-              <div className="w-14 h-14 bg-white/5 rounded-2xl flex items-center justify-center border border-white/10">
-                <CheckCircle2 className="text-teal-500 w-7 h-7" />
-              </div>
-              <div>
-                <h4 className="font-bold text-white text-sm tracking-wide">100% AUTHENTIC</h4>
-                <p className="text-xs text-neutral-400 font-medium">Direct From Source</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-5 p-4 rounded-2xl transition-colors hover:bg-white/5 cursor-default">
-              <div className="w-14 h-14 bg-white/5 rounded-2xl flex items-center justify-center border border-white/10">
-                <Zap className="text-teal-500 w-7 h-7" />
-              </div>
-              <div>
-                <h4 className="font-bold text-white text-sm tracking-wide">FLASH DELIVERY</h4>
-                <p className="text-xs text-neutral-400 font-medium">Doorstep In 48 Hours</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-5 p-4 rounded-2xl transition-colors hover:bg-white/5 cursor-default">
-              <div className="w-14 h-14 bg-white/5 rounded-2xl flex items-center justify-center border border-white/10">
-                <Users className="text-teal-500 w-7 h-7" />
-              </div>
-              <div>
-                <h4 className="font-bold text-white text-sm tracking-wide">ELITE COACHING</h4>
-                <p className="text-xs text-neutral-400 font-medium">Free Nutrition Advice</p>
-              </div>
-            </div>
-          </div>
+          
         </div>
       </section>
     </div>

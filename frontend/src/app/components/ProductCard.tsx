@@ -117,6 +117,19 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             </div>
           )}
 
+          {/* HOT Badge for Discount Variant */}
+          {isDiscount && (
+            <div className="absolute -top-2 -right-2 flex items-center justify-center z-20">
+              <div className="relative w-24 h-12 bg-red-600 text-white flex items-center justify-center font-black text-[13px] shadow-2xl border-2 border-red-500 animate-pulse"
+                style={{
+                  clipPath: 'polygon(15% 0%, 100% 0%, 85% 100%, 0% 100%, 0% 50%)',
+                  boxShadow: '0 4px 12px rgba(220, 38, 38, 0.6)'
+                }}>
+                HOT
+              </div>
+            </div>
+          )}
+
           {/* Favorite Button */}
           <button
             onClick={handleToggleFavorite}
