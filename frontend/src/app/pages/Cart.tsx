@@ -25,6 +25,19 @@ export const Cart: React.FC = () => {
   const [updatingItems, setUpdatingItems] = useState<Set<string>>(new Set());
   const [removingItems, setRemovingItems] = useState<Set<string>>(new Set());
 
+  // Mobile UI States & Handlers
+  const [suggestions, setSuggestions] = useState<Product[]>([]);
+  const [time, setTime] = useState('12:00 PM');
+  const [couponCode, setCouponCode] = useState('');
+  const [couponError, setCouponError] = useState<string | null>(null);
+  const [isValidatingCoupon, setIsValidatingCoupon] = useState(false);
+  const [appliedCoupon, setAppliedCoupon] = useState<{
+    code: string;
+    trainerName: string;
+    discountPercent: number;
+    discountAmount: number;
+  } | null>(null);
+
   const handleProceedToCheckout = () => {
     if (!isAuthenticated) {
       // Save checkout intent and redirect to login
@@ -146,18 +159,7 @@ export const Cart: React.FC = () => {
   // if no tax / shipping
   const total = finalSubtotal - couponDiscount;
 
-  // Mobile UI States & Handlers
-  const [suggestions, setSuggestions] = useState<Product[]>([]);
-  const [time, setTime] = useState('12:00 PM');
-  const [couponCode, setCouponCode] = useState('');
-  const [couponError, setCouponError] = useState<string | null>(null);
-  const [isValidatingCoupon, setIsValidatingCoupon] = useState(false);
-  const [appliedCoupon, setAppliedCoupon] = useState<{
-    code: string;
-    trainerName: string;
-    discountPercent: number;
-    discountAmount: number;
-  } | null>(null);
+
 
   const getItemKey = (productId: string, size?: string, color?: string) => {
     return `${productId}-${size || ''}-${color || ''}`;
