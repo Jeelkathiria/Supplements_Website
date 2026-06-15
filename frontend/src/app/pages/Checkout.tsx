@@ -117,7 +117,7 @@ const validateAddressForm = (form: AddressFormData): ValidationErrors => {
 };
 
 export const Checkout: React.FC = () => {
-  const { cartItems, clearCart } = useCart();
+  const { cartItems, clearCart, isLoading: cartLoading } = useCart();
   const { isAuthenticated, user, isLoading: authLoading, getIdToken } = useAuth();
   const navigate = useNavigate();
 
@@ -146,8 +146,8 @@ export const Checkout: React.FC = () => {
 
   // Redirect if not authenticated or cart is empty
   useEffect(() => {
-    // Wait for auth to finish loading
-    if (authLoading) {
+    // Wait for auth or cart to finish loading
+    if (authLoading || cartLoading) {
       return;
     }
 
@@ -160,7 +160,7 @@ export const Checkout: React.FC = () => {
       navigate('/cart');
       return;
     }
-  }, [isAuthenticated, authLoading, cartItems.length, navigate]);
+  }, [isAuthenticated, authLoading, cartLoading, cartItems.length, navigate]);
 
   // Disable body scroll when processing or redirecting
   useEffect(() => {
@@ -179,6 +179,18 @@ export const Checkout: React.FC = () => {
       // Set phone and name from user profile
       if (user?.phone || user?.name) {
         setNewAddress(prev => ({ ...prev, phone: user?.phone || '', name: user?.name || '' }));
+      }
+      
+      // Load applied coupon from sessionStorage
+      const savedCoupon = sessionStorage.getItem('applied_coupon');
+      if (savedCoupon) {
+        try {
+          const couponData = JSON.parse(savedCoupon);
+          setAppliedCoupon(couponData);
+          setCouponDiscount(couponData.discountAmount);
+        } catch (e) {
+          console.error('Failed to parse saved coupon:', e);
+        }
       }
     }
   }, [isAuthenticated, cartItems.length, user?.phone, user?.name]);
@@ -837,11 +849,13 @@ export const Checkout: React.FC = () => {
                           onCouponApplied={(couponData) => {
                             setAppliedCoupon(couponData);
                             setCouponDiscount(couponData.discountAmount);
+                            sessionStorage.setItem('applied_coupon', JSON.stringify(couponData));
                             toast.success(`✅ Coupon applied: ${couponData.code}`);
                           }}
                           onCouponRemoved={() => {
                             setAppliedCoupon(null);
                             setCouponDiscount(0);
+                            sessionStorage.removeItem('applied_coupon');
                           }}
                         />
                       </div>

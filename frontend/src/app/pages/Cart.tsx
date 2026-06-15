@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { useCart } from '../components/context/CartContext';
 import { useAuth } from '../components/context/AuthContext';
+import { CheckoutCouponInput } from '../components/CheckoutCouponInput';
 import { getCartItemPrice, getProductPricing } from '../utils/pricingUtils';
 import { getFullImageUrl } from '../utils/imageUtils';
 import { Breadcrumb } from '../components/Breadcrumb';
@@ -138,10 +139,12 @@ export const Cart: React.FC = () => {
     0
   );
 
-  const discountAmount = baseSubtotal - finalSubtotal;
+  const couponDiscount = appliedCoupon 
+    ? (finalSubtotal * appliedCoupon.discountPercent) / 100 
+    : 0;
 
   // if no tax / shipping
-  const total = finalSubtotal;
+  const total = finalSubtotal - couponDiscount;
 
   // Mobile UI States & Handlers
   const [suggestions, setSuggestions] = useState<Product[]>([]);
@@ -512,6 +515,29 @@ export const Cart: React.FC = () => {
                     <span className="text-neutral-800">Subtotal</span>
                     <span>₹{finalSubtotal.toFixed(0)}</span>
                   </div>
+
+                  {/* Coupon Discount */}
+                  {couponDiscount > 0 && (
+                    <div className="flex justify-between text-green-600 font-semibold">
+                      <span>Coupon Discount ({appliedCoupon?.code})</span>
+                      <span>-₹{couponDiscount.toFixed(0)}</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Coupon Input */}
+                <div className="mb-6">
+                  <CheckoutCouponInput
+                    cartTotal={finalSubtotal}
+                    onCouponApplied={(couponData) => {
+                      setAppliedCoupon(couponData);
+                      sessionStorage.setItem('applied_coupon', JSON.stringify(couponData));
+                    }}
+                    onCouponRemoved={() => {
+                      setAppliedCoupon(null);
+                      sessionStorage.removeItem('applied_coupon');
+                    }}
+                  />
                 </div>
 
                 {/* Total */}
@@ -691,6 +717,21 @@ export const Cart: React.FC = () => {
                 })}
               </div>
 
+              {/* Coupon Input */}
+              <div className="mt-6">
+                <CheckoutCouponInput
+                  cartTotal={finalSubtotal}
+                  onCouponApplied={(couponData) => {
+                    setAppliedCoupon(couponData);
+                    sessionStorage.setItem('applied_coupon', JSON.stringify(couponData));
+                  }}
+                  onCouponRemoved={() => {
+                    setAppliedCoupon(null);
+                    sessionStorage.removeItem('applied_coupon');
+                  }}
+                />
+              </div>
+
               {/* Total Summary */}
               <div className="bg-emerald-50/25 border border-emerald-100/40 rounded-2xl p-4 mt-6 space-y-2.5 shadow-sm">
                 <div className="flex justify-between text-xs font-medium text-neutral-500">
@@ -698,18 +739,25 @@ export const Cart: React.FC = () => {
                   <span className="text-neutral-800">₹{baseSubtotal.toFixed(0)}</span>
                 </div>
 
-                <div className="flex justify-between text-xs font-medium text-neutral-500">
-                  <span>Discount</span>
-                  <span className="text-emerald-700 font-bold">
-                    {productDiscountAmount > 0 ? `-₹${productDiscountAmount.toFixed(0)}` : '₹0.0'}
-                  </span>
-                </div>
+                {discountAmount > 0 && (
+                  <div className="flex justify-between text-xs font-medium text-neutral-500">
+                    <span>Discount</span>
+                    <span className="text-emerald-750 font-bold">-₹{discountAmount.toFixed(0)}</span>
+                  </div>
+                )}
+
+                {couponDiscount > 0 && (
+                  <div className="flex justify-between text-xs font-semibold text-green-700">
+                    <span>Coupon Discount ({appliedCoupon?.code})</span>
+                    <span>-₹{couponDiscount.toFixed(0)}</span>
+                  </div>
+                )}
 
                 <div className="border-b border-dashed border-neutral-200/80 my-1" />
 
                 <div className="flex justify-between text-xs font-bold text-neutral-800">
                   <span>Total Amount</span>
-                  <span>₹{finalSubtotal.toFixed(0)}</span>
+                  <span>₹{total.toFixed(0)}</span>
                 </div>
               </div>
             </div>

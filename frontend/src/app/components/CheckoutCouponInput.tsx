@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Check, AlertCircle, X, Gift } from "lucide-react";
 import { toast } from "sonner";
 import * as couponService from "../../services/couponService";
@@ -44,7 +44,21 @@ export const CheckoutCouponInput: React.FC<CouponInputProps> = ({
   const [isValidating, setIsValidating] = useState(false);
   const [appliedCoupon, setAppliedCoupon] = useState<AppliedCoupon | null>(null);
   const [validationError, setValidationError] = useState<string | null>(null);
-  const [showInput, setShowInput] = useState(!appliedCoupon);
+  const [showInput, setShowInput] = useState(true);
+
+  // Load from sessionStorage on mount
+  useEffect(() => {
+    const saved = sessionStorage.getItem("applied_coupon");
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        setAppliedCoupon(parsed);
+        setShowInput(false);
+      } catch (e) {
+        console.error("Failed to parse saved coupon in input component:", e);
+      }
+    }
+  }, []);
 
   // ==================== HANDLERS ====================
 
