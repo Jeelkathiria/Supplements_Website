@@ -242,72 +242,11 @@ export const Cart: React.FC = () => {
     }
   }, []);
 
-  const handleApplyCoupon = async (codeOverride?: string) => {
-    const codeToApply = (codeOverride || couponCode).toUpperCase().trim();
-    if (!codeToApply) {
-      setCouponError('Please enter a coupon code');
-      return;
-    }
-    setCouponError(null);
-    setIsValidatingCoupon(true);
-
-    try {
-      const response = await couponService.validateCoupon(codeToApply, finalSubtotal);
-      if (!response.isValid) {
-        setCouponError(response.error || 'Invalid coupon code');
-        toast.error(response.error || 'Invalid coupon code');
-        return;
-      }
-
-      const coupon = response.coupon;
-      const discountAmount = (finalSubtotal * coupon.discountPercent) / 100;
-      const applied = {
-        code: coupon.code,
-        trainerName: coupon.trainerName || 'Trainer Code',
-        discountPercent: coupon.discountPercent,
-        discountAmount
-      };
-
-      setAppliedCoupon(applied);
-      sessionStorage.setItem('applied_coupon', JSON.stringify(applied));
-      setCouponCode('');
-      toast.success(`Coupon "${coupon.code}" applied! Save ₹${discountAmount.toFixed(0)}`);
-    } catch (err) {
-      console.error('Coupon validation error:', err);
-      setCouponError(err instanceof Error ? err.message : 'Failed to apply coupon');
-      toast.error('Coupon validation failed');
-    } finally {
-      setIsValidatingCoupon(false);
-    }
-  };
-
-  const handleRemoveCoupon = () => {
-    setAppliedCoupon(null);
-    sessionStorage.removeItem('applied_coupon');
-    toast.success('Coupon removed');
-  };
-
-  const handleAddSuggestion = async (product: Product) => {
-    try {
-      const variants = product.productVariants || product.variants || [];
-      const defaultVariant = variants[0];
-      const size = defaultVariant?.size;
-      const color = defaultVariant?.flavor;
-
-      await addToCart(product, 1, size, color);
-      toast.success(`${product.name} added to cart!`);
-    } catch (err) {
-      console.error('Failed to add suggestion:', err);
-      toast.error('Could not add item');
-    }
-  };
-
   const productDiscountAmount = baseSubtotal - finalSubtotal;
   const couponDiscountAmount = appliedCoupon ? appliedCoupon.discountAmount : 0;
   const freeShippingThreshold = 999;
   const isFreeShipping = finalSubtotal >= freeShippingThreshold;
   const shippingFee = isFreeShipping || cartItems.length === 0 ? 0 : 99;
-  const mobileOrderTotal = Math.max(0, finalSubtotal - couponDiscountAmount + shippingFee);
   const totalSavings = productDiscountAmount + couponDiscountAmount;
   const shippingProgress = Math.min(100, (finalSubtotal / freeShippingThreshold) * 100);
 
