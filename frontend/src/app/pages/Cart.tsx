@@ -208,13 +208,16 @@ export const Cart: React.FC = () => {
 
   // Load applied coupon from sessionStorage
   useEffect(() => {
-    const saved = sessionStorage.getItem('applied_coupon');
-    if (saved) {
-      try {
+    // Only run on client side (prevent hydration mismatch)
+    if (typeof window === 'undefined') return;
+    
+    try {
+      const saved = sessionStorage.getItem('applied_coupon');
+      if (saved) {
         setAppliedCoupon(JSON.parse(saved));
-      } catch (e) {
-        console.error('Failed to parse saved coupon:', e);
       }
+    } catch (e) {
+      console.error('Failed to parse saved coupon:', e);
     }
   }, []);
 
@@ -514,10 +517,10 @@ export const Cart: React.FC = () => {
                   </div>
 
                   {/* Discount */}
-                  {discountAmount > 0 && (
+                  {productDiscountAmount > 0 && (
                     <div className="flex justify-between text-green-600">
                       <span>Discount</span>
-                      <span>-₹{discountAmount.toFixed(0)}</span>
+                      <span>-₹{productDiscountAmount.toFixed(0)}</span>
                     </div>
                   )}
 
@@ -796,10 +799,10 @@ export const Cart: React.FC = () => {
                   </div>
 
                   {/* Product Discount */}
-                  {discountAmount > 0 && (
+                  {productDiscountAmount > 0 && (
                     <div className="flex justify-between items-center text-sm">
                       <span className="text-green-700 font-semibold">Product Discount</span>
-                      <span className="font-bold text-green-700">-₹{discountAmount.toFixed(0)}</span>
+                      <span className="font-bold text-green-700">-₹{productDiscountAmount.toFixed(0)}</span>
                     </div>
                   )}
 
