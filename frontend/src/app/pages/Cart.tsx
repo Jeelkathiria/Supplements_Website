@@ -24,19 +24,40 @@ export const Cart: React.FC = () => {
   const navigate = useNavigate();
   const [updatingItems, setUpdatingItems] = useState<Set<string>>(new Set());
   const [removingItems, setRemovingItems] = useState<Set<string>>(new Set());
+  const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
 
   // Mobile UI States & Handlers
   const [suggestions, setSuggestions] = useState<Product[]>([]);
   const [time, setTime] = useState('12:00 PM');
-  const [couponCode, setCouponCode] = useState('');
-  const [couponError, setCouponError] = useState<string | null>(null);
-  const [isValidatingCoupon, setIsValidatingCoupon] = useState(false);
   const [appliedCoupon, setAppliedCoupon] = useState<{
     code: string;
     trainerName: string;
     discountPercent: number;
     discountAmount: number;
   } | null>(null);
+
+  const handleSelectAll = () => {
+    if (selectedItems.size === cartItems.length) {
+      setSelectedItems(new Set());
+    } else {
+      const allKeys = new Set(
+        cartItems.map((item) =>
+          getItemKey(item.product.id, item.selectedSize, item.selectedColor)
+        )
+      );
+      setSelectedItems(allKeys);
+    }
+  };
+
+  const handleSelectItem = (itemKey: string) => {
+    const newSelected = new Set(selectedItems);
+    if (newSelected.has(itemKey)) {
+      newSelected.delete(itemKey);
+    } else {
+      newSelected.add(itemKey);
+    }
+    setSelectedItems(newSelected);
+  };
 
   const handleProceedToCheckout = () => {
     if (!isAuthenticated) {
@@ -596,7 +617,7 @@ export const Cart: React.FC = () => {
       <div className="block md:hidden bg-neutral-50 min-h-screen text-neutral-800 pb-40 select-none">
 
         {/* Mobile Header - Enhanced */}
-        <div className="px-4 py-3 flex items-center justify-between sticky top-0 bg-white z-30 border-b border-neutral-200 shadow-sm">
+        <div className="px-4 py-4 flex items-center justify-between sticky top-0 bg-white z-30 border-b border-neutral-200 shadow-sm">
           <button
             onClick={() => navigate(-1)}
             className="text-emerald-700 hover:opacity-70 transition p-2 -ml-2 active:scale-90"
@@ -604,13 +625,23 @@ export const Cart: React.FC = () => {
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div className="flex-1 ml-2">
-            <h1 className="text-base font-black text-neutral-900 tracking-tight">Shopping Cart</h1>
-            {cartItems.length > 0 && <p className="text-xs text-neutral-500 font-medium">{cartItems.length} item{cartItems.length !== 1 ? 's' : ''} in bag</p>}
+            <h1 className="text-base font-black text-neutral-900 tracking-tight">
+              {cartItems.length} items
+            </h1>
           </div>
           {cartItems.length > 0 && (
-            <span className="ml-4 px-3 py-1 bg-emerald-100 text-emerald-700 text-xs font-bold rounded-full">
-              ₹{total.toFixed(0)}
-            </span>
+            <button
+              onClick={handleSelectAll}
+              className="flex items-center gap-2 ml-4 text-orange-500 hover:opacity-70 transition"
+            >
+              <input
+                type="checkbox"
+                checked={selectedItems.size === cartItems.length && cartItems.length > 0}
+                onChange={() => {}}
+                className="w-5 h-5 rounded accent-orange-500 cursor-pointer"
+              />
+              <span className="text-xs font-bold">Select all</span>
+            </button>
           )}
         </div>
 
@@ -646,267 +677,123 @@ export const Cart: React.FC = () => {
           ) : (
             /* ACTIVE CART CONTENT - Enhanced */
             <div className="space-y-6">
-              {/* Cart Items List - Improved */}
-              <div className="space-y-4">
-                {cartItems.map((item, index) => {
+              {/* Cart Items List - Simplified */}
+              <div className="space-y-3">
+                {cartItems.map((item) => {
                   const price = getCartItemPrice(item.product, item.selectedSize, item.selectedColor);
-                  const variants = item.product.productVariants || item.product.variants || [];
-                  let basePrice = price;
-
-                  if (item.selectedSize && item.selectedColor) {
-                    const variant = variants.find(v => v.size === item.selectedSize && v.flavor === item.selectedColor);
-                    if (variant) basePrice = variant.price;
-                  }
-
-                  const itemTotal = price * item.quantity;
-                  const hasDiscount = basePrice > price;
-                  const savingsAmount = basePrice - price;
-                  const discountPercent = basePrice > 0 ? Math.round(((basePrice - price) / basePrice) * 100) : 0;
+                  const itemKey = getItemKey(item.product.id, item.selectedSize, item.selectedColor);
+                  const isSelected = selectedItems.has(itemKey);
                   const isUpdating = updatingItems.has(item.product.id);
                   const isRemoving = removingItems.has(item.product.id);
+                  const itemTotal = price * item.quantity;
 
                   return (
                     <div
-                      key={getItemKey(item.product.id, item.selectedSize, item.selectedColor)}
-                      className={`bg-white rounded-xl border border-neutral-200 p-4 shadow-sm hover:shadow-md transition-all duration-300 ${isRemoving ? 'opacity-50 scale-95 pointer-events-none' : ''}`}
+                      key={itemKey}
+                      className={`bg-white rounded-lg border border-neutral-200 p-3 flex gap-3 items-start ${isRemoving ? 'opacity-50' : ''}`}
                     >
-                      <div className="flex gap-4">
+                      {/* Checkbox */}
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => handleSelectItem(itemKey)}
+                        className="w-5 h-5 rounded accent-orange-500 cursor-pointer mt-2 flex-shrink-0"
+                      />
 
-                        {/* Product Image - Enhanced with Badge */}
-                        <Link to={`/product/${item.product.id}`} className="flex-shrink-0 relative group">
-                          <div className="w-24 h-24 bg-gradient-to-br from-neutral-50 to-neutral-100 rounded-lg flex items-center justify-center p-2 border border-neutral-200 group-hover:shadow-lg transition-all duration-300 relative overflow-hidden">
-                            <img
-                              src={getFullImageUrl(item.product.imageUrls?.[0] || '')}
-                              alt={item.product.name}
-                              className="w-full h-full object-contain mix-blend-multiply group-hover:scale-110 transition-transform duration-300"
-                            />
-                            {isUpdating && (
-                              <div className="absolute inset-0 bg-white/70 backdrop-blur-sm flex items-center justify-center rounded-lg">
-                                <Loader className="w-5 h-5 text-emerald-600 animate-spin" />
-                              </div>
-                            )}
-                          </div>
-                          {hasDiscount && (
-                            <div className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-8 h-8 flex items-center justify-center text-xs font-black shadow-lg">
-                              {discountPercent}%
-                            </div>
-                          )}
+                      {/* Product Image */}
+                      <Link to={`/product/${item.product.id}`} className="flex-shrink-0">
+                        <img
+                          src={getFullImageUrl(item.product.imageUrls?.[0] || '')}
+                          alt={item.product.name}
+                          className="w-16 h-16 object-cover rounded-lg border border-neutral-200"
+                        />
+                      </Link>
+
+                      {/* Product Info */}
+                      <div className="flex-1 min-w-0">
+                        <Link to={`/product/${item.product.id}`} className="hover:text-emerald-600 transition">
+                          <h3 className="text-sm font-bold text-neutral-900 line-clamp-2">
+                            {item.product.name}
+                          </h3>
                         </Link>
-
-                        {/* Middle: Name, Price, Attributes */}
-                        <div className="flex-1 min-w-0 flex flex-col justify-between py-1">
-                          <div>
-                            <Link to={`/product/${item.product.id}`} className="hover:text-emerald-600 transition">
-                              <h3 className="text-sm font-bold text-neutral-900 line-clamp-2 leading-snug">
-                                {item.product.name}
-                              </h3>
-                            </Link>
-
-                            {/* Price details - Enhanced */}
-                            <div className="flex items-baseline gap-2 mt-2 flex-wrap">
-                              <span className="text-lg font-black text-neutral-900">₹{price.toFixed(0)}</span>
-                              {hasDiscount && (
-                                <span className="text-xs text-neutral-400 line-through">₹{basePrice.toFixed(0)}</span>
-                              )}
-                            </div>
-
-                            {/* Savings Badge */}
-                            {hasDiscount && (
-                              <p className="text-xs text-green-700 font-bold mt-1">
-                                ✓ Save ₹{savingsAmount.toFixed(0)}
-                              </p>
-                            )}
-
-                            {/* Attributes - Enhanced */}
-                            {(item.selectedSize || item.selectedColor) && (
-                              <p className="text-xs text-neutral-500 font-semibold mt-2 text-neutral-600">
-                                {[item.selectedSize, item.selectedColor].filter(Boolean).join(' • ')}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Right: Quantity & Remove */}
-                        <div className="flex flex-col justify-between items-end flex-shrink-0 gap-3">
-                          {/* Remove Button */}
-                          <button
-                            onClick={() => handleRemoveItem(item.product.id, item.selectedSize, item.selectedColor)}
-                            disabled={isRemoving}
-                            className="text-neutral-300 hover:text-red-500 transition p-2 -mr-2 disabled:opacity-50 active:scale-90 hover:bg-red-50 rounded-lg"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-
-                          {/* Quantity Controls - Enhanced */}
-                          <div className="flex items-center gap-0.5 bg-gradient-to-b from-neutral-100 to-neutral-50 rounded-lg p-1 border border-neutral-200 shadow-sm">
-                            <button
-                              onClick={() => handleUpdateQuantity(item.product.id, item.quantity - 1, item.selectedSize, item.selectedColor)}
-                              disabled={isUpdating || item.quantity <= 1}
-                              className="w-8 h-8 rounded-md hover:bg-neutral-200 flex items-center justify-center text-neutral-600 disabled:opacity-50 disabled:cursor-not-allowed active:scale-90 transition font-bold"
-                            >
-                              <Minus className="w-4 h-4" />
-                            </button>
-                            <span className="w-7 text-center text-sm font-black text-neutral-900">
-                              {item.quantity}
-                            </span>
-                            <button
-                              onClick={() => handleUpdateQuantity(item.product.id, item.quantity + 1, item.selectedSize, item.selectedColor)}
-                              disabled={isUpdating}
-                              className="w-8 h-8 rounded-md hover:bg-emerald-100 flex items-center justify-center text-emerald-600 font-bold disabled:opacity-50 disabled:cursor-not-allowed active:scale-90 transition"
-                            >
-                              <Plus className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </div>
+                        <p className="text-xs text-neutral-500 mt-1">{item.product.weight || '100 gm'}</p>
+                        
+                        {/* Price */}
+                        <p className="text-lg font-black text-neutral-900 mt-2">₹{price.toFixed(0)}</p>
                       </div>
 
-                      {/* Item Total - Enhanced */}
-                      <div className="flex justify-between items-center mt-4 pt-4 border-t border-neutral-100">
-                        <span className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">Total</span>
-                        <span className="text-lg font-black text-emerald-700">₹{itemTotal.toFixed(0)}</span>
+                      {/* Controls */}
+                      <div className="flex flex-col items-end gap-2">
+                        {/* Quantity Controls */}
+                        <div className="flex items-center gap-1 bg-neutral-100 rounded-lg p-1">
+                          <button
+                            onClick={() => handleUpdateQuantity(item.product.id, item.quantity - 1, item.selectedSize, item.selectedColor)}
+                            disabled={isUpdating || item.quantity <= 1}
+                            className="w-6 h-6 rounded flex items-center justify-center text-neutral-600 disabled:opacity-50 active:scale-90 transition font-bold text-sm"
+                          >
+                            −
+                          </button>
+                          <span className="w-6 text-center text-sm font-bold">
+                            {item.quantity}
+                          </span>
+                          <button
+                            onClick={() => handleUpdateQuantity(item.product.id, item.quantity + 1, item.selectedSize, item.selectedColor)}
+                            disabled={isUpdating}
+                            className="w-6 h-6 rounded hover:bg-green-100 flex items-center justify-center text-green-600 font-bold disabled:opacity-50 active:scale-90 transition text-sm"
+                          >
+                            +
+                          </button>
+                        </div>
+                        
+                        {/* Remove Button */}
+                        <button
+                          onClick={() => handleRemoveItem(item.product.id, item.selectedSize, item.selectedColor)}
+                          disabled={isRemoving}
+                          className="text-neutral-400 hover:text-orange-500 transition"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </div>
                     </div>
                   );
                 })}
               </div>
 
-              {/* Coupon Section - Enhanced */}
-              <div className="bg-white rounded-xl border border-neutral-200 p-4 space-y-3 shadow-sm">
-                <label className="text-xs font-black text-neutral-700 uppercase tracking-wider">Apply Coupon</label>
-                <CheckoutCouponInput
-                  cartTotal={finalSubtotal}
-                  onCouponApplied={(couponData) => {
-                    setAppliedCoupon(couponData);
-                    sessionStorage.setItem('applied_coupon', JSON.stringify(couponData));
-                    toast.success('Coupon applied successfully! 🎉');
-                  }}
-                  onCouponRemoved={() => {
-                    setAppliedCoupon(null);
-                    sessionStorage.removeItem('applied_coupon');
-                  }}
-                />
-              </div>
-
-              {/* Pricing Summary - Enhanced */}
-              <div className="bg-white rounded-xl border border-neutral-200 p-5 space-y-4 shadow-sm">
-                <h3 className="text-sm font-black text-neutral-900 uppercase tracking-wider">Price Breakdown</h3>
-
-                <div className="space-y-3">
-                  {/* Subtotal */}
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="text-neutral-600">Subtotal ({cartItems.length} items)</span>
-                    <span className="font-semibold text-neutral-900">₹{baseSubtotal.toFixed(0)}</span>
+              {/* Pricing Summary - Simplified */}
+              <div className="bg-white rounded-lg border border-neutral-200 p-4 space-y-3">
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-neutral-600">Subtotal:</span>
+                    <span className="font-semibold">₹{baseSubtotal.toFixed(0)}</span>
                   </div>
-
-                  {/* Product Discount */}
+                  
                   {productDiscountAmount > 0 && (
-                    <div className="flex justify-between items-center text-sm">
-                      <span className="text-green-700 font-semibold">Product Discount</span>
-                      <span className="font-bold text-green-700">-₹{productDiscountAmount.toFixed(0)}</span>
+                    <div className="flex justify-between text-orange-600">
+                      <span>Discount:</span>
+                      <span className="font-semibold">-₹{productDiscountAmount.toFixed(0)}</span>
                     </div>
                   )}
 
-                  {/* Coupon Discount */}
-                  {couponDiscount > 0 && appliedCoupon && (
-                    <div className="flex justify-between items-center text-sm">
-                      <span className="text-green-700 font-semibold">Coupon ({appliedCoupon.code})</span>
-                      <span className="font-bold text-green-700">-₹{couponDiscount.toFixed(0)}</span>
-                    </div>
-                  )}
-
-                  {/* Divider */}
-                  <div className="border-t border-neutral-200 pt-3" />
-
-                  {/* Total */}
-                  <div className="flex justify-between items-center">
-                    <span className="font-bold text-neutral-900 text-base">Total Amount</span>
-                    <span className="text-2xl font-black text-emerald-700">₹{total.toFixed(0)}</span>
+                  <div className="flex justify-between font-bold text-lg pt-2 border-t border-neutral-200">
+                    <span>Total:</span>
+                    <span className="text-orange-600">₹{total.toFixed(0)}</span>
                   </div>
                 </div>
-
-                {/* Total Savings Badge */}
-                {totalSavings > 0 && (
-                  <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg p-4 mt-4 text-center">
-                    <p className="text-xs text-green-800 font-bold mb-1">YOU'RE SAVING</p>
-                    <p className="text-2xl font-black text-green-700">₹{totalSavings.toFixed(0)}</p>
-                  </div>
-                )}
-              </div>
-
-              {/* Delivery Info - Enhanced */}
-              <div className="bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-200 rounded-xl p-4 space-y-3 shadow-sm">
-                <p className="text-sm font-bold text-blue-900 flex items-center gap-2">
-                  <ShieldCheck size={18} className="text-blue-600" /> Free delivery above ₹999
-                </p>
-                <p className="text-xs text-blue-800 font-medium leading-relaxed">
-                  Place your order by 4 PM for same-day delivery
-                </p>
-                {!isFreeShipping && (
-                  <p className="text-xs text-blue-700 font-semibold">
-                    Spend ₹{(freeShippingThreshold - finalSubtotal).toFixed(0)} more for free shipping
-                  </p>
-                )}
               </div>
             </div>
           )}
         </div>
 
-        {/* Sticky Bottom Actions - Enhanced */}
+        {/* Sticky Bottom Actions - Simplified */}
         {cartItems.length > 0 && (
           <div className="fixed bottom-0 left-0 right-0 bg-white z-40 border-t border-neutral-200 shadow-[0_-12px_40px_rgba(0,0,0,0.08)]">
-
-            {/* Checkout Info Bar */}
-            <div className="px-4 py-3 bg-gradient-to-r from-emerald-50 to-teal-50 border-b border-emerald-200 flex items-center justify-between text-sm">
-              <span className="font-semibold text-neutral-700">Total:</span>
-              <span className="text-lg font-black text-emerald-700">₹{total.toFixed(0)}</span>
-            </div>
-
-            {/* Checkout CTA */}
-            <div className="px-4 pt-4 pb-3 bg-white">
+            {/* Checkout Button */}
+            <div className="px-4 py-3 bg-white">
               <button
                 onClick={handleProceedToCheckout}
-                className="w-full h-14 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white rounded-xl font-black text-base tracking-wide active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/40"
+                className="w-full h-12 bg-orange-500 hover:bg-orange-600 text-white rounded-full font-bold text-base active:scale-[0.98] transition-all"
               >
-                {isAuthenticated ? (
-                  <>
-                    Proceed to Checkout <ArrowRight size={18} />
-                  </>
-                ) : (
-                  'Login & Checkout'
-                )}
-              </button>
-            </div>
-
-            {/* Quick Links Navigation */}
-            <div className="border-t border-neutral-200 bg-white px-2 py-2 flex justify-between items-center text-neutral-500 safe-area-bottom">
-              <button 
-                onClick={() => navigate('/')} 
-                className="flex-1 flex flex-col items-center gap-1 py-2 px-2 hover:text-emerald-700 transition rounded-lg hover:bg-emerald-50 active:scale-90"
-              >
-                <Home size={22} />
-                <span className="text-[10px] font-bold">Home</span>
-              </button>
-              <div className="flex-1 flex flex-col items-center gap-1 py-2 px-2 text-emerald-700 bg-emerald-50 rounded-lg">
-                <ShoppingBag size={22} />
-                <span className="text-[10px] font-bold">Cart</span>
-              </div>
-              <button 
-                onClick={() => navigate('/products')} 
-                className="flex-1 flex flex-col items-center gap-1 py-2 px-2 hover:text-emerald-700 transition rounded-lg hover:bg-emerald-50 active:scale-90"
-              >
-                <Gift size={22} />
-                <span className="text-[10px] font-bold">Shop</span>
-              </button>
-              <button className="flex-1 flex flex-col items-center gap-1 py-2 px-2 hover:text-emerald-700 transition rounded-lg hover:bg-emerald-50 active:scale-90">
-                <Heart size={22} />
-                <span className="text-[10px] font-bold">Saved</span>
-              </button>
-              <button 
-                onClick={() => navigate('/profile')} 
-                className="flex-1 flex flex-col items-center gap-1 py-2 px-2 hover:text-emerald-700 transition rounded-lg hover:bg-emerald-50 active:scale-90"
-              >
-                <User size={22} />
-                <span className="text-[10px] font-bold">Profile</span>
+                Checkout
               </button>
             </div>
           </div>
