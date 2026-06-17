@@ -14,17 +14,11 @@ import { AdminOrders } from "../components/AdminOrders";
 import { AdminCancellationRequests } from "../components/AdminCancellationRequests";
 import { AdminRefundStatus } from "../components/AdminRefundStatus";
 import { AdminLayout } from "../components/AdminLayout";
+import { getFullImageUrl } from "../utils/imageUtils";
 import { AdminCouponManagement } from "../components/AdminCoupon";
 import { OrderCancellationService } from "../../services/orderCancellationService";
 
-// Helper function to get full image URL
-const getFullImageUrl = (imageUrl: string) => {
-  if (!imageUrl) return '/placeholder.png';
-  if (imageUrl.startsWith('http')) return imageUrl;
-  const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-  const backendBase = apiBase.replace('/api', '');
-  return `${backendBase}${imageUrl}`;
-};
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 // Helper: Get price range from product variants
 const getPriceRange = (product: Product): { min: number; max: number; display: string } => {
@@ -302,7 +296,7 @@ export const Admin: React.FC = () => {
       // Refresh categories list when opening modal to ensure latest data
       let updatedCategories = categoryNames;
       try {
-        const categoriesResponse = await fetch("http://localhost:5000/api/categories");
+        const categoriesResponse = await fetch(`${API_BASE_URL}/categories?t=${Date.now()}`);
         if (categoriesResponse.ok) {
           const categoriesData = await categoriesResponse.json();
           updatedCategories = categoriesData.map((cat: any) => cat.name).sort();
@@ -451,7 +445,7 @@ export const Admin: React.FC = () => {
     const loadCategories = async () => {
       try {
         const response = await fetch(
-          "http://localhost:5000/api/categories",
+          `${API_BASE_URL}/categories?t=${Date.now()}`,
         );
         if (response.ok) {
           const data = await response.json();
@@ -498,7 +492,7 @@ export const Admin: React.FC = () => {
         setProducts(updated);
         
         // Refresh categories in case new ones were created
-        const categoriesResponse = await fetch("http://localhost:5000/api/categories");
+        const categoriesResponse = await fetch(`${API_BASE_URL}/categories?t=${Date.now()}`);
         if (categoriesResponse.ok) {
           const categoriesData = await categoriesResponse.json();
           setCategoryNames(categoriesData.map((cat: any) => cat.name).sort());
@@ -514,7 +508,7 @@ export const Admin: React.FC = () => {
         setProducts(updated);
         
         // Refresh categories in case new ones were created
-        const categoriesResponse = await fetch("http://localhost:5000/api/categories");
+        const categoriesResponse = await fetch(`${API_BASE_URL}/categories?t=${Date.now()}`);
         if (categoriesResponse.ok) {
           const categoriesData = await categoriesResponse.json();
           setCategoryNames(categoriesData.map((cat: any) => cat.name).sort());

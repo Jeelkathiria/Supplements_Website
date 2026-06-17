@@ -32,6 +32,18 @@ export const addToCart = async (
   size?: string
 ) => {
   try {
+    if (quantity <= 0) {
+      throw new Error("Quantity must be greater than 0");
+    }
+
+    // Verify product exists in catalog
+    const product = await prisma.product.findUnique({
+      where: { id: productId }
+    });
+    if (!product) {
+      throw new Error("Product not found");
+    }
+
     const cart = await getOrCreateCart(userId);
 
     // First, check if an item with the same productId, flavor, and size exists
@@ -80,6 +92,10 @@ export const updateCartItem = async (
   size?: string
 ) => {
   try {
+    if (quantity <= 0) {
+      throw new Error("Quantity must be greater than 0");
+    }
+
     const cart = await getOrCreateCart(userId);
 
     // Find the item with matching productId, flavor, and size
@@ -155,6 +171,19 @@ export const mergeGuestCart = async (
     const cart = await getOrCreateCart(userId);
 
     for (const item of guestCartItems) {
+      if (item.quantity <= 0) {
+        continue;
+      }
+
+      // Verify product exists in catalog before merging
+      const product = await prisma.product.findUnique({
+        where: { id: item.productId }
+      });
+      if (!product) {
+        console.warn(`Product ${item.productId} not found during merge, skipping.`);
+        continue;
+      }
+
       // Check if an item with the same productId, flavor, and size exists
       const existingItem = await prisma.cartItem.findFirst({
         where: {
@@ -245,6 +274,20 @@ export const getCartWithTotals = async (userId: string) => {
     };
   } catch (error) {
     console.error("Error getting cart with totals:", error);
+    throw error;
+  }
+};
+
+export const clearCart = async (userId: string) => {
+  try {
+    const cart = await getOrCreateCart(userId);
+    return await prisma.cartItem.deleteMany({
+      where: {
+        cartId: cart.id
+      }
+    });
+  } catch (error) {
+    console.error("Error clearing cart:", error);
     throw error;
   }
 };

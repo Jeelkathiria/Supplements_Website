@@ -6,6 +6,7 @@ import { useFavorites } from './context/FavoritesContext';
 import { toast } from 'sonner';
 import { Product } from '../types';
 import { getProductPricing, getProductSizes, getProductFlavors } from '../utils/pricingUtils';
+import { getFullImageUrl } from '../utils/imageUtils';
 
 interface ProductCardProps {
   product: Product;
@@ -40,15 +41,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   // Get images from either field
   const images = product.imageUrls || product.images || [];
 
-  // Build full image URL if it's relative
-  const getFullImageUrl = (imageUrl: string) => {
-    if (!imageUrl) return '/placeholder.png';
-    if (imageUrl.startsWith('http')) return imageUrl;
-    // If it's a relative path, add the API base URL
-    const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-    const backendBase = apiBase.replace('/api', '');
-    return `${backendBase}${imageUrl}`;
-  };
+
 
   // Filter out base64 images that might be too large, use placeholder if none available
   const displayImage = images.length > 0 ? getFullImageUrl(images[0]) : '/placeholder.png';

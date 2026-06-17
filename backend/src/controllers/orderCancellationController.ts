@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { OrderCancellationService } from "../services/orderCancellationService";
+import { StorageService } from "../services/storageService";
 
 declare global {
   namespace Express {
@@ -98,12 +99,14 @@ export class OrderCancellationController {
     try {
       const { requestId } = req.params;
       const id = Array.isArray(requestId) ? requestId[0] : requestId;
+      const { reason, comment } = req.body;
+      const adminComment = reason || comment;
 
       if (!id) {
         return res.status(400).json({ error: "Request ID is required" });
       }
 
-      const result = await OrderCancellationService.approveCancellationRequest(id);
+      const result = await OrderCancellationService.approveCancellationRequest(id, adminComment);
 
       return res.status(200).json({
         success: true,
@@ -125,12 +128,14 @@ export class OrderCancellationController {
     try {
       const { requestId } = req.params;
       const id = Array.isArray(requestId) ? requestId[0] : requestId;
+      const { reason, comment } = req.body;
+      const adminComment = reason || comment;
 
       if (!id) {
         return res.status(400).json({ error: "Request ID is required" });
       }
 
-      const updated = await OrderCancellationService.rejectCancellationRequest(id);
+      const updated = await OrderCancellationService.rejectCancellationRequest(id, adminComment);
 
       return res.status(200).json({
         success: true,
@@ -188,8 +193,9 @@ export class OrderCancellationController {
         return res.status(400).json({ error: "Video file is required" });
       }
 
-      // Store the video URL
-      const videoUrl = `/uploads/videos/${req.file.filename}`;
+      // Convert file buffer directly to Base64 Data URL
+      const base64Data = req.file.buffer.toString("base64");
+      const videoUrl = `data:${req.file.mimetype};base64,${base64Data}`;
 
       // Update cancellation request with video URL
       const updated = await OrderCancellationService.uploadVideo(id, userId, videoUrl);

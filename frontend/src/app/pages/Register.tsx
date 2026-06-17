@@ -57,12 +57,13 @@ export const Register: React.FC = () => {
     agreeToTerms: false,
   });
 
-  // Check if redirecting from checkout
+  // Check if redirecting from checkout or cart
   const isCheckoutRedirect = searchParams.get('redirect') === 'checkout';
+  const isCartRedirect = searchParams.get('redirect') === 'cart';
 
   useEffect(() => {
-    // Prevent back navigation when coming from checkout
-    if (isCheckoutRedirect) {
+    // Prevent back navigation when coming from checkout or cart
+    if (isCheckoutRedirect || isCartRedirect) {
       window.history.pushState(null, '', window.location.href);
       const handlePopState = () => {
         window.history.pushState(null, '', window.location.href);
@@ -70,7 +71,7 @@ export const Register: React.FC = () => {
       window.addEventListener('popstate', handlePopState);
       return () => window.removeEventListener('popstate', handlePopState);
     }
-  }, [isCheckoutRedirect]);
+  }, [isCheckoutRedirect, isCartRedirect]);
 
   const handleNameChange = (value: string) => {
     setFormData({ ...formData, name: value });
@@ -219,15 +220,22 @@ export const Register: React.FC = () => {
     try {
       await register(formData.name, formData.email, formData.password, formData.phone);
       
-      // Wait for auth state to be fully updated and user data to load before redirecting
       setTimeout(() => {
+        const urlRedirect = searchParams.get('redirect');
+        let redirectPath = '/account';
+        
         if (redirectAfterLogin) {
-          const redirectUrl = redirectAfterLogin;
-          setRedirectAfterLogin(null);
-          navigate(redirectUrl);
-        } else {
-          navigate('/account');
+          redirectPath = redirectAfterLogin;
+        } else if (urlRedirect === 'checkout') {
+          redirectPath = '/checkout';
+        } else if (urlRedirect === 'cart') {
+          redirectPath = '/cart';
+        } else if (urlRedirect) {
+          redirectPath = urlRedirect.startsWith('/') ? urlRedirect : `/${urlRedirect}`;
         }
+
+        setRedirectAfterLogin(null);
+        navigate(redirectPath);
       }, 1000);
     } catch (error: any) {
       setIsLoading(false);
@@ -239,15 +247,22 @@ export const Register: React.FC = () => {
     try {
       await loginWithGoogle();
       
-      // Wait a bit for auth state to update before redirecting
       setTimeout(() => {
+        const urlRedirect = searchParams.get('redirect');
+        let redirectPath = '/';
+        
         if (redirectAfterLogin) {
-          const redirectUrl = redirectAfterLogin;
-          setRedirectAfterLogin(null);
-          navigate(redirectUrl);
-        } else {
-          navigate('/account');
+          redirectPath = redirectAfterLogin;
+        } else if (urlRedirect === 'checkout') {
+          redirectPath = '/checkout';
+        } else if (urlRedirect === 'cart') {
+          redirectPath = '/cart';
+        } else if (urlRedirect) {
+          redirectPath = urlRedirect.startsWith('/') ? urlRedirect : `/${urlRedirect}`;
         }
+
+        setRedirectAfterLogin(null);
+        navigate(redirectPath);
       }, 500);
     } catch (error: any) {
       setIsGoogleLoading(false);
@@ -268,13 +283,13 @@ export const Register: React.FC = () => {
           <p className="text-xs text-neutral-500 mt-1 tracking-widest">PREMIUM SUPPLEMENTS</p>
         </div>
 
-        {/* Checkout Notification */}
-        {isCheckoutRedirect && (
+        {/* Checkout/Cart Notification */}
+        {(isCheckoutRedirect || isCartRedirect) && (
           <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 mb-6 flex items-start gap-3">
             <ShoppingCart className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
             <div>
               <p className="text-sm font-medium text-blue-900">
-                Please create an account to continue checkout
+                {isCartRedirect ? "Please create an account to view your cart" : "Please create an account to continue checkout"}
               </p>
               <p className="text-xs text-blue-700 mt-0.5">
                 Your cart items are saved and ready
@@ -496,7 +511,7 @@ export const Register: React.FC = () => {
         <p className="mt-8 text-center text-sm text-neutral-700">
           Already have an account?{' '}
           <Link 
-            to={isCheckoutRedirect ? "/login?redirect=checkout" : "/login"} 
+            to={isCheckoutRedirect ? "/login?redirect=checkout" : isCartRedirect ? "/login?redirect=cart" : "/login"} 
             className="font-semibold text-neutral-900 hover:underline"
           >
             Sign in

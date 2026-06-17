@@ -298,6 +298,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
       setFirebaseUser(null);
       safeLocalStorage.removeItem("authToken");
       safeLocalStorage.removeItem("user");
+      safeLocalStorage.removeItem("cart");
+      safeLocalStorage.removeItem("cart_user_id");
     } catch (error) {
       console.error("Logout error:", error);
       throw error;

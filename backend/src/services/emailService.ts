@@ -323,6 +323,59 @@ export const sendOrderDeliveredEmail = async (
   });
 };
 
+export const sendOrderCancelledEmail = async (
+  userEmail: string,
+  orderId: string,
+  customerName: string
+) => {
+  const html = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="UTF-8">
+        <style>
+          body { font-family: Arial, sans-serif; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background-color: #f44336; color: white; padding: 20px; text-align: center; border-radius: 5px; }
+          .content { padding: 20px; background-color: #f9f9f9; margin-top: 20px; border-radius: 5px; }
+          .status-badge { display: inline-block; background-color: #f44336; color: white; padding: 8px 16px; border-radius: 20px; margin: 10px 0; }
+          .footer { margin-top: 20px; text-align: center; color: #999; font-size: 12px; }
+          .button { display: inline-block; background-color: #f44336; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin-top: 20px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>Order Cancelled ❌</h1>
+          </div>
+          <div class="content">
+            <p>Hi ${customerName},</p>
+            <p>Your order #${orderId} has been successfully cancelled.</p>
+            
+            <div class="status-badge">Status: CANCELLED</div>
+
+            <p style="margin-top: 20px; color: #666;">
+              If any payment was made, it will be refunded. Please contact support if you have any questions.
+            </p>
+
+            <a href="${process.env.FRONTEND_URL || "http://localhost:5173"}/contact" class="button">Contact Support</a>
+          </div>
+          <div class="footer">
+            <p>SaturnImports - Your trusted supplement store</p>
+            <p>This is an automated email. Please don't reply to this email.</p>
+          </div>
+        </div>
+      </body>
+    </html>
+  `;
+
+  await sendEmail({
+    to: userEmail,
+    subject: `Order Cancelled - Order #${orderId}`,
+    html,
+  });
+};
+
 export const sendCancellationApprovedEmail = async (
   userEmail: string,
   orderId: string,

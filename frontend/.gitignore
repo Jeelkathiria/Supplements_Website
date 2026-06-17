@@ -13,3 +13,4 @@ firebase.ts
 .env
 frontend/.env
 
+.vercel

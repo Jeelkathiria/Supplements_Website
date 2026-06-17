@@ -13,6 +13,7 @@ import {
 import { toast } from 'sonner';
 import * as orderService from '../../services/orderService';
 import type { Order } from '../../services/orderService';
+import { getFullImageUrl } from '../utils/imageUtils';
 
 export const OrderSuccess: React.FC = () => {
   const { orderId } = useParams<{ orderId: string }>();
@@ -205,16 +206,7 @@ export const OrderSuccess: React.FC = () => {
 
             <div className="space-y-4">
               {order.items.map((item) => {
-                const apiBaseUrl =
-                  import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-                const baseUrl = apiBaseUrl.replace('/api', '');
-                
-                // Use stored product snapshot data instead of fetching current product
-                const imageUrl = item.imageUrl
-                  ? item.imageUrl.startsWith('http')
-                    ? item.imageUrl
-                    : `${baseUrl}${item.imageUrl}`
-                  : null;
+                const imageUrl = getFullImageUrl(item.imageUrl);
 
                 const itemTotal = item.price * item.quantity;
                 const savings = item.discountPercent > 0

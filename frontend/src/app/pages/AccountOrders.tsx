@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import * as orderService from '../../services/orderService';
 import * as productService from '../../services/productService';
 import type { Order } from '../../services/orderService';
+import { getFullImageUrl } from '../utils/imageUtils';
 
 export const AccountOrders: React.FC = () => {
   const navigate = useNavigate();
@@ -221,13 +222,7 @@ export const AccountOrders: React.FC = () => {
                 <div className="flex flex-col lg:flex-row gap-8">
                   <div className="flex-1 space-y-6">
                     {order.items.map((item, idx) => {
-                      const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-                      const baseUrl = apiBaseUrl.replace('/api', '');
-                      let imageUrl = null;
-                      if (Array.isArray(item.product?.imageUrls) && item.product.imageUrls.length > 0) {
-                        const imgPath = item.product.imageUrls[0];
-                        imageUrl = imgPath.startsWith('http') ? imgPath : `${baseUrl}${imgPath}`;
-                      }
+                      const imageUrl = getFullImageUrl(item.product?.imageUrls?.[0]);
 
                       return (
                         <div key={idx} className="flex gap-4">

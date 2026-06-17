@@ -21,7 +21,7 @@ const getAuthToken = async (): Promise<string | null> => {
 // Get all categories
 export const fetchCategories = async () => {
   try {
-    const response = await fetch(`${API_BASE_URL}/categories`);
+    const response = await fetch(`${API_BASE_URL}/categories?t=${Date.now()}`);
     if (!response.ok) throw new Error("Failed to fetch categories");
     return await response.json();
   } catch (error) {
@@ -33,7 +33,7 @@ export const fetchCategories = async () => {
 // Get all active products
 export const fetchProducts = async (): Promise<Product[]> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/products`);
+    const response = await fetch(`${API_BASE_URL}/products?t=${Date.now()}`);
     if (!response.ok) throw new Error("Failed to fetch products");
     return await response.json();
   } catch (error) {
@@ -45,7 +45,7 @@ export const fetchProducts = async (): Promise<Product[]> => {
 // Get a single product by ID (latest data from database)
 export const fetchProductById = async (productId: string): Promise<Product | null> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/products/${productId}`);
+    const response = await fetch(`${API_BASE_URL}/products/${productId}?t=${Date.now()}`);
     if (!response.ok) throw new Error("Failed to fetch product");
     return await response.json();
   } catch (error) {
@@ -264,7 +264,7 @@ export interface ProductVariant {
  */
 export const fetchProductVariants = async (productId: string): Promise<ProductVariant[]> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/admin/products/${productId}/variants`);
+    const response = await fetch(`${API_BASE_URL}/admin/products/${productId}/variants?t=${Date.now()}`);
     if (!response.ok) throw new Error("Failed to fetch variants");
     return await response.json();
   } catch (error) {
@@ -381,7 +381,7 @@ export const getVariantPrice = async (
 ): Promise<number | null> => {
   try {
     const response = await fetch(
-      `${API_BASE_URL}/admin/products/${productId}/price?flavor=${encodeURIComponent(flavor)}&size=${encodeURIComponent(size)}`
+      `${API_BASE_URL}/admin/products/${productId}/price?flavor=${encodeURIComponent(flavor)}&size=${encodeURIComponent(size)}&t=${Date.now()}`
     );
 
     if (!response.ok) throw new Error("Failed to get variant price");

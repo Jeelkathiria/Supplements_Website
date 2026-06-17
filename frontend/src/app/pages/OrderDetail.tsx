@@ -5,6 +5,7 @@ import * as orderService from '../../services/orderService';
 import { OrderCancellationService } from '../../services/orderCancellationService';
 import { OrderTrackingTimeline } from '../components/OrderTrackingTimeline';
 import type { Order } from '../../services/orderService';
+import { getFullImageUrl } from '../utils/imageUtils';
 
 export const OrderDetail: React.FC = () => {
   const { orderId } = useParams();
@@ -86,17 +87,6 @@ export const OrderDetail: React.FC = () => {
     );
   }
 
-  const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-  const baseUrl = apiBaseUrl.replace('/api', '');
-
-  const getImageUrl = (imageUrls: any): string | null => {
-    if (Array.isArray(imageUrls) && imageUrls.length > 0) {
-      const imgPath = imageUrls[0];
-      return imgPath.startsWith('http') ? imgPath : `${baseUrl}${imgPath}`;
-    }
-    return null;
-  };
-
   const statusColor: { [key: string]: string } = {
     PENDING: 'text-orange-600',
     CONFIRMED: 'text-blue-600',
@@ -160,7 +150,7 @@ export const OrderDetail: React.FC = () => {
           <p className="font-semibold mb-3">Items</p>
 
           {order.items.map((item, idx) => {
-            const imageUrl = getImageUrl(item.product?.imageUrls);
+            const imageUrl = getFullImageUrl(item.product?.imageUrls?.[0]);
             return (
               <div
                 key={idx}

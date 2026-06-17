@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import { Breadcrumb } from "../components/Breadcrumb";
 import { fetchProducts } from "../../services/productService";
 import { getProductPricing } from "../utils/pricingUtils";
+import { getFullImageUrl } from "../utils/imageUtils";
 import { Product } from "../types";
 
 export const ProductDetail: React.FC = () => {
@@ -272,14 +273,7 @@ export const ProductDetail: React.FC = () => {
     );
   }
 
-  // Helper function to get full image URL
-  const getFullImageUrl = (imageUrl: string) => {
-    if (!imageUrl) return '/placeholder.png';
-    if (imageUrl.startsWith('http')) return imageUrl;
-    const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-    const backendBase = apiBase.replace('/api', '');
-    return `${backendBase}${imageUrl}`;
-  };
+
 
   // Get images array
   const images = product.imageUrls || product.images || [];

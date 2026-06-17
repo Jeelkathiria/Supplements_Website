@@ -1,27 +1,28 @@
 import { Router, Request, Response } from "express";
 import { imageUpload } from "../middlewares/imageUpload";
 import { requireAuth } from "../middlewares/requireAuth";
-import path from "path";
+import { StorageService } from "../services/storageService";
 
 const router = Router();
 
 // Upload image endpoint
-router.post("/upload", requireAuth, imageUpload.single("image"), (req: Request, res: Response) => {
+router.post("/upload", requireAuth, imageUpload.single("image"), async (req: Request, res: Response) => {
   try {
     if (!req.file) {
       return res.status(400).json({ message: "No image file provided" });
     }
 
-    // Return the image URL path
-    const imageUrl = `/uploads/${req.file.filename}`;
+    // Convert file buffer directly to Base64 Data URL
+    const base64Data = req.file.buffer.toString("base64");
+    const imageUrl = `data:${req.file.mimetype};base64,${base64Data}`;
     
     res.json({
       success: true,
       imageUrl,
-      filename: req.file.filename,
+      filename: req.file.originalname,
     });
   } catch (error) {
-    console.error("Error uploading image:", error);
+    console.error("Error converting image to Base64:", error);
     res.status(500).json({
       message: "Failed to upload image",
       error: error instanceof Error ? error.message : "Unknown error",
@@ -30,15 +31,17 @@ router.post("/upload", requireAuth, imageUpload.single("image"), (req: Request, 
 });
 
 // Upload multiple images
-router.post("/upload-multiple", requireAuth, imageUpload.array("images", 10), (req: Request, res: Response) => {
+router.post("/upload-multiple", requireAuth, imageUpload.array("images", 10), async (req: Request, res: Response) => {
   try {
     if (!req.files || req.files.length === 0) {
       return res.status(400).json({ message: "No image files provided" });
     }
 
-    const imageUrls = (req.files as Express.Multer.File[]).map(
-      (file) => `/uploads/${file.filename}`
-    );
+    const files = req.files as Express.Multer.File[];
+    const imageUrls = files.map((file) => {
+      const base64Data = file.buffer.toString("base64");
+      return `data:${file.mimetype};base64,${base64Data}`;
+    });
 
     res.json({
       success: true,
@@ -46,7 +49,7 @@ router.post("/upload-multiple", requireAuth, imageUpload.array("images", 10), (r
       count: imageUrls.length,
     });
   } catch (error) {
-    console.error("Error uploading images:", error);
+    console.error("Error converting images to Base64:", error);
     res.status(500).json({
       message: "Failed to upload images",
       error: error instanceof Error ? error.message : "Unknown error",

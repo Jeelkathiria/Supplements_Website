@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Dumbbell, ChevronDown, CheckCircle2, Zap, Users, ChevronLeft, ChevronRight, Grid } from "lucide-react";
+import { Dumbbell, ChevronDown, ChevronLeft, ChevronRight, Grid } from "lucide-react";
 
 import { ProductCard } from "../components/ProductCard";
 import { CategoryCard } from "../components/CategoryCard";
 import { fetchProducts } from "../../services/productService";
 import { Product } from "../types";
+import { getFullImageUrl } from "../utils/imageUtils";
 import heroBg from "../../images/1001380690 (1).jpg";
 import heroBg2 from "../../images/heroBg2.jpg";
 import heroBg3 from "../../images/heroBg3.webp";
@@ -107,10 +108,7 @@ export const Home: React.FC = () => {
 
         // Add category only if not already added (ensures unique categories)
         if (!categoryMap.has(categoryName) && product.imageUrls && product.imageUrls.length > 0) {
-          // Get the filename from imageUrls and construct HTTP URL
-          let imagePath = product.imageUrls[0];
-          const filename = imagePath.includes('/') ? imagePath.split('/').pop() : imagePath;
-          const fullImagePath = `http://localhost:5000/uploads/${filename}`;
+          const fullImagePath = getFullImageUrl(product.imageUrls[0]);
 
           categoryMap.set(categoryName, {
             id: categoryId,

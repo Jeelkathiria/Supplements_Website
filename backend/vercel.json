@@ -1,7 +1,24 @@
 {
-  "buildCommand": "npm run build",
-  "outputDirectory": "dist",
-  "framework": "express",
+  "version": 2,
+  "builds": [
+    {
+      "src": "api/[[...route]].ts",
+      "use": "@vercel/node",
+      "config": {
+        "includeFiles": [
+          "src/generated/prisma/libquery_engine-rhel-openssl-3.0.x.so.node",
+          "src/generated/prisma/schema.prisma",
+          "firebase-service-account.json"
+        ]
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "api/[[...route]].ts"
+    }
+  ],
   "regions": ["iad1"],
   "env": {
     "NODE_ENV": "production"

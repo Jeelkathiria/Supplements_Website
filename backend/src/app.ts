@@ -31,19 +31,29 @@ import {
 const app = express();
 
 // CORS Configuration for Vercel Deployment
-const allowedOrigins = process.env.NODE_ENV === 'production'
-  ? [
-      'https://your-frontend.vercel.app', // Update with your actual frontend URL
-      process.env.FRONTEND_URL
-    ].filter(Boolean)
-  : [
-      'http://localhost:5173',      // Vite dev server
-      'http://localhost:3000',      // Alternative local
-      'http://localhost:5000'       // Local backend
-    ];
+const allowedOrigins = [
+  'http://localhost:5173',      // Vite dev server
+  'http://localhost:3000',      // Alternative local
+  'http://localhost:5000'       // Local backend
+];
 
 app.use(cors({
-  origin: allowedOrigins,
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps or curl)
+    if (!origin) {
+      callback(null, true);
+      return;
+    }
+    
+    const isLocal = allowedOrigins.includes(origin) || origin.startsWith('http://localhost:');
+    const isVercel = origin.endsWith('.vercel.app') || /^https:\/\/.*\.vercel\.app$/.test(origin);
+    
+    if (isLocal || isVercel) {
+      callback(null, true);
+    } else {
+      callback(null, false);
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']

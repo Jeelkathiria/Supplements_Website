@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
 import { fetchProducts } from "../../services/productService";
+import { getFullImageUrl } from "../utils/imageUtils";
 
 interface CategoryWithImage {
   id: string;
@@ -41,10 +42,7 @@ export const Categories: React.FC = () => {
             product.imageUrls &&
             product.imageUrls.length > 0
           ) {
-            // Get the filename from imageUrls and construct HTTP URL
-            let imagePath = product.imageUrls[0];
-            const filename = imagePath.includes('/') ? imagePath.split('/').pop() : imagePath;
-            const fullImagePath = `http://localhost:5000/uploads/${filename}`;
+            const fullImagePath = getFullImageUrl(product.imageUrls[0]);
             
             categoryMap.set(categoryName, {
               id: categoryId,

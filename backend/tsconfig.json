@@ -8,5 +8,6 @@
     "esModuleInterop": true,
     "resolveJsonModule": true,
     "skipLibCheck": true
-  }
+  },
+  "exclude": ["api", "node_modules", "dist"]
 }

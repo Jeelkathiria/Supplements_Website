@@ -99,13 +99,24 @@ export const mergeCart = async (req: AuthRequest, res: Response) => {
     }
 
     const mergedCart = await cartService.mergeGuestCart(userId, cartItems);
-    res.json({
-      message: "Cart merged successfully",
-      cart: mergedCart
-    });
+    res.json(mergedCart);
   } catch (error) {
     console.error("Error merging cart:", error);
     const message = error instanceof Error ? error.message : "Failed to merge cart";
     res.status(500).json({ message });
+  }
+};
+
+export const clearCart = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user?.dbUser?.id;
+    if (!userId) {
+      return res.status(401).json({ message: "User not authenticated" });
+    }
+    await cartService.clearCart(userId);
+    res.json({ success: true, message: "Cart cleared successfully" });
+  } catch (error) {
+    console.error("Error clearing cart:", error);
+    res.status(500).json({ message: "Failed to clear cart" });
   }
 };

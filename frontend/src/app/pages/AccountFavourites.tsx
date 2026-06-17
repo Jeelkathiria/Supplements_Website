@@ -4,6 +4,7 @@ import { Heart } from 'lucide-react';
 import { useCart } from '../components/context/CartContext';
 import { useFavorites } from '../components/context/FavoritesContext';
 import { getProductPricing, getDefaultVariant } from '../utils/pricingUtils';
+import { getFullImageUrl } from '../utils/imageUtils';
 import { toast } from 'sonner';
 
 export const AccountFavourites: React.FC = () => {
@@ -32,13 +33,7 @@ export const AccountFavourites: React.FC = () => {
       {favorites.length > 0 ? (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {favorites.map((product) => {
-            const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-            const baseUrl = apiBaseUrl.replace('/api', '');
-            let imageUrl = null;
-            if (Array.isArray(product.imageUrls) && product.imageUrls.length > 0) {
-              const imgPath = product.imageUrls[0];
-              imageUrl = imgPath.startsWith('http') ? imgPath : `${baseUrl}${imgPath}`;
-            }
+            const imageUrl = getFullImageUrl(product.imageUrls?.[0]);
 
             const pricing = getProductPricing(product);
 

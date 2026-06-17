@@ -180,7 +180,7 @@ export class OrderCancellationService {
   }
 
   // Approve cancellation request and update order status
-  static async approveCancellationRequest(requestId: string) {
+  static async approveCancellationRequest(requestId: string, comment?: string) {
     const request = await prisma.orderCancellationRequest.findUnique({
       where: { id: requestId },
       include: {
@@ -302,7 +302,8 @@ export class OrderCancellationService {
         await sendCancellationApprovedEmail(
           user.email,
           request.orderId,
-          user.name || "Valued Customer"
+          user.name || "Valued Customer",
+          comment
         );
       }
     } catch (emailError) {
@@ -318,7 +319,7 @@ export class OrderCancellationService {
   }
 
   // Reject cancellation request
-  static async rejectCancellationRequest(requestId: string) {
+  static async rejectCancellationRequest(requestId: string, comment?: string) {
     const request = await prisma.orderCancellationRequest.findUnique({
       where: { id: requestId },
     });
@@ -345,7 +346,8 @@ export class OrderCancellationService {
         await sendCancellationRejectedEmail(
           user.email,
           request.orderId,
-          user.name || "Valued Customer"
+          user.name || "Valued Customer",
+          comment
         );
       }
     } catch (emailError) {

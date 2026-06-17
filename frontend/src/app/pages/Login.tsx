@@ -35,12 +35,13 @@ export const Login: React.FC = () => {
   const [forgotSuccess, setForgotSuccess] = useState(false);
   const [forgotEmailError, setForgotEmailError] = useState('');
 
-  // Check if redirecting from checkout
+  // Check if redirecting from checkout or cart
   const isCheckoutRedirect = searchParams.get('redirect') === 'checkout';
+  const isCartRedirect = searchParams.get('redirect') === 'cart';
 
   useEffect(() => {
-    // Prevent back navigation when coming from checkout
-    if (isCheckoutRedirect) {
+    // Prevent back navigation when coming from checkout or cart
+    if (isCheckoutRedirect || isCartRedirect) {
       window.history.pushState(null, '', window.location.href);
       const handlePopState = () => {
         window.history.pushState(null, '', window.location.href);
@@ -48,7 +49,7 @@ export const Login: React.FC = () => {
       window.addEventListener('popstate', handlePopState);
       return () => window.removeEventListener('popstate', handlePopState);
     }
-  }, [isCheckoutRedirect]);
+  }, [isCheckoutRedirect, isCartRedirect]);
 
   const handleEmailChange = (value: string) => {
     setFormData({ ...formData, email: value });
@@ -96,20 +97,25 @@ export const Login: React.FC = () => {
       setLoginError('');
       setErrors({ email: '', password: '' });
       
-      // Wait for auth state to be fully updated and user data to load before redirecting
       setTimeout(() => {
-        // Check if user is admin and redirect to admin page
+        const urlRedirect = searchParams.get('redirect');
+        let redirectPath = '/account';
         const isAdmin = formData.email.toLowerCase().trim() === 'admin@gmail.com';
         
         if (redirectAfterLogin) {
-          const redirectUrl = redirectAfterLogin;
-          setRedirectAfterLogin(null);
-          navigate(redirectUrl);
+          redirectPath = redirectAfterLogin;
+        } else if (urlRedirect === 'checkout') {
+          redirectPath = '/checkout';
+        } else if (urlRedirect === 'cart') {
+          redirectPath = '/cart';
+        } else if (urlRedirect) {
+          redirectPath = urlRedirect.startsWith('/') ? urlRedirect : `/${urlRedirect}`;
         } else if (isAdmin) {
-          navigate('/admin');
-        } else {
-          navigate('/account');
+          redirectPath = '/admin';
         }
+
+        setRedirectAfterLogin(null);
+        navigate(redirectPath);
       }, 1000);
     } catch (error: any) {
       setIsLoading(false);
@@ -137,15 +143,22 @@ export const Login: React.FC = () => {
       setLoginError('');
       setErrors({ email: '', password: '' });
       
-      // Wait a bit for auth state to update before redirecting
       setTimeout(() => {
+        const urlRedirect = searchParams.get('redirect');
+        let redirectPath = '/';
+        
         if (redirectAfterLogin) {
-          const redirectUrl = redirectAfterLogin;
-          setRedirectAfterLogin(null);
-          navigate(redirectUrl);
-        } else {
-          navigate('/account');
+          redirectPath = redirectAfterLogin;
+        } else if (urlRedirect === 'checkout') {
+          redirectPath = '/checkout';
+        } else if (urlRedirect === 'cart') {
+          redirectPath = '/cart';
+        } else if (urlRedirect) {
+          redirectPath = urlRedirect.startsWith('/') ? urlRedirect : `/${urlRedirect}`;
         }
+
+        setRedirectAfterLogin(null);
+        navigate(redirectPath);
       }, 500);
     } catch (error: any) {
       setIsGoogleLoading(false);
@@ -210,13 +223,13 @@ export const Login: React.FC = () => {
             <p className="text-xs text-neutral-500 mt-1 tracking-widest">PREMIUM SUPPLEMENTS</p>
           </div>
 
-          {/* Checkout Notification */}
-          {isCheckoutRedirect && (
+          {/* Checkout/Cart Notification */}
+          {(isCheckoutRedirect || isCartRedirect) && (
             <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 mb-6 flex items-start gap-3">
               <ShoppingCart className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
               <div>
                 <p className="text-sm font-medium text-blue-900">
-                  Please login to continue checkout
+                  {isCartRedirect ? "Please login to view your cart" : "Please login to continue checkout"}
                 </p>
                 <p className="text-xs text-blue-700 mt-0.5">
                   Your cart items are saved and ready
@@ -364,7 +377,7 @@ export const Login: React.FC = () => {
           <p className="mt-8 text-center text-sm text-neutral-700">
             New Here?{' '}
             <Link 
-              to={isCheckoutRedirect ? "/register?redirect=checkout" : "/register"} 
+              to={isCheckoutRedirect ? "/register?redirect=checkout" : isCartRedirect ? "/register?redirect=cart" : "/register"} 
               className="font-semibold text-neutral-900 hover:underline"
             >
               Sign up today!

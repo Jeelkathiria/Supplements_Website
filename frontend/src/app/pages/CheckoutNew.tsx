@@ -13,8 +13,8 @@ import * as userService from '../../services/userService';
 import type { CheckoutData } from '../../services/checkoutService';
 
 export const Checkout: React.FC = () => {
-  const { cartItems, clearCart } = useCart();
-  const { isAuthenticated } = useAuth();
+  const { cartItems, clearCart, isLoading: cartLoading } = useCart();
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
 
   // State management
@@ -37,6 +37,10 @@ export const Checkout: React.FC = () => {
 
   // Redirect if not authenticated or cart is empty
   useEffect(() => {
+    if (authLoading || cartLoading) {
+      return;
+    }
+
     if (!isAuthenticated) {
       navigate('/login?redirect=checkout');
       return;
@@ -46,7 +50,7 @@ export const Checkout: React.FC = () => {
       navigate('/cart');
       return;
     }
-  }, [isAuthenticated, cartItems.length, navigate]);
+  }, [isAuthenticated, authLoading, cartLoading, cartItems.length, navigate]);
 
   // Load checkout data on mount
   useEffect(() => {

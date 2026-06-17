@@ -9,5 +9,6 @@ router.post("/add", requireAuth, cartController.addItem);
 router.post("/merge", requireAuth, cartController.mergeCart);
 router.put("/update", requireAuth, cartController.updateItem);
 router.delete("/remove", requireAuth, cartController.removeItem);
+router.delete("/clear", requireAuth, cartController.clearCart);
 
 export default router;

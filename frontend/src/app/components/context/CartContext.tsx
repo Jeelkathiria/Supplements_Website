@@ -1,9 +1,17 @@
-import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import { createContext, useContext, useState, ReactNode, useEffect, useRef } from 'react';
 import { CartItem, Product } from '../../types';
 import { getCartItemPrice } from '../../utils/pricingUtils';
 import * as cartService from "../../../services/cartService";
 import { useAuth } from './AuthContext';
 import { toast } from 'sonner';
+import {
+  getGuestCart,
+  addToGuestCart,
+  updateGuestCartItem,
+  removeGuestCartItem,
+  clearGuestCart
+} from '../../utils/cartUtils';
+import { fetchProducts } from '../../../services/productService';
 
 interface CartContextType {
   cartItems: CartItem[];
@@ -33,98 +41,117 @@ const defaultCartContext: CartContextType = {
 
 const CartContext = createContext<CartContextType>(defaultCartContext);
 
-// Guest cart storage key (for non-authenticated users)
-const GUEST_CART_STORAGE_KEY = 'supplements_cart_guest';
-
-// Generate user-specific cart storage key based on email or UID
-const getUserCartStorageKey = (emailOrUid: string): string => {
-  return `supplements_cart_${emailOrUid.toLowerCase().replace(/[^a-z0-9]/g, '_')}`;
-};
-
 export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { isAuthenticated, firebaseUser } = useAuth();
   const [hasAttemptedMerge, setHasAttemptedMerge] = useState(false);
+  const [productsList, setProductsList] = useState<Product[]>([]);
+  const debounceTimers = useRef<Record<string, NodeJS.Timeout>>({});
 
-  // Load cart on mount or when user changes
+  // Load products list on mount
   useEffect(() => {
-    try {
-      if (isAuthenticated && firebaseUser?.email) {
-        // User is logged in - load their specific cart
-        const userCartKey = getUserCartStorageKey(firebaseUser.email);
-        const savedUserCart = localStorage.getItem(userCartKey);
-        
-        if (savedUserCart) {
-          setCartItems(JSON.parse(savedUserCart));
+    const loadProducts = async () => {
+      try {
+        const products = await fetchProducts();
+        setProductsList(products);
+      } catch (err) {
+        console.error("Failed to load products in CartContext:", err);
+      }
+    };
+    loadProducts();
+  }, []);
+
+  // Load, sync, and merge cart based on auth status
+  useEffect(() => {
+    const initializeCart = async () => {
+      if (isAuthenticated && firebaseUser) {
+        if (!hasAttemptedMerge) {
+          await handleLoginMerge();
+          setHasAttemptedMerge(true);
         } else {
+          await syncCart();
         }
       } else if (!isAuthenticated) {
-        // User is NOT logged in (guest) - load guest cart
-        const savedGuestCart = localStorage.getItem(GUEST_CART_STORAGE_KEY);
-        if (savedGuestCart) {
-          setCartItems(JSON.parse(savedGuestCart));
-        } else {
-          setCartItems([]);
+        setHasAttemptedMerge(false);
+        // Logged out: Load guest cart from localStorage
+        const guestItems = getGuestCart();
+        
+        // Resolve guest items with full product details
+        let resolvedProducts = productsList;
+        if (resolvedProducts.length === 0) {
+          try {
+            resolvedProducts = await fetchProducts();
+            setProductsList(resolvedProducts);
+          } catch (err) {
+            console.error("Failed to load products for guest cart:", err);
+          }
         }
-      }
-    } catch (error) {
-      console.error('Failed to load cart from localStorage:', error);
-    }
-  }, [isAuthenticated, firebaseUser?.email, firebaseUser?.uid]);
 
-  // Save cart to localStorage whenever it changes (to appropriate key based on user)
-  useEffect(() => {
-    try {
-      if (isAuthenticated && firebaseUser?.email) {
-        // Save to user-specific cart key
-        const userCartKey = getUserCartStorageKey(firebaseUser.email);
-        localStorage.setItem(userCartKey, JSON.stringify(cartItems));
-      } else {
-        // Save to guest cart key
-        localStorage.setItem(GUEST_CART_STORAGE_KEY, JSON.stringify(cartItems));
-      }
-    } catch (error) {
-      console.error('Failed to save cart to localStorage:', error);
-    }
-  }, [cartItems, isAuthenticated, firebaseUser?.email]);
+        const resolvedItems: CartItem[] = [];
+        for (const item of guestItems) {
+          const product = resolvedProducts.find((p) => p.id === item.productId);
+          if (product) {
+            resolvedItems.push({
+              product,
+              quantity: item.quantity,
+              selectedSize: item.size,
+              selectedColor: item.flavor,
+            });
+          }
+        }
 
-  // Merge guest cart and sync when user logs in
-  useEffect(() => {
-    if (isAuthenticated && firebaseUser && !hasAttemptedMerge) {
-      handleLoginMerge();
-      setHasAttemptedMerge(true);
-    } else if (!isAuthenticated) {
-      // Reset merge flag when user logs out
-      setHasAttemptedMerge(false);
-      // Cart will be reloaded by the other useEffect that watches isAuthenticated
+        setCartItems(resolvedItems);
+      }
+    };
+
+    initializeCart();
+  }, [isAuthenticated, firebaseUser?.uid, productsList.length]);
+
+  const syncLocalWithState = (items: CartItem[]) => {
+    const minimalItems = items.map(item => ({
+      productId: item.product.id,
+      quantity: item.quantity,
+      flavor: item.selectedColor,
+      size: item.selectedSize
+    }));
+    if (minimalItems.length > 0) {
+      localStorage.setItem('cart', JSON.stringify(minimalItems));
+    } else {
+      localStorage.removeItem('cart');
     }
-  }, [isAuthenticated, firebaseUser?.uid]);
+
+    if (isAuthenticated && firebaseUser) {
+      localStorage.setItem('cart_user_id', firebaseUser.uid);
+    } else {
+      localStorage.removeItem('cart_user_id');
+    }
+  };
 
   const handleLoginMerge = async () => {
     try {
-      // Get guest cart from localStorage
-      const guestCartData = localStorage.getItem(GUEST_CART_STORAGE_KEY);
-      let guestCartItems: CartItem[] = [];
-      
-      if (guestCartData) {
-        try {
-          guestCartItems = JSON.parse(guestCartData);
-        } catch (e) {
-          console.error('Failed to parse guest cart:', e);
-        }
+      const currentCartUserId = localStorage.getItem('cart_user_id');
+      const isAlreadySyncedForUser = currentCartUserId === firebaseUser?.uid;
+
+      if (isAlreadySyncedForUser) {
+        console.log("Cart is already synchronized for this user. Skipping merge, just syncing.");
+        await syncCart();
+        return;
       }
+
+      // Get guest cart from localStorage
+      const guestCartItems = getGuestCart();
 
       // If there are guest cart items, merge them
       if (guestCartItems.length > 0) {
         const itemsToMerge = guestCartItems
-          .filter(item => item.product && item.product.id && item.quantity > 0)
+          .filter(item => item.productId && item.quantity > 0)
           .map((item) => ({
-            productId: item.product.id,
+            productId: item.productId,
             quantity: item.quantity,
-            flavor: item.selectedColor || undefined,
-            size: item.selectedSize || undefined,
+            flavor: item.flavor,
+            size: item.size,
           }));
 
         // Only merge if we have valid items
@@ -139,15 +166,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 selectedColor: item.flavor || undefined,
               }));
               setCartItems(items);
-              
-              // Clear guest cart from localStorage after successful merge
-              localStorage.removeItem(GUEST_CART_STORAGE_KEY);
-              
-              // Save merged cart to user-specific key
-              if (firebaseUser?.email) {
-                const userCartKey = getUserCartStorageKey(firebaseUser.email);
-                localStorage.setItem(userCartKey, JSON.stringify(items));
-              }
+              syncLocalWithState(items);
             }
             return;
           } catch (mergeErr) {
@@ -183,6 +202,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           selectedColor: item.flavor || undefined,
         }));
         setCartItems(items);
+        syncLocalWithState(items);
         setError(null);
       }
     } catch (err) {
@@ -197,19 +217,14 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       setIsLoading(true);
       
-      // Convert local cart to API format - validate all required fields
-      const guestCartItems = cartItems
-        .filter(item => item.product && item.product.id && item.quantity > 0)
-        .map((item) => ({
-          productId: item.product.id,
-          quantity: item.quantity,
-          flavor: item.selectedColor || undefined,
-          size: item.selectedSize || undefined,
-        }));
+      // Convert local cart to API format
+      const guestItems = getGuestCart();
+      const itemsToMerge = guestItems
+        .filter(item => item.productId && item.quantity > 0);
 
       // Send to backend to merge
-      if (guestCartItems.length > 0) {
-        const mergedCart = await cartService.mergeGuestCart(guestCartItems);
+      if (itemsToMerge.length > 0) {
+        const mergedCart = await cartService.mergeGuestCart(itemsToMerge);
         
         // Update local state with merged cart
         if (mergedCart && mergedCart.items) {
@@ -220,15 +235,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             selectedColor: item.flavor || undefined,
           }));
           setCartItems(items);
-          
-          // Clear guest cart from localStorage after successful merge
-          localStorage.removeItem(GUEST_CART_STORAGE_KEY);
-          
-          // Save merged cart to user-specific key if authenticated
-          if (isAuthenticated && firebaseUser?.email) {
-            const userCartKey = getUserCartStorageKey(firebaseUser.email);
-            localStorage.setItem(userCartKey, JSON.stringify(items));
-          }
+          syncLocalWithState(items);
           
           toast.success('Cart merged successfully!');
         }
@@ -253,42 +260,47 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     quantity = 1,
     selectedSize?: string,
     selectedColor?: string,
-    selectedWeight?: string
+    _selectedWeight?: string
   ) => {
     try {
       setError(null);
       
-      if (isAuthenticated) {
-        // Add to backend with flavor and size
-        await cartService.addToCart(product.id, quantity, selectedColor, selectedSize);
-      }
-
-      // Also add to local state
+      // 1. Optimistic local state update
       setCartItems((prev) => {
         const existingItem = prev.find(
           (item) =>
             item.product.id === product.id &&
             item.selectedSize === selectedSize &&
-            item.selectedColor === selectedColor &&
-            item.selectedWeight === selectedWeight
+            item.selectedColor === selectedColor
         );
 
         if (existingItem) {
           return prev.map((item) =>
             item.product.id === product.id &&
             item.selectedSize === selectedSize &&
-            item.selectedColor === selectedColor &&
-            item.selectedWeight === selectedWeight
+            item.selectedColor === selectedColor
               ? { ...item, quantity: item.quantity + quantity }
               : item
           );
         }
 
-        return [...prev, { product, quantity, selectedSize, selectedColor, selectedWeight }];
+        return [...prev, { product, quantity, selectedSize, selectedColor }];
       });
+
+      // 2. Always update local storage
+      addToGuestCart(product.id, quantity, selectedColor, selectedSize);
+
+      if (isAuthenticated) {
+        // 3. Authenticated backend call
+        await cartService.addToCart(product.id, quantity, selectedColor, selectedSize);
+      }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to add item to cart';
       setError(errorMessage);
+      if (isAuthenticated) {
+        // Rollback / sync in case of backend error
+        await syncCart();
+      }
       throw err;
     }
   };
@@ -301,12 +313,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       setError(null);
 
-      if (isAuthenticated) {
-        // Remove from backend with size and flavor to match exact variant
-        await cartService.removeFromCart(productId, selectedColor, selectedSize);
-      }
-
-      // Remove from local state
+      // 1. Optimistic local state update
       setCartItems((prev) =>
         prev.filter(
           (item) =>
@@ -317,9 +324,20 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             )
         )
       );
+
+      // 2. Always update local storage
+      removeGuestCartItem(productId, selectedColor, selectedSize);
+
+      if (isAuthenticated) {
+        // 3. Authenticated backend call
+        await cartService.removeFromCart(productId, selectedColor, selectedSize);
+      }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to remove item from cart';
       setError(errorMessage);
+      if (isAuthenticated) {
+        await syncCart();
+      }
       throw err;
     }
   };
@@ -337,12 +355,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         return;
       }
 
-      if (isAuthenticated) {
-        // Update in backend with flavor and size
-        await cartService.updateCartItem(productId, quantity, selectedColor, selectedSize);
-      }
-
-      // Update local state
+      // 1. Optimistic local state update
       setCartItems((prev) =>
         prev.map((item) =>
           item.product.id === productId &&
@@ -352,6 +365,30 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             : item
         )
       );
+
+      // 2. Always update local storage
+      updateGuestCartItem(productId, quantity, selectedColor, selectedSize);
+
+      if (isAuthenticated) {
+        // 3. Authenticated debounced backend update
+        const variantKey = `${productId}_${selectedSize || ''}_${selectedColor || ''}`;
+        
+        if (debounceTimers.current[variantKey]) {
+          clearTimeout(debounceTimers.current[variantKey]);
+        }
+
+        debounceTimers.current[variantKey] = setTimeout(async () => {
+          try {
+            await cartService.updateCartItem(productId, quantity, selectedColor, selectedSize);
+            delete debounceTimers.current[variantKey];
+          } catch (err) {
+            console.error("Failed to sync quantity update to backend:", err);
+            setError("Failed to sync quantity with database");
+            await syncCart();
+          }
+        }, 500);
+      }
+
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to update cart';
       setError(errorMessage);
@@ -362,16 +399,23 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const clearCart = async () => {
     try {
       setError(null);
-      // Clear backend cart by removing all items
-      if (isAuthenticated) {
-        for (const item of cartItems) {
-          await cartService.removeFromCart(item.product.id);
-        }
-      }
+      
+      // 1. Clear local state
       setCartItems([]);
+
+      // 2. Always clear local storage guest cart key "cart"
+      clearGuestCart();
+
+      if (isAuthenticated) {
+        // 3. Clear authenticated cart
+        await cartService.clearCart();
+      }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to clear cart';
       setError(errorMessage);
+      if (isAuthenticated) {
+        await syncCart();
+      }
       throw err;
     }
   };

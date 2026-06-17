@@ -5,6 +5,7 @@ import {
   sendOrderConfirmationEmail,
   sendOrderShippedEmail,
   sendOrderDeliveredEmail,
+  sendOrderCancelledEmail,
 } from "./emailService";
 
 const OrderStatus = $Enums.OrderStatus;
@@ -583,6 +584,12 @@ export const updateOrderStatus = async (
             order.id,
             user.name || "Valued Customer"
           );
+        } else if (status === OrderStatus.CANCELLED) {
+          await sendOrderCancelledEmail(
+            user.email,
+            order.id,
+            user.name || "Valued Customer"
+          );
         }
       }
     } catch (emailError) {
@@ -614,7 +621,7 @@ export const cancelOrder = async (orderId: string) => {
     }
 
     // Update order status
-    return await prisma.order.update({
+    const cancelledOrder = await prisma.order.update({
       where: { id: orderId },
       data: { status: OrderStatus.CANCELLED },
       include: {
@@ -624,6 +631,25 @@ export const cancelOrder = async (orderId: string) => {
         address: true,
       },
     });
+
+    // Send cancellation email
+    try {
+      const user = await prisma.user.findUnique({
+        where: { id: cancelledOrder.userId },
+      });
+
+      if (user && user.email) {
+        await sendOrderCancelledEmail(
+          user.email,
+          cancelledOrder.id,
+          user.name || "Valued Customer"
+        );
+      }
+    } catch (emailError) {
+      console.error("Error sending order cancellation email:", emailError);
+    }
+
+    return cancelledOrder;
   } catch (error) {
     console.error("Error cancelling order:", error);
     throw error;

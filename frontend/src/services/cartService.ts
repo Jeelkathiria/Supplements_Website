@@ -81,3 +81,10 @@ export const mergeGuestCart = async (cartItems: CartItem[]): Promise<CartRespons
     body: JSON.stringify({ cartItems }),
   });
 };
+
+// Clear entire cart
+export const clearCart = async (): Promise<void> => {
+  return apiCall<void>('/cart/clear', {
+    method: 'DELETE',
+  });
+};

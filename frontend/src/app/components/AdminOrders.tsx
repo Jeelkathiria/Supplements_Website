@@ -10,15 +10,7 @@ import {
 import { OrderCancellationService } from "../../services/orderCancellationService";
 import { useAuth } from "./context/AuthContext";
 import { BillModal } from "./BillModal";
-
-// Helper function to get full image URL
-const getFullImageUrl = (imageUrl: string) => {
-  if (!imageUrl) return '/placeholder.png';
-  if (imageUrl.startsWith('http')) return imageUrl;
-  const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-  const backendBase = apiBase.replace('/api', '');
-  return `${backendBase}${imageUrl}`;
-};
+import { getFullImageUrl } from "../utils/imageUtils";
 
 const ORDER_STATUSES = ["PENDING", "SHIPPED", "DELIVERED", "CANCELLED"];
 
