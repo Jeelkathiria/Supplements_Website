@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { MapPin, Loader, AlertCircle, Check, Plus, HandHeart } from 'lucide-react';
 import { useCart } from '../components/context/CartContext';
 import { useAuth } from '../components/context/AuthContext';
@@ -120,6 +120,8 @@ export const Checkout: React.FC = () => {
   const { cartItems, clearCart, isLoading: cartLoading } = useCart();
   const { isAuthenticated, user, isLoading: authLoading, getIdToken } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const redirectCheckDoneRef = useRef(false);
 
   // State management
   const [checkoutData, setCheckoutData] = useState<CheckoutData | null>(null);
@@ -146,9 +148,24 @@ export const Checkout: React.FC = () => {
 
   // Redirect if not authenticated or cart is empty
   useEffect(() => {
+    // Check if coming from a redirect flow (login -> checkout)
+    const isFromRedirect = searchParams.get('redirect') === 'checkout';
+    
     // Wait for auth or cart to finish loading
     if (authLoading || cartLoading) {
       return;
+    }
+
+    // If from redirect, give auth state a moment to update (it may still be processing)
+    if (isFromRedirect && !isAuthenticated && !redirectCheckDoneRef.current) {
+      redirectCheckDoneRef.current = true;
+      // Wait a bit for auth state to update after login
+      const timeout = setTimeout(() => {
+        if (!isAuthenticated) {
+          navigate('/login?redirect=checkout');
+        }
+      }, 500);
+      return () => clearTimeout(timeout);
     }
 
     if (!isAuthenticated) {
@@ -160,7 +177,7 @@ export const Checkout: React.FC = () => {
       navigate('/cart');
       return;
     }
-  }, [isAuthenticated, authLoading, cartLoading, cartItems.length, navigate]);
+  }, [isAuthenticated, authLoading, cartLoading, cartItems.length, navigate, searchParams]);
 
   // Disable body scroll when processing or redirecting
   useEffect(() => {

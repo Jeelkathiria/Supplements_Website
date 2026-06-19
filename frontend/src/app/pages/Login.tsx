@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Mail, Eye, EyeOff, ShoppingCart, X, CheckCircle } from 'lucide-react';
 import { useAuth } from '../components/context/AuthContext';
@@ -12,7 +12,7 @@ const validateEmail = (email: string): boolean => {
 export const Login: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { login, loginWithGoogle, redirectAfterLogin, setRedirectAfterLogin, resetPassword } = useAuth();
+  const { login, loginWithGoogle, redirectAfterLogin, setRedirectAfterLogin, resetPassword, isAuthenticated } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
@@ -26,6 +26,7 @@ export const Login: React.FC = () => {
     password: '',
     rememberMe: false,
   });
+  const loginAttemptedRef = useRef(false);
   
   // Forgot Password Modal State
   const [showForgotPassword, setShowForgotPassword] = useState(false);
@@ -50,6 +51,28 @@ export const Login: React.FC = () => {
       return () => window.removeEventListener('popstate', handlePopState);
     }
   }, [isCheckoutRedirect, isCartRedirect]);
+
+  // Handle redirect after successful login
+  useEffect(() => {
+    if (loginAttemptedRef.current && isAuthenticated) {
+      const urlRedirect = searchParams.get('redirect');
+      let redirectPath = '/account';
+      
+      if (redirectAfterLogin) {
+        redirectPath = redirectAfterLogin;
+      } else if (urlRedirect === 'checkout') {
+        redirectPath = '/checkout';
+      } else if (urlRedirect === 'cart') {
+        redirectPath = '/cart';
+      } else if (urlRedirect) {
+        redirectPath = urlRedirect.startsWith('/') ? urlRedirect : `/${urlRedirect}`;
+      }
+
+      setRedirectAfterLogin(null);
+      loginAttemptedRef.current = false;
+      navigate(redirectPath);
+    }
+  }, [isAuthenticated, searchParams, redirectAfterLogin, navigate, setRedirectAfterLogin]);
 
   const handleEmailChange = (value: string) => {
     setFormData({ ...formData, email: value });
@@ -97,28 +120,11 @@ export const Login: React.FC = () => {
       setLoginError('');
       setErrors({ email: '', password: '' });
       
-      setTimeout(() => {
-        const urlRedirect = searchParams.get('redirect');
-        let redirectPath = '/account';
-        const isAdmin = formData.email.toLowerCase().trim() === 'admin@gmail.com';
-        
-        if (redirectAfterLogin) {
-          redirectPath = redirectAfterLogin;
-        } else if (urlRedirect === 'checkout') {
-          redirectPath = '/checkout';
-        } else if (urlRedirect === 'cart') {
-          redirectPath = '/cart';
-        } else if (urlRedirect) {
-          redirectPath = urlRedirect.startsWith('/') ? urlRedirect : `/${urlRedirect}`;
-        } else if (isAdmin) {
-          redirectPath = '/admin';
-        }
-
-        setRedirectAfterLogin(null);
-        navigate(redirectPath);
-      }, 1000);
+      // Set flag to trigger redirect when isAuthenticated updates
+      loginAttemptedRef.current = true;
     } catch (error: any) {
       setIsLoading(false);
+      loginAttemptedRef.current = false;
       
       // Display user-friendly error messages
       if (error.code === 'auth/user-not-found') {
@@ -143,25 +149,11 @@ export const Login: React.FC = () => {
       setLoginError('');
       setErrors({ email: '', password: '' });
       
-      setTimeout(() => {
-        const urlRedirect = searchParams.get('redirect');
-        let redirectPath = '/';
-        
-        if (redirectAfterLogin) {
-          redirectPath = redirectAfterLogin;
-        } else if (urlRedirect === 'checkout') {
-          redirectPath = '/checkout';
-        } else if (urlRedirect === 'cart') {
-          redirectPath = '/cart';
-        } else if (urlRedirect) {
-          redirectPath = urlRedirect.startsWith('/') ? urlRedirect : `/${urlRedirect}`;
-        }
-
-        setRedirectAfterLogin(null);
-        navigate(redirectPath);
-      }, 500);
+      // Set flag to trigger redirect when isAuthenticated updates
+      loginAttemptedRef.current = true;
     } catch (error: any) {
       setIsGoogleLoading(false);
+      loginAttemptedRef.current = false;
       setLoginError('Google login failed. Please try again.');
     }
   };
