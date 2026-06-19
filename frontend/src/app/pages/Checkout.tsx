@@ -156,27 +156,27 @@ export const Checkout: React.FC = () => {
       return;
     }
 
+    let timeoutId: NodeJS.Timeout | null = null;
+
     // If from redirect, give auth state a moment to update (it may still be processing)
     if (isFromRedirect && !isAuthenticated && !redirectCheckDoneRef.current) {
       redirectCheckDoneRef.current = true;
       // Wait a bit for auth state to update after login
-      const timeout = setTimeout(() => {
+      timeoutId = setTimeout(() => {
         if (!isAuthenticated) {
           navigate('/login?redirect=checkout');
         }
       }, 500);
-      return () => clearTimeout(timeout);
-    }
-
-    if (!isAuthenticated) {
+    } else if (!isAuthenticated) {
       navigate('/login?redirect=checkout');
-      return;
+    } else if (cartItems.length === 0) {
+      navigate('/cart');
     }
 
-    if (cartItems.length === 0) {
-      navigate('/cart');
-      return;
-    }
+    // Cleanup function
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+    };
   }, [isAuthenticated, authLoading, cartLoading, cartItems.length, navigate, searchParams]);
 
   // Disable body scroll when processing or redirecting
